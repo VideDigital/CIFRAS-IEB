@@ -1,9 +1,9 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
 import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, updateProfile } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
 import { getFirestore, collection, addDoc, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
-import { firebaseConfig } from "./firebase-config.js";
-import { KEYS, transposeContent, semitoneDistance, renderChordMarkup } from "./chord-engine.js";
-import { drawChordDiagram } from "./chord-diagrams.js";
+import { firebaseConfig } from "./firebase-config.js?v=3.1.0";
+import { KEYS, transposeContent, semitoneDistance, renderChordMarkup } from "./chord-engine.js?v=3.1.0";
+import { drawChordDiagram } from "./chord-diagrams.js?v=3.1.0";
 
 const firebaseApp = initializeApp(firebaseConfig);
 const auth = getAuth(firebaseApp);
@@ -158,12 +158,37 @@ onAuthStateChanged(auth, async (user) => {
   $("sidebarInitial").textContent = initials(name);
   $("welcomeTitle").textContent = `Ol\u00E1, ${firstName}! O que vamos tocar hoje?`;
 
-  await handleSharedLink();
-  await loadAll();
+  await ensurePublicProfile(user);
+
+  try {
+    await handleSharedLink();
+  } catch (error) {
+    console.error("Erro ao abrir compartilhamento:", error);
+  }
+
+  try {
+    await loadAll();
+  } catch (error) {
+    console.error("Erro ao carregar dados da conta:", error);
+    toast("Alguns dados nÃ£o puderam ser carregados. Atualize a pÃ¡gina.");
+  }
 });
 
 async function loadAll() {
-  await Promise.all([loadSongs(), loadLists(), loadGroups(), loadShared()]);
+  const results = await Promise.allSettled([
+    loadSongs(),
+    loadLists(),
+    loadGroups(),
+    loadShared()
+  ]);
+
+  results.forEach((result, index) => {
+    if (result.status === "rejected") {
+      const areas = ["cifras", "repertÃ³rios pessoais", "grupos", "compartilhamentos"];
+      console.error(`Erro ao carregar ${areas[index]}:`, result.reason);
+    }
+  });
+
   updateStats();
 }
 
@@ -787,62 +812,91 @@ function closeSidebar() {
 
 
 
-function generatePublicId() {
+function generateStablePublicId(uid = "") {
   const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  let value = "IEB-";
-  for (let index = 0; index < 6; index += 1) {
-    value += alphabet[Math.floor(Math.random() * alphabet.length)];
+  let hash = 2166136261;
+
+  for (const character of uid) {
+    hash ^= character.charCodeAt(0);
+    hash = Math.imul(hash, 16777619);
   }
+
+  let value = "IEB-";
+  let state = hash >>> 0;
+
+  for (let index = 0; index < 6; index += 1) {
+    state = Math.imul(state ^ (state >>> 13), 2246822519) >>> 0;
+    value += alphabet[state % alphabet.length];
+  }
+
   return value;
 }
 
-async function ensurePublicProfile(user) {
-  const userReference = doc(db, "users", user.uid);
-  const profileReference = doc(db, "publicProfiles", user.uid);
-  const [userSnapshot, profileSnapshot] = await Promise.all([
-    getDoc(userReference),
-    getDoc(profileReference)
-  ]);
-
-  let publicId = userSnapshot.exists() ? userSnapshot.data().publicId : "";
-
-  if (!publicId) {
-    for (let attempt = 0; attempt < 8; attempt += 1) {
-      const candidate = generatePublicId();
-      const duplicateQuery = query(
-        collection(db, "publicProfiles"),
-        where("publicId", "==", candidate)
-      );
-      const duplicateSnapshot = await getDocs(duplicateQuery);
-
-      if (duplicateSnapshot.empty) {
-        publicId = candidate;
-        break;
-      }
-    }
-  }
-
-  if (!publicId) throw new Error("N\u00e3o foi poss\u00edvel gerar um ID.");
-
-  const name = user.displayName || userSnapshot.data()?.name || "Usu\u00e1rio";
-
-  await setDoc(userReference, {
-    name,
-    email: user.email || "",
-    publicId,
-    updatedAt: serverTimestamp()
-  }, { merge: true });
-
-  await setDoc(profileReference, {
-    uid: user.uid,
-    publicId,
-    name,
-    updatedAt: serverTimestamp()
-  }, { merge: true });
-
+function showPublicId(publicId, status = "ID pronto para compartilhar.") {
   currentPublicId = publicId;
   $("userPublicId").textContent = publicId;
   $("groupPageUserId").textContent = publicId;
+
+  const statusElement = $("publicIdStatus");
+  if (statusElement) statusElement.textContent = status;
+}
+
+async function ensurePublicProfile(user) {
+  const fallbackPublicId = generateStablePublicId(user.uid);
+
+  // Mostra o ID imediatamente. A tela nunca fica presa em "gerando".
+  showPublicId(fallbackPublicId, "Sincronizando seu ID com o Firebase...");
+
+  const userReference = doc(db, "users", user.uid);
+  const profileReference = doc(db, "publicProfiles", user.uid);
+
+  try {
+    const [userSnapshot, profileSnapshot] = await Promise.all([
+      getDoc(userReference),
+      getDoc(profileReference)
+    ]);
+
+    const savedPublicId =
+      userSnapshot.data()?.publicId ||
+      profileSnapshot.data()?.publicId ||
+      fallbackPublicId;
+
+    const name =
+      user.displayName ||
+      userSnapshot.data()?.name ||
+      profileSnapshot.data()?.name ||
+      "UsuÃ¡rio";
+
+    showPublicId(savedPublicId, "ID pronto para compartilhar.");
+
+    await Promise.all([
+      setDoc(userReference, {
+        name,
+        email: user.email || "",
+        publicId: savedPublicId,
+        updatedAt: serverTimestamp()
+      }, { merge: true }),
+
+      setDoc(profileReference, {
+        uid: user.uid,
+        publicId: savedPublicId,
+        name,
+        updatedAt: serverTimestamp()
+      }, { merge: true })
+    ]);
+
+    showPublicId(savedPublicId, "ID sincronizado com sucesso.");
+  } catch (error) {
+    console.error("Erro ao sincronizar ID pÃºblico:", error);
+    showPublicId(
+      fallbackPublicId,
+      "O ID estÃ¡ disponÃ­vel neste aparelho, mas verifique as regras do Firestore para usar grupos."
+    );
+
+    if (error.code === "permission-denied") {
+      toast("Seu ID foi gerado, mas o Firebase bloqueou a sincronizaÃ§Ã£o. Atualize as regras enviadas na V3.");
+    }
+  }
 }
 
 async function copyPublicId() {
@@ -1101,21 +1155,419 @@ $("deleteGroupBtn").onclick = async () => {
   }
 };
 
-function normalizeImportedKey(value = "C") { const clean=value.trim().replace(/\s+/g,""); return KEYS.includes(clean)?clean:"C"; }
-function stripChordMarkup(content=""){ return content.replace(/\[[^\]]+\]/g,"").replace(/[ \t]+\n/g,"\n"); }
-function inferSongFromFile(fileName,rawText){
- const text=rawText.replace(/\r\n/g,"\n").trim(), baseName=fileName.replace(/\.[^.]+$/,"").replace(/[_-]+/g," ").trim();
- if(fileName.toLowerCase().endsWith(".json")){try{const data=JSON.parse(text), arr=Array.isArray(data)?data:[data]; return arr.map((item,i)=>({title:String(item.title||item.titulo||`${baseName} ${i+1}`).trim(),artist:String(item.artist||item.artista||"").trim(),key:normalizeImportedKey(String(item.key||item.tom||"C")),capo:Number(item.capo||item.capotraste||0)||0,content:String(item.content||item.cifra||"").trim(),sourceFileName:fileName})).filter(s=>s.title&&s.content);}catch(e){console.warn(e)}}
- const lines=text.split("\n"); let title="",artist="",key="C",capo=0,contentStart=-1;
- lines.forEach((line,i)=>{const t=line.trim(); if(/^t[iÃ­]tulo\s*:/i.test(t))title=t.replace(/^t[iÃ­]tulo\s*:/i,"").trim(); else if(/^(artista|minist[eÃ©]rio)\s*:/i.test(t))artist=t.replace(/^(artista|minist[eÃ©]rio)\s*:/i,"").trim(); else if(/^tom\s*:/i.test(t))key=normalizeImportedKey(t.replace(/^tom\s*:/i,"").trim()); else if(/^capotraste\s*:/i.test(t))capo=Number(t.replace(/^capotraste\s*:/i,"").trim())||0; else if(/^cifra\s*:/i.test(t))contentStart=i+1;});
- const meta=/^(t[iÃ­]tulo|artista|minist[eÃ©]rio|tom|capotraste)\s*:/i; const content=contentStart>=0?lines.slice(contentStart).join("\n").trim():lines.filter(l=>!meta.test(l.trim())).join("\n").trim();
- return [{title:title||baseName||"Cifra importada",artist,key,capo,content,sourceFileName:fileName}].filter(s=>s.content);
+function normalizeImportedKey(value = "C") {
+  const clean = String(value || "C").trim().replace(/\s+/g, "");
+  return KEYS.includes(clean) ? clean : "C";
 }
-function renderBulkImportSummary(items){const el=$("bulkImportSummary");el.classList.remove("hidden");el.innerHTML=items.length?`<strong>${items.length} cifra(s) pronta(s) para importar</strong><div class="bulk-song-list">${items.map((s,i)=>`<div class="bulk-song-item"><span>${i+1}</span><div><strong>${safeText(s.title)}</strong><small>${safeText(s.sourceFileName)} â¢ Tom ${safeText(s.key)}</small></div></div>`).join("")}</div>`:"<strong>Nenhuma cifra vÃ¡lida encontrada.</strong>";}
-$("bulkImportBtn").onclick=()=>{selectedBulkSongs=[];$("bulkImportFiles").value="";$("bulkImportSummary").classList.add("hidden");$("bulkImportDialog").showModal();};
-$("bulkImportFiles").addEventListener("change",async e=>{selectedBulkSongs=[];for(const file of [...e.target.files]){try{selectedBulkSongs.push(...inferSongFromFile(file.name,await file.text()));}catch(err){console.error(err)}}renderBulkImportSummary(selectedBulkSongs);});
-$("clearBulkFilesBtn").onclick=()=>{selectedBulkSongs=[];$("bulkImportFiles").value="";$("bulkImportSummary").classList.add("hidden");};
-$("confirmBulkImportBtn").onclick=async()=>{if(!selectedBulkSongs.length){toast("Selecione pelo menos um arquivo de cifra.");return;}const b=$("confirmBulkImportBtn");b.disabled=true;let ok=0,fail=0;for(let i=0;i<selectedBulkSongs.length;i++){const s=selectedBulkSongs[i];b.textContent=`Importando ${i+1} de ${selectedBulkSongs.length}...`;try{await addDoc(collection(db,"songs"),{ownerId:currentUser.uid,title:s.title,artist:s.artist,key:s.key,capo:Math.max(0,Math.min(12,s.capo)),content:s.content,importedInBulk:true,sourceFileName:s.sourceFileName||"",createdAt:serverTimestamp(),updatedAt:serverTimestamp()});ok++;}catch(e){fail++;console.error(e)}}b.disabled=false;b.textContent="Importar arquivos";await loadSongs();updateStats();if(ok){$("bulkImportDialog").close();showView("library");toast(fail?`${ok} importada(s) e ${fail} com erro.`:`${ok} cifra(s) importada(s)!`);}else toast("NÃ£o foi possÃ­vel importar os arquivos.");};
+
+function stripChordMarkup(content = "") {
+  return String(content)
+    .replace(/\[[^\]]+\]/g, "")
+    .replace(/[ \t]+\n/g, "\n");
+}
+
+function looksLikeChordToken(token = "") {
+  return /^(?:N\.?C\.?|[A-G](?:#|b)?(?:m|maj|min|dim|aug|sus|add)?\d*(?:\([^)]+\))?(?:\/[A-G](?:#|b)?)?)$/i.test(token);
+}
+
+function looksLikeChordRow(line = "") {
+  const tokens = String(line)
+    .trim()
+    .replace(/[|:]/g, " ")
+    .split(/\s+/)
+    .filter(Boolean);
+
+  return tokens.length > 0 && tokens.every((token) =>
+    looksLikeChordToken(token) || /^\(?\d+x\)?$/i.test(token)
+  );
+}
+
+function convertChordRowsToBracketMarkup(content = "") {
+  const lines = String(content).replace(/\r\n/g, "\n").split("\n");
+  const result = [];
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const chordLine = lines[index];
+    const lyricLine = lines[index + 1];
+
+    if (
+      looksLikeChordRow(chordLine) &&
+      lyricLine !== undefined &&
+      lyricLine.trim() &&
+      !looksLikeChordRow(lyricLine)
+    ) {
+      const chordMatches = [
+        ...chordLine.matchAll(
+          /[A-G](?:#|b)?(?:m|maj|min|dim|aug|sus|add)?\d*(?:\([^)]+\))?(?:\/[A-G](?:#|b)?)?|N\.?C\.?/gi
+        )
+      ];
+
+      let convertedLyric = lyricLine;
+
+      for (let matchIndex = chordMatches.length - 1; matchIndex >= 0; matchIndex -= 1) {
+        const match = chordMatches[matchIndex];
+        const position = Math.min(match.index || 0, convertedLyric.length);
+        convertedLyric =
+          convertedLyric.slice(0, position) +
+          `[${match[0]}]` +
+          convertedLyric.slice(position);
+      }
+
+      result.push(convertedLyric);
+      index += 1;
+      continue;
+    }
+
+    result.push(chordLine);
+  }
+
+  return result.join("\n");
+}
+
+async function extractPdfText(file) {
+  const pdfjs = await import(
+    "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs"
+  );
+
+  pdfjs.GlobalWorkerOptions.workerSrc =
+    "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.mjs";
+
+  const document = await pdfjs.getDocument({
+    data: await file.arrayBuffer()
+  }).promise;
+
+  const pages = [];
+
+  for (let pageNumber = 1; pageNumber <= document.numPages; pageNumber += 1) {
+    const page = await document.getPage(pageNumber);
+    const content = await page.getTextContent();
+
+    const rows = new Map();
+
+    content.items.forEach((item) => {
+      const y = Math.round(item.transform?.[5] || 0);
+      if (!rows.has(y)) rows.set(y, []);
+      rows.get(y).push({
+        x: item.transform?.[4] || 0,
+        text: item.str || ""
+      });
+    });
+
+    const pageText = [...rows.entries()]
+      .sort((a, b) => b[0] - a[0])
+      .map(([, rowItems]) =>
+        rowItems
+          .sort((a, b) => a.x - b.x)
+          .map((item) => item.text)
+          .join(" ")
+          .replace(/\s+/g, " ")
+          .trim()
+      )
+      .filter(Boolean)
+      .join("\n");
+
+    pages.push(pageText);
+  }
+
+  return pages.join("\n\n");
+}
+
+async function extractDocxText(file) {
+  const mammoth = await import(
+    "https://cdn.jsdelivr.net/npm/mammoth@1.9.1/+esm"
+  );
+
+  const result = await mammoth.extractRawText({
+    arrayBuffer: await file.arrayBuffer()
+  });
+
+  return result.value || "";
+}
+
+async function readImportedFile(file) {
+  const extension = file.name.split(".").pop()?.toLowerCase() || "";
+
+  if (extension === "pdf" || file.type === "application/pdf") {
+    return extractPdfText(file);
+  }
+
+  if (
+    extension === "docx" ||
+    file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+  ) {
+    return extractDocxText(file);
+  }
+
+  return file.text();
+}
+
+function inferSongFromFile(fileName, rawText) {
+  const text = String(rawText || "").replace(/\r\n/g, "\n").trim();
+  const baseName = fileName
+    .replace(/\.[^.]+$/, "")
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (!text) return [];
+
+  if (fileName.toLowerCase().endsWith(".json")) {
+    try {
+      const data = JSON.parse(text);
+      const items = Array.isArray(data) ? data : [data];
+
+      return items.map((item, index) => ({
+        title: String(item.title || item.titulo || `${baseName} ${index + 1}`).trim(),
+        artist: String(item.artist || item.artista || "").trim(),
+        key: normalizeImportedKey(item.key || item.tom || "C"),
+        capo: Number(item.capo || item.capotraste || 0) || 0,
+        content: convertChordRowsToBracketMarkup(
+          String(item.content || item.cifra || "").trim()
+        ),
+        sourceFileName: fileName
+      })).filter((song) => song.title && song.content);
+    } catch (error) {
+      console.warn("JSON invÃ¡lido:", fileName, error);
+    }
+  }
+
+  const lines = text.split("\n");
+  let title = "";
+  let artist = "";
+  let key = "C";
+  let capo = 0;
+  let contentStart = -1;
+
+  lines.forEach((line, index) => {
+    const trimmed = line.trim();
+
+    if (/^t[iÃ­]tulo\s*:/i.test(trimmed)) {
+      title = trimmed.replace(/^t[iÃ­]tulo\s*:/i, "").trim();
+    } else if (/^(artista|minist[eÃ©]rio)\s*:/i.test(trimmed)) {
+      artist = trimmed.replace(/^(artista|minist[eÃ©]rio)\s*:/i, "").trim();
+    } else if (/^tom\s*:/i.test(trimmed)) {
+      key = normalizeImportedKey(trimmed.replace(/^tom\s*:/i, "").trim());
+    } else if (/^capotraste\s*:/i.test(trimmed)) {
+      capo = Number(trimmed.replace(/^capotraste\s*:/i, "").trim()) || 0;
+    } else if (/^cifra\s*:/i.test(trimmed)) {
+      contentStart = index + 1;
+    }
+  });
+
+  const metadataPattern =
+    /^(t[iÃ­]tulo|artista|minist[eÃ©]rio|tom|capotraste)\s*:/i;
+
+  let rawContent = contentStart >= 0
+    ? lines.slice(contentStart).join("\n").trim()
+    : lines
+        .filter((line) => !metadataPattern.test(line.trim()))
+        .join("\n")
+        .trim();
+
+  // PDFs frequentemente repetem o tÃ­tulo no comeÃ§o.
+  if (!title && lines[0]?.trim()) {
+    const firstLine = lines[0].trim();
+    if (
+      firstLine.length <= 100 &&
+      !looksLikeChordRow(firstLine) &&
+      !/\[[^\]]+\]/.test(firstLine)
+    ) {
+      title = firstLine;
+      rawContent = lines.slice(1).join("\n").trim();
+    }
+  }
+
+  const content = convertChordRowsToBracketMarkup(rawContent);
+
+  return [{
+    title: title || baseName || "Cifra importada",
+    artist,
+    key,
+    capo,
+    content,
+    sourceFileName: fileName
+  }].filter((song) => song.content);
+}
+
+function setImportProgress(current, total, message) {
+  const wrapper = $("bulkImportProgress");
+  wrapper.classList.remove("hidden");
+  $("bulkImportProgressText").textContent = message;
+  $("bulkImportProgressCount").textContent = `${current}/${total}`;
+  $("bulkImportProgressBar").style.width =
+    `${total ? Math.round((current / total) * 100) : 0}%`;
+}
+
+function resetImportProgress() {
+  $("bulkImportProgress").classList.add("hidden");
+  $("bulkImportProgressBar").style.width = "0%";
+}
+
+function renderBulkImportSummary(items, failures = []) {
+  const element = $("bulkImportSummary");
+  element.classList.remove("hidden");
+
+  const successHtml = items.length
+    ? `<strong>${items.length} cifra(s) pronta(s) para importar</strong>
+       <div class="bulk-song-list">
+         ${items.map((song, index) => `
+           <div class="bulk-song-item">
+             <span>${index + 1}</span>
+             <div>
+               <strong>${safeText(song.title)}</strong>
+               <small>${safeText(song.sourceFileName)} â¢ Tom ${safeText(song.key)}</small>
+             </div>
+           </div>
+         `).join("")}
+       </div>`
+    : "<strong>Nenhuma cifra vÃ¡lida foi encontrada.</strong>";
+
+  const failuresHtml = failures.length
+    ? `<div class="import-errors">
+         <strong>${failures.length} arquivo(s) nÃ£o puderam ser lidos</strong>
+         ${failures.map((failure) => `
+           <small>${safeText(failure.file)}: ${safeText(failure.reason)}</small>
+         `).join("")}
+       </div>`
+    : "";
+
+  element.innerHTML = successHtml + failuresHtml;
+}
+
+$("bulkImportBtn").onclick = () => {
+  selectedBulkSongs = [];
+  $("bulkImportFiles").value = "";
+  $("bulkImportSummary").classList.add("hidden");
+  $("bulkImportSummary").innerHTML = "";
+  resetImportProgress();
+  $("bulkImportDialog").showModal();
+};
+
+$("bulkImportFiles").addEventListener("change", async (event) => {
+  selectedBulkSongs = [];
+  const failures = [];
+  const files = [...event.target.files];
+
+  if (!files.length) return;
+
+  for (let index = 0; index < files.length; index += 1) {
+    const file = files[index];
+    setImportProgress(
+      index,
+      files.length,
+      `Lendo ${file.name}...`
+    );
+
+    try {
+      const rawText = await readImportedFile(file);
+      const inferredSongs = inferSongFromFile(file.name, rawText);
+
+      if (!inferredSongs.length) {
+        failures.push({
+          file: file.name,
+          reason: "nÃ£o foi encontrado texto selecionÃ¡vel; o PDF pode ser uma imagem digitalizada"
+        });
+      } else {
+        selectedBulkSongs.push(...inferredSongs);
+      }
+    } catch (error) {
+      console.error("Erro ao ler arquivo:", file.name, error);
+      failures.push({
+        file: file.name,
+        reason: error?.message || "formato nÃ£o reconhecido"
+      });
+    }
+
+    setImportProgress(
+      index + 1,
+      files.length,
+      index + 1 === files.length ? "Leitura concluÃ­da" : "Lendo arquivos..."
+    );
+  }
+
+  renderBulkImportSummary(selectedBulkSongs, failures);
+});
+
+$("clearBulkFilesBtn").onclick = () => {
+  selectedBulkSongs = [];
+  $("bulkImportFiles").value = "";
+  $("bulkImportSummary").classList.add("hidden");
+  $("bulkImportSummary").innerHTML = "";
+  resetImportProgress();
+};
+
+$("confirmBulkImportBtn").onclick = async () => {
+  if (!selectedBulkSongs.length) {
+    toast("Selecione pelo menos um arquivo de cifra.");
+    return;
+  }
+
+  const button = $("confirmBulkImportBtn");
+  button.disabled = true;
+
+  let importedCount = 0;
+  let failedCount = 0;
+
+  for (let index = 0; index < selectedBulkSongs.length; index += 1) {
+    const song = selectedBulkSongs[index];
+
+    setImportProgress(
+      index,
+      selectedBulkSongs.length,
+      `Salvando ${song.title}...`
+    );
+
+    try {
+      await addDoc(collection(db, "songs"), {
+        ownerId: currentUser.uid,
+        title: song.title,
+        artist: song.artist,
+        key: song.key,
+        capo: Math.max(0, Math.min(12, song.capo)),
+        content: song.content,
+        importedInBulk: true,
+        sourceFileName: song.sourceFileName || "",
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      });
+
+      importedCount += 1;
+    } catch (error) {
+      console.error("Erro ao salvar cifra importada:", error);
+      failedCount += 1;
+    }
+
+    setImportProgress(
+      index + 1,
+      selectedBulkSongs.length,
+      "Salvando cifras..."
+    );
+  }
+
+  button.disabled = false;
+  setImportProgress(
+    selectedBulkSongs.length,
+    selectedBulkSongs.length,
+    "ImportaÃ§Ã£o concluÃ­da"
+  );
+
+  await loadSongs();
+  updateStats();
+
+  if (importedCount > 0) {
+    window.setTimeout(() => $("bulkImportDialog").close(), 450);
+    showView("library");
+
+    toast(
+      failedCount
+        ? `${importedCount} cifra(s) importada(s) e ${failedCount} com erro.`
+        : `${importedCount} cifra(s) importada(s) com sucesso!`
+    );
+  } else {
+    toast("NÃ£o foi possÃ­vel importar as cifras.");
+  }
+};
+
 $("textOnlyBtn").onclick=()=>{textOnlyMode=!textOnlyMode;$("textOnlyBtn").textContent=textOnlyMode?"Mostrar acordes":"Somente texto";$("textOnlyBtn").classList.toggle("active-mode",textOnlyMode);updatePreview();};
 $("playerTextOnlyBtn").onclick=()=>{playerTextOnlyMode=!playerTextOnlyMode;$("playerTextOnlyBtn").textContent=playerTextOnlyMode?"Mostrar acordes":"Somente texto";$("playerTextOnlyBtn").classList.toggle("active-mode",playerTextOnlyMode);renderListSong();};
 async function loadGroupRepertoires(groupId){try{const snap=await getDocs(query(collection(db,"groupRepertoires"),where("groupId","==",groupId)));groupRepertoires=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>String(a.date||"").localeCompare(String(b.date||"")));renderGroupRepertoires();}catch(e){console.error(e);$("groupRepertoireList").innerHTML='<p class="muted">NÃ£o foi possÃ­vel carregar os repertÃ³rios.</p>';}}
@@ -1315,4 +1767,3 @@ window.addEventListener("beforeunload", (event) => {
   event.preventDefault();
   event.returnValue = "";
 });
-
