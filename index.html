@@ -7,8 +7,8 @@
   <meta name="theme-color" content="#090f1d">
   <meta name="description" content="Cifras IEB — repertório, listas e cifras para louvor.">
   <title>Cifras IEB</title>
-  <link rel="stylesheet" href="styles.css?v=5.0.0">
-  <link rel="manifest" href="manifest.webmanifest?v=5.0.0">
+  <link rel="stylesheet" href="styles.css?v=5.1.0">
+  <link rel="manifest" href="manifest.webmanifest?v=5.1.0">
   <link rel="apple-touch-icon" href="icons/icon-180.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -145,7 +145,7 @@
           <span>↪</span>
           <span>Sair da conta</span>
         </button>
-        <small>Cifras IEB • Versão 5.0</small>
+        <small>Cifras IEB • Versão 5.1</small>
       </div>
     </aside>
     <div id="sidebarBackdrop" class="backdrop hidden"></div>
@@ -220,16 +220,34 @@
 
 
       <section id="groupsView" class="view hidden">
-        <div class="section-head page-heading">
+        <div class="groups-hero">
           <div>
-            <span class="eyebrow">EQUIPE</span>
-            <h1>Meus grupos</h1>
-            <p>Crie grupos e adicione pessoas usando o ID individual de cada conta.</p>
+            <span class="eyebrow">CENTRAL DE EQUIPES</span>
+            <h1>Grupos e repertórios</h1>
+            <p>Organize equipes, membros, cultos e repertórios compartilhados em um só lugar.</p>
           </div>
-          <button id="newGroupBtn" class="primary">＋ Novo grupo</button>
+          <button id="newGroupBtn" class="primary groups-primary-action">＋ Criar grupo</button>
         </div>
 
-        <div class="id-info-card">
+        <div class="groups-summary-grid">
+          <article>
+            <span>GRUPOS</span>
+            <strong id="groupsSummaryCount">0</strong>
+            <small>equipes que você participa</small>
+          </article>
+          <article>
+            <span>MEMBROS</span>
+            <strong id="groupsSummaryMembers">0</strong>
+            <small>pessoas nas suas equipes</small>
+          </article>
+          <article>
+            <span>SEU ACESSO</span>
+            <strong id="groupsSummaryOwned">0</strong>
+            <small>grupos sob sua responsabilidade</small>
+          </article>
+        </div>
+
+        <div class="id-info-card group-id-card">
           <div>
             <span class="eyebrow">SEU ID PÚBLICO</span>
             <h3 id="groupPageUserId">Gerando ID...</h3><small id="publicIdStatus" class="public-id-status">Preparando sua conta para grupos.</small>
@@ -238,7 +256,17 @@
           <button id="copyGroupPageUserId" class="secondary-button">Copiar ID</button>
         </div>
 
-        <div id="groupGrid" class="card-grid"></div>
+        <div class="groups-list-heading">
+          <div>
+            <span class="eyebrow">SUAS EQUIPES</span>
+            <h2>Grupos ativos</h2>
+          </div>
+          <div class="group-search-field">
+            <span>⌕</span>
+            <input id="groupSearchInput" type="search" placeholder="Buscar grupo" autocomplete="off">
+          </div>
+        </div>
+        <div id="groupGrid" class="professional-group-grid"></div>
 
         <div id="emptyGroups" class="empty-state hidden">
           <div class="empty-icon">☉</div>
@@ -848,9 +876,11 @@ Poderoso</code></pre>
 
   <dialog id="groupDetailsDialog" class="group-details-dialog">
     <button class="dialog-close" data-close-dialog aria-label="Fechar">×</button>
-    <span class="eyebrow">GRUPO</span>
-    <h3 id="groupDetailsName">Nome do grupo</h3>
-    <p id="groupDetailsDescription" class="muted"></p>
+    <div class="group-details-cover">
+      <span class="eyebrow">PAINEL DO GRUPO</span>
+      <h3 id="groupDetailsName">Nome do grupo</h3>
+      <p id="groupDetailsDescription" class="muted"></p>
+    </div>
 
     <div class="group-role-line">
       <span id="groupRoleBadge" class="role-badge">Membro</span>
@@ -883,7 +913,18 @@ Poderoso</code></pre>
     <button class="dialog-close" data-close-dialog aria-label="Fechar">×</button><span class="eyebrow">REPERTÓRIO DO GRUPO</span><h3>Novo repertório</h3>
     <label>Nome do repertório<input id="repertoireNameInput" placeholder="Ex.: Culto de domingo"></label>
     <label>Data<div class="date-input-wrap"><input id="repertoireDateInput" type="date"></div></label>
-    <p class="field-title">Selecione as cifras</p><div id="repertoireSongOptions" class="check-list"></div>
+    <div class="repertoire-selection-heading">
+      <div>
+        <p class="field-title">Selecione as cifras</p>
+        <small id="repertoireSelectionCount">0 selecionadas</small>
+      </div>
+      <button id="clearRepertoireSelectionBtn" type="button" class="text-button">Limpar</button>
+    </div>
+    <div class="repertoire-song-search">
+      <span>⌕</span>
+      <input id="repertoireSongSearchInput" type="search" placeholder="Buscar por música ou artista" autocomplete="off">
+    </div>
+    <div id="repertoireSongOptions" class="check-list repertoire-check-list"></div>
     <button id="saveRepertoireBtn" class="primary full">Criar repertório</button>
   </dialog>
   <dialog id="repertoireDetailsDialog">
@@ -893,6 +934,6 @@ Poderoso</code></pre>
     <button id="playGroupRepertoireBtn" class="primary full">Abrir modo de leitura</button>
     <button id="deleteRepertoireBtn" class="danger-button full">Excluir repertório</button>
   </dialog>
-  <script type="module" src="app.js?v=5.0.0"></script>
+  <script type="module" src="app.js?v=5.1.0"></script>
 </body>
 </html>
