@@ -7,33 +7,33 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    function isOwner(data) {
+    function owns(data) {
       return signedIn() && data.ownerId == request.auth.uid;
+    }
+
+    function groupExists(groupId) {
+      return exists(/databases/$(database)/documents/groups/$(groupId));
     }
 
     function isGroupMember(groupId) {
       return signedIn()
-        && exists(/databases/$(database)/documents/groups/$(groupId))
+        && groupExists(groupId)
         && request.auth.uid in
           get(/databases/$(database)/documents/groups/$(groupId)).data.memberIds;
     }
 
     function isGroupOwner(groupId) {
       return signedIn()
-        && exists(/databases/$(database)/documents/groups/$(groupId))
+        && groupExists(groupId)
         && get(/databases/$(database)/documents/groups/$(groupId)).data.ownerId
           == request.auth.uid;
     }
 
-    function hasDirectSongShare(songId) {
-      return signedIn()
-        && exists(
-          /databases/$(database)/documents/shares/$(songId + "_" + request.auth.uid)
-        );
-    }
-
     match /users/{userId} {
-      allow read, create, update, delete:
+      allow read, create, update:
+        if signedIn() && request.auth.uid == userId;
+
+      allow delete:
         if signedIn() && request.auth.uid == userId;
     }
 
@@ -41,7 +41,9 @@ service cloud.firestore {
       allow read: if signedIn();
 
       allow create, update:
-        if signedIn() && request.auth.uid == userId;
+        if signedIn()
+        && request.auth.uid == userId
+        && request.resource.data.uid == request.auth.uid;
 
       allow delete: if false;
     }
@@ -52,11 +54,16 @@ service cloud.firestore {
         && request.resource.data.ownerId == request.auth.uid;
 
       allow read:
-        if isOwner(resource.data)
-        || hasDirectSongShare(songId);
+        if owns(resource.data)
+        || (
+          signedIn()
+          && exists(
+            /databases/$(database)/documents/shares/$(songId + "_" + request.auth.uid)
+          )
+        );
 
       allow update, delete:
-        if isOwner(resource.data);
+        if owns(resource.data);
     }
 
     match /lists/{listId} {
@@ -65,7 +72,7 @@ service cloud.firestore {
         && request.resource.data.ownerId == request.auth.uid;
 
       allow read, update, delete:
-        if isOwner(resource.data);
+        if owns(resource.data);
     }
 
     match /groups/{groupId} {
@@ -100,8 +107,8 @@ service cloud.firestore {
     match /groupRepertoires/{repertoireId} {
       allow create:
         if signedIn()
-        && isGroupMember(request.resource.data.groupId)
-        && request.resource.data.createdBy == request.auth.uid;
+        && request.resource.data.createdBy == request.auth.uid
+        && isGroupMember(request.resource.data.groupId);
 
       allow read:
         if signedIn()
@@ -130,7 +137,7 @@ service cloud.firestore {
         && resource.data.active == true;
 
       allow update, delete:
-        if isOwner(resource.data);
+        if owns(resource.data);
     }
 
     match /shares/{shareId} {
