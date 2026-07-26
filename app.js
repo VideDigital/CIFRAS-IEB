@@ -1,9 +1,9 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
 import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail, signOut, updateProfile } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
 import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, collection, addDoc, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
-import { firebaseConfig } from "./firebase-config.js?v=5.0.0";
-import { KEYS, transposeContent, semitoneDistance, renderChordMarkup } from "./chord-engine.js?v=5.0.0";
-import { drawChordDiagram } from "./chord-diagrams.js?v=5.0.0";
+import { firebaseConfig } from "./firebase-config.js?v=5.1.0";
+import { KEYS, transposeContent, semitoneDistance, renderChordMarkup } from "./chord-engine.js?v=5.1.0";
+import { drawChordDiagram } from "./chord-diagrams.js?v=5.1.0";
 
 const firebaseApp = initializeApp(firebaseConfig);
 const auth = getAuth(firebaseApp);
@@ -485,7 +485,102 @@ onAuthStateChanged(auth, async (user) => {
   }
 });
 
+
+const LOCAL_DATA_VERSION = 1;
+
+function localDataKey(area) {
+  return currentUser ? `cifrasIeb:${LOCAL_DATA_VERSION}:${currentUser.uid}:${area}` : "";
+}
+
+function serializeLocalValue(value) {
+  if (value === undefined) return null;
+  if (value === null) return null;
+
+  if (Array.isArray(value)) {
+    return value.map(serializeLocalValue);
+  }
+
+  if (typeof value === "object") {
+    if (typeof value.toMillis === "function") {
+      return { __localTimestamp: value.toMillis() };
+    }
+
+    return Object.fromEntries(
+      Object.entries(value).map(([key, item]) => [key, serializeLocalValue(item)])
+    );
+  }
+
+  return value;
+}
+
+function restoreLocalValue(value) {
+  if (!value || typeof value !== "object") return value;
+
+  if (Array.isArray(value)) {
+    return value.map(restoreLocalValue);
+  }
+
+  if (Object.prototype.hasOwnProperty.call(value, "__localTimestamp")) {
+    const millis = Number(value.__localTimestamp) || 0;
+    return {
+      toMillis: () => millis,
+      toDate: () => new Date(millis)
+    };
+  }
+
+  return Object.fromEntries(
+    Object.entries(value).map(([key, item]) => [key, restoreLocalValue(item)])
+  );
+}
+
+function saveLocalArea(area, data) {
+  const key = localDataKey(area);
+  if (!key) return;
+
+  try {
+    localStorage.setItem(key, JSON.stringify({
+      savedAt: Date.now(),
+      data: serializeLocalValue(data)
+    }));
+  } catch (error) {
+    console.warn(`N\u00E3o foi poss\u00EDvel salvar ${area} para uso offline.`, error);
+  }
+}
+
+function readLocalArea(area) {
+  const key = localDataKey(area);
+  if (!key) return null;
+
+  try {
+    const stored = JSON.parse(localStorage.getItem(key) || "null");
+    return stored?.data ? restoreLocalValue(stored.data) : null;
+  } catch (error) {
+    console.warn(`N\u00E3o foi poss\u00EDvel ler ${area} offline.`, error);
+    return null;
+  }
+}
+
+function hydrateLocalData() {
+  const localSongs = readLocalArea("songs");
+  const localLists = readLocalArea("lists");
+  const localGroups = readLocalArea("groups");
+  const localShared = readLocalArea("shared");
+
+  if (Array.isArray(localSongs)) songs = localSongs.map(normalizeSongText);
+  if (Array.isArray(localLists)) lists = localLists;
+  if (Array.isArray(localGroups)) groups = localGroups;
+  if (Array.isArray(localShared)) sharedSongs = localShared.map(normalizeSongText);
+
+  renderSongs($("songSearch")?.value || "");
+  renderLists();
+  renderGroups();
+  renderShared();
+  updateStats();
+}
+
 async function loadAll() {
+  hydrateLocalData();
+
   const results = await Promise.allSettled([
     loadSongs(),
     loadLists(),
@@ -525,8 +620,17 @@ async function loadSongs() {
         return bTime - aTime;
       });
 
+    saveLocalArea("songs", songs);
     renderSongs($("songSearch")?.value || "");
   } catch (error) {
+    const cachedSongs = readLocalArea("songs");
+
+    if (Array.isArray(cachedSongs)) {
+      songs = cachedSongs.map(normalizeSongText);
+      renderSongs($("songSearch")?.value || "");
+      updateStats();
+      return;
+    }
     console.error("Erro ao carregar cifras:", error);
 
     if (error?.code === "permission-denied") {
@@ -551,9 +655,17 @@ async function loadLists() {
         return bTime - aTime;
       });
 
+    saveLocalArea("lists", lists);
     renderLists();
   } catch (error) {
     console.error(error);
+    const cachedLists = readLocalArea("lists");
+
+    if (Array.isArray(cachedLists)) {
+      lists = cachedLists;
+      renderLists();
+      updateStats();
+    }
   }
 }
 
@@ -571,9 +683,17 @@ async function loadShared() {
         : null;
     }))).filter(Boolean);
 
+    saveLocalArea("shared", sharedSongs);
     renderShared();
   } catch (error) {
     console.error(error);
+    const cachedShared = readLocalArea("shared");
+
+    if (Array.isArray(cachedShared)) {
+      sharedSongs = cachedShared.map(normalizeSongText);
+      renderShared();
+      updateStats();
+    }
   }
 }
 
@@ -1929,35 +2049,96 @@ async function loadGroups() {
     );
     groups = snapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
     groups.sort((a, b) => (a.name || "").localeCompare(b.name || "", "pt-BR"));
+    saveLocalArea("groups", groups);
     renderGroups();
   } catch (error) {
     console.error("Erro ao carregar grupos:", error);
+    const cachedGroups = readLocalArea("groups");
+
+    if (Array.isArray(cachedGroups)) {
+      groups = cachedGroups;
+      renderGroups();
+      return;
+    }
+
     toast("N\u00e3o foi poss\u00edvel carregar os grupos.");
   }
 }
 
-function renderGroups() {
-  $("groupGrid").innerHTML = groups.map((group) => {
+function renderGroups(searchTerm = "") {
+  const queryText = repairBrokenText(searchTerm).trim().toLowerCase();
+  const filteredGroups = groups.filter((group) => {
+    const haystack = `${group.name || ""} ${group.description || ""}`.toLowerCase();
+    return !queryText || haystack.includes(queryText);
+  });
+
+  const uniqueMembers = new Set(
+    groups.flatMap((group) => group.memberIds || [])
+  );
+
+  if ($("groupsSummaryCount")) $("groupsSummaryCount").textContent = groups.length;
+  if ($("groupsSummaryMembers")) $("groupsSummaryMembers").textContent = uniqueMembers.size;
+  if ($("groupsSummaryOwned")) {
+    $("groupsSummaryOwned").textContent = groups.filter(
+      (group) => group.ownerId === currentUser?.uid
+    ).length;
+  }
+
+  $("groupGrid").innerHTML = filteredGroups.map((group, index) => {
     const isOwner = group.ownerId === currentUser.uid;
+    const memberCount = group.memberIds?.length || 1;
+    const initial = (group.name || "G").trim().charAt(0).toUpperCase();
+
     return `
-      <article class="card">
-        <div>
-          <span class="song-card-key">${group.memberIds?.length || 1}</span>
-          <h3>${safeText(group.name || "Grupo sem nome")}</h3>
-          <p>${safeText(group.description || "Sem descri\u00e7\u00e3o")}</p>
+      <article class="professional-group-card">
+        <div class="group-card-accent"></div>
+        <div class="group-card-top">
+          <div class="group-card-avatar">${safeText(initial)}</div>
+          <span class="group-access-badge ${isOwner ? "owner" : ""}">
+            ${isOwner ? "Respons\u00E1vel" : "Membro"}
+          </span>
         </div>
-        <div>
-          <span class="meta">${isOwner ? "Voc\u00ea \u00e9 o respons\u00e1vel" : "Voc\u00ea participa deste grupo"}</span>
-          <div class="card-actions">
-            <button class="primary" data-open-group="${group.id}">Abrir grupo</button>
+
+        <div class="group-card-copy">
+          <span class="group-card-index">EQUIPE ${String(index + 1).padStart(2, "0")}</span>
+          <h3>${safeText(group.name || "Grupo sem nome")}</h3>
+          <p>${safeText(group.description || "Equipe organizada no Cifras IEB.")}</p>
+        </div>
+
+        <div class="group-card-metrics">
+          <div>
+            <strong>${memberCount}</strong>
+            <span>${memberCount === 1 ? "membro" : "membros"}</span>
+          </div>
+          <div>
+            <strong>${isOwner ? "Admin" : "Ativo"}</strong>
+            <span>seu acesso</span>
           </div>
         </div>
+
+        <button class="group-open-button" data-open-group="${group.id}">
+          <span>Abrir painel</span>
+          <span>\u2192</span>
+        </button>
       </article>
     `;
   }).join("");
 
   $("emptyGroups").classList.toggle("hidden", groups.length > 0);
+
+  if (groups.length && !filteredGroups.length) {
+    $("groupGrid").innerHTML = `
+      <div class="groups-search-empty">
+        <strong>Nenhum grupo encontrado</strong>
+        <span>Tente buscar usando outro nome.</span>
+      </div>
+    `;
+  }
 }
+
+$("groupSearchInput")?.addEventListener("input", (event) => {
+  renderGroups(event.target.value);
+});
 
 function openGroupDialog() {
   $("groupNameInput").value = "";
@@ -2029,7 +2210,9 @@ async function openGroupDetails(groupId) {
   $("groupDetailsName").textContent = currentGroup.name || "Grupo";
   $("groupDetailsDescription").textContent = currentGroup.description || "Sem descri\u00e7\u00e3o.";
   $("groupRoleBadge").textContent = isOwner ? "Respons\u00e1vel" : "Membro";
-  $("groupMemberCount").textContent = `${currentGroup.memberIds?.length || 0} membro(s)`;
+  const memberAmount = currentGroup.memberIds?.length || 0;
+  $("groupMemberCount").textContent =
+    `${memberAmount} ${memberAmount === 1 ? "membro" : "membros"} na equipe`;
   $("groupOwnerControls").classList.toggle("hidden", !isOwner);
   $("deleteGroupBtn").classList.toggle("hidden", !isOwner);
   $("leaveGroupBtn").classList.toggle("hidden", isOwner);
@@ -2776,10 +2959,106 @@ $("playerStageMode").onclick = () => {
     entering ? "Sair da tela cheia" : "Tela cheia";
 };
 
-async function loadGroupRepertoires(groupId){try{const snap=await getDocs(query(collection(db,"groupRepertoires"),where("groupId","==",groupId)));groupRepertoires=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>String(a.date||"").localeCompare(String(b.date||"")));renderGroupRepertoires();}catch(e){console.error(e);$("groupRepertoireList").innerHTML='<p class="muted">N\u00E3o foi poss\u00EDvel carregar os repert\u00F3rios.</p>';}}
+async function loadGroupRepertoires(groupId) {
+  const cacheArea = `groupRepertoires:${groupId}`;
+  const cached = readLocalArea(cacheArea);
+
+  if (Array.isArray(cached)) {
+    groupRepertoires = cached;
+    renderGroupRepertoires();
+  }
+
+  try {
+    const snap = await getDocs(
+      query(
+        collection(db, "groupRepertoires"),
+        where("groupId", "==", groupId)
+      )
+    );
+
+    groupRepertoires = snap.docs
+      .map((item) => ({ id: item.id, ...item.data() }))
+      .sort((a, b) => String(a.date || "").localeCompare(String(b.date || "")));
+
+    saveLocalArea(cacheArea, groupRepertoires);
+    renderGroupRepertoires();
+  } catch (error) {
+    console.error(error);
+
+    if (!Array.isArray(cached)) {
+      $("groupRepertoireList").innerHTML =
+        '<p class="muted">Este repert\u00F3rio ainda n\u00E3o foi sincronizado neste aparelho.</p>';
+    }
+  }
+}
 function formatRepertoireDate(v){if(!v)return"Data n\u00E3o informada";const[y,m,d]=v.split("-");return`${d}/${m}/${y}`;}
 function renderGroupRepertoires(){$("groupRepertoireList").innerHTML=groupRepertoires.length?groupRepertoires.map(r=>`<button class="repertoire-card" data-open-repertoire="${r.id}"><span class="repertoire-date">${safeText(formatRepertoireDate(r.date))}</span><strong>${safeText(r.name||"Repert\u00F3rio")}</strong><small>${r.songSnapshots?.length||r.songIds?.length||0} m\u00FAsica(s)</small></button>`).join(""):'<div class="empty-mini">Nenhum repert\u00F3rio criado neste grupo.</div>';}
-$("newGroupRepertoireBtn").onclick=()=>{if(!currentGroup)return;$("repertoireNameInput").value="";$("repertoireDateInput").value=new Date().toISOString().slice(0,10);$("repertoireSongOptions").innerHTML=songs.length?songs.map(s=>`<label class="check-row"><input type="checkbox" value="${s.id}"><span>${safeText(s.title)} \u2014 ${safeText(s.artist||"Sem artista")}</span></label>`).join(""):'<div class="empty-mini">Voc\u00EA ainda n\u00E3o possui cifras.</div>';$("repertoireDialog").showModal();};
+function renderRepertoireSongOptions(searchTerm = "") {
+  const selectedIds = new Set(
+    [...$("repertoireSongOptions").querySelectorAll("input:checked")]
+      .map((input) => input.value)
+  );
+
+  const queryText = repairBrokenText(searchTerm).trim().toLowerCase();
+  const filteredSongs = songs.filter((song) => {
+    const haystack = `${song.title || ""} ${song.artist || ""} ${song.key || ""}`.toLowerCase();
+    return !queryText || haystack.includes(queryText);
+  });
+
+  $("repertoireSongOptions").innerHTML = filteredSongs.length
+    ? filteredSongs.map((song) => `
+        <label class="repertoire-song-option">
+          <input type="checkbox" value="${song.id}" ${selectedIds.has(song.id) ? "checked" : ""}>
+          <span class="repertoire-option-key">${safeText(song.key || "C")}</span>
+          <span class="repertoire-option-copy">
+            <strong>${safeText(song.title || "Sem t\u00EDtulo")}</strong>
+            <small>${safeText(song.artist || "Artista n\u00E3o informado")}</small>
+          </span>
+          <span class="repertoire-option-check">\u2713</span>
+        </label>
+      `).join("")
+    : `
+      <div class="empty-mini">
+        ${songs.length ? "Nenhuma cifra encontrada nessa busca." : "Voc\u00EA ainda n\u00E3o possui cifras."}
+      </div>
+    `;
+
+  updateRepertoireSelectionCount();
+}
+
+function updateRepertoireSelectionCount() {
+  const count = $("repertoireSongOptions").querySelectorAll("input:checked").length;
+  if ($("repertoireSelectionCount")) {
+    $("repertoireSelectionCount").textContent =
+      `${count} ${count === 1 ? "selecionada" : "selecionadas"}`;
+  }
+}
+
+$("newGroupRepertoireBtn").onclick = () => {
+  if (!currentGroup) return;
+
+  $("repertoireNameInput").value = "";
+  $("repertoireDateInput").value = new Date().toISOString().slice(0, 10);
+  $("repertoireSongSearchInput").value = "";
+  renderRepertoireSongOptions();
+  $("repertoireDialog").showModal();
+};
+
+$("repertoireSongSearchInput")?.addEventListener("input", (event) => {
+  renderRepertoireSongOptions(event.target.value);
+});
+
+$("repertoireSongOptions")?.addEventListener("change", updateRepertoireSelectionCount);
+
+$("clearRepertoireSelectionBtn")?.addEventListener("click", () => {
+  $("repertoireSongOptions")
+    .querySelectorAll("input:checked")
+    .forEach((input) => {
+      input.checked = false;
+    });
+
+  updateRepertoireSelectionCount();
+});
 $("saveRepertoireBtn").onclick=async()=>{
   if(!currentGroup)return;
 
@@ -3248,7 +3527,7 @@ if ("serviceWorker" in navigator) {
   window.addEventListener("load", async () => {
     try {
       const registration = await navigator.serviceWorker.register(
-        "./service-worker.js?v=5.0.0",
+        "./service-worker.js?v=5.1.0",
         { scope: "./" }
       );
 
