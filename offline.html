@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#090f1d">
+  <title>Cifras IEB — Offline</title>
+  <style>
+    *{box-sizing:border-box}
+    body{
+      min-height:100vh;margin:0;padding:24px;display:grid;place-items:center;
+      background:#070b12;color:#f8fafc;font-family:system-ui,-apple-system,sans-serif
+    }
+    main{
+      width:min(460px,100%);padding:28px;border:1px solid #283a55;
+      border-radius:24px;background:#0b1422;text-align:center
+    }
+    .mark{
+      display:grid;width:70px;height:70px;margin:0 auto 18px;place-items:center;
+      border-radius:20px;background:#ff7a1a;color:white;font-weight:900;font-size:24px
+    }
+    h1{margin:0 0 10px}
+    p{color:#9aa8bc;line-height:1.55}
+    button{
+      width:100%;min-height:48px;margin-top:14px;border:0;border-radius:14px;
+      background:#ff7a1a;color:white;font:inherit;font-weight:800
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="mark">IEB</div>
+    <h1>Você está offline</h1>
+    <p>Abra o aplicativo novamente para acessar as cifras, listas e repertórios que já foram sincronizados neste aparelho.</p>
+    <button type="button" onclick="location.reload()">Tentar novamente</button>
+  </main>
+</body>
+</html>
