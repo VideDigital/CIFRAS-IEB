@@ -7,7 +7,7 @@
   <meta name="theme-color" content="#090f1d">
   <meta name="description" content="Cifras IEB &#8212; repert&#243;rio, listas e cifras para louvor.">
   <title>Cifras IEB</title>
-  <link rel="stylesheet" href="styles.css?v=3.3.0">
+  <link rel="stylesheet" href="styles.css?v=4.0.0">
 </head>
 <body>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
@@ -116,7 +116,7 @@
           <span>&#8618;</span>
           <span>Sair da conta</span>
         </button>
-        <small>Cifras IEB &#8226; Vers&#227;o 3.3</small>
+        <small>Cifras IEB &#8226; Vers&#227;o 4.0</small>
       </div>
     </aside>
     <div id="sidebarBackdrop" class="backdrop hidden"></div>
@@ -284,15 +284,38 @@
 
             <label>
               Letra e acordes
-              <textarea id="songContent" rows="22" spellcheck="false" placeholder="[G]Santo, Santo...
-[C]Todo-poderoso...
+              <div class="structure-toolbar" aria-label="Inserir parte da mÃºsica">
+                <button type="button" data-insert-section="INTRODUÃÃO">IntroduÃ§Ã£o</button>
+                <button type="button" data-insert-section="VERSO 1">Verso</button>
+                <button type="button" data-insert-section="PRÃ-REFRÃO">PrÃ©-refrÃ£o</button>
+                <button type="button" data-insert-section="REFRÃO">RefrÃ£o</button>
+                <button type="button" data-insert-section="PONTE">Ponte</button>
+                <button type="button" data-insert-section="INTERLÃDIO">InterlÃºdio</button>
+                <button type="button" data-insert-section="SOLO">Solo</button>
+                <button type="button" data-insert-section="PAUSA">Pausa</button>
+                <button type="button" data-insert-section="MINISTRAÃÃO">MinistraÃ§Ã£o</button>
+                <button type="button" data-insert-section="ESPONTÃNEO">EspontÃ¢neo</button>
+                <button type="button" data-insert-section="MODULAÃÃO">ModulaÃ§Ã£o</button>
+                <button type="button" data-insert-section="FINAL">Final</button>
+              </div>
+              <textarea id="songContent" rows="22" spellcheck="false" placeholder="::INTRODUÃÃO::
 
-Insira o acorde entre colchetes exatamente antes da palavra onde ele deve aparecer."></textarea>
+[G]   [D]   [Em]   [C]
+
+::VERSO 1::
+
+[G]
+Poderoso
+
+[D]Grande Ã© o Senhor"></textarea>
             </label>
 
             <div class="editor-help">
               <strong>Como escrever os acordes?</strong>
-              <p>Coloque o acorde antes da palavra correspondente. Exemplo: <code>[G]Sem honra, sem [D4]gl&#243;ria</code>. Na visualiza&#231;&#227;o, os acordes aparecer&#227;o acima da letra.</p>
+              <p>VocÃª pode colocar o acorde antes da palavra: <code>[G]Poderoso</code>, ou em uma linha acima:</p>
+              <pre><code>[G]
+Poderoso</code></pre>
+              <p>Para posicionar vÃ¡rios acordes, use espaÃ§os na linha superior. Os botÃµes acima inserem automaticamente as partes da mÃºsica.</p>
             </div>
           </div>
 
@@ -513,6 +536,6 @@ Insira o acorde entre colchetes exatamente antes da palavra onde ele deve aparec
     <button id="playGroupRepertoireBtn" class="primary full">Abrir modo de leitura</button>
     <button id="deleteRepertoireBtn" class="danger-button full">Excluir repert&#243;rio</button>
   </dialog>
-  <script type="module" src="app.js?v=3.3.0"></script>
+  <script type="module" src="app.js?v=4.0.0"></script>
 </body>
 </html>
