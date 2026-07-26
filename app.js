@@ -1,13 +1,24 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
 import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail, signOut, updateProfile } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
-import { getFirestore, collection, addDoc, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
-import { firebaseConfig } from "./firebase-config.js?v=4.8.0";
-import { KEYS, transposeContent, semitoneDistance, renderChordMarkup } from "./chord-engine.js?v=4.8.0";
-import { drawChordDiagram } from "./chord-diagrams.js?v=4.8.0";
+import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, collection, addDoc, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
+import { firebaseConfig } from "./firebase-config.js?v=5.0.0";
+import { KEYS, transposeContent, semitoneDistance, renderChordMarkup } from "./chord-engine.js?v=5.0.0";
+import { drawChordDiagram } from "./chord-diagrams.js?v=5.0.0";
 
 const firebaseApp = initializeApp(firebaseConfig);
 const auth = getAuth(firebaseApp);
-const db = getFirestore(firebaseApp);
+let db;
+
+try {
+  db = initializeFirestore(firebaseApp, {
+    localCache: persistentLocalCache({
+      tabManager: persistentMultipleTabManager()
+    })
+  });
+} catch (error) {
+  console.warn("Cache persistente indispon\u00EDvel. Usando cache tempor\u00E1rio.", error);
+  db = getFirestore(firebaseApp);
+}
 const $ = (id) => document.getElementById(id);
 
 let currentUser = null;
@@ -492,6 +503,11 @@ async function loadAll() {
   updateStats();
   if (!$("searchView")?.classList.contains("hidden")) {
     renderGlobalSearch();
+  }
+
+  if (navigator.onLine) {
+    await preloadOfflineGroupRepertoires();
+    markSuccessfulSync();
   }
 }
 
@@ -3067,3 +3083,180 @@ $("viewerAutoScrollBtn")?.addEventListener("click", () => {
 $("playerAutoScrollBtn")?.addEventListener("click", () => {
   window.requestAnimationFrame(syncListDockScrollState);
 });
+
+
+let deferredInstallPrompt = null;
+
+const OFFLINE_WRITE_SELECTORS = [
+  "#newSongBtn",
+  "[data-new-song]",
+  "#bulkImportBtn",
+  "#newListBtn",
+  "[data-new-list]",
+  "#newGroupBtn",
+  "[data-new-group]",
+  "#viewerEditBtn",
+  "#saveSongBtn",
+  "#saveListBtn",
+  "#saveGroupBtn",
+  "#saveRepertoireBtn",
+  "#saveCustomChordBtn",
+  "#newGroupRepertoireBtn",
+  "#addGroupMemberBtn",
+  "#importBulkConfirmBtn"
+].join(",");
+
+function isRunningAsInstalledApp() {
+  return window.matchMedia("(display-mode: standalone)").matches ||
+    window.navigator.standalone === true;
+}
+
+function isIosDevice() {
+  return /iphone|ipad|ipod/i.test(navigator.userAgent);
+}
+
+function formatSyncDate(value) {
+  if (!value) return "Ainda n\u00E3o sincronizado";
+
+  const date = new Date(value);
+
+  return `\u00DAltima sincroniza\u00E7\u00E3o: ${date.toLocaleDateString("pt-BR")} \u00E0s ${date.toLocaleTimeString("pt-BR", {
+    hour: "2-digit",
+    minute: "2-digit"
+  })}`;
+}
+
+function markSuccessfulSync() {
+  const now = new Date().toISOString();
+  localStorage.setItem("cifrasIebLastSync", now);
+  updateConnectivityUI();
+}
+
+function updateConnectivityUI() {
+  const online = navigator.onLine;
+  const banner = $("connectivityBanner");
+  const statusDot = $("connectionStatusDot");
+  const statusText = $("connectionStatusText");
+  const lastSyncText = $("lastSyncText");
+
+  document.body.classList.toggle("offline-mode", !online);
+  banner?.classList.toggle("hidden", online);
+
+  if (statusDot) statusDot.classList.toggle("offline", !online);
+  if (statusText) statusText.textContent = online ? "Online" : "Offline";
+  if (lastSyncText) {
+    lastSyncText.textContent = formatSyncDate(
+      localStorage.getItem("cifrasIebLastSync")
+    );
+  }
+
+  document.querySelectorAll(OFFLINE_WRITE_SELECTORS).forEach((element) => {
+    element.toggleAttribute("disabled", !online);
+    element.setAttribute("aria-disabled", String(!online));
+  });
+}
+
+async function preloadOfflineGroupRepertoires() {
+  if (!navigator.onLine || !groups.length) return;
+
+  const tasks = groups.map((group) =>
+    getDocs(
+      query(
+        collection(db, "groupRepertoires"),
+        where("groupId", "==", group.id)
+      )
+    ).catch((error) => {
+      console.warn(`N\u00E3o foi poss\u00EDvel preparar o grupo ${group.id} para uso offline.`, error);
+      return null;
+    })
+  );
+
+  await Promise.allSettled(tasks);
+}
+
+document.addEventListener("click", (event) => {
+  if (navigator.onLine) return;
+
+  const writeTarget = event.target.closest(OFFLINE_WRITE_SELECTORS);
+
+  if (writeTarget) {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    toast("Conecte-se \u00E0 internet para criar, editar ou sincronizar.");
+  }
+}, true);
+
+window.addEventListener("online", async () => {
+  updateConnectivityUI();
+  toast("Conex\u00E3o restaurada. Sincronizando dados...");
+
+  try {
+    await loadAll();
+    toast("Dados sincronizados com sucesso.");
+  } catch (error) {
+    console.error("Erro ao sincronizar depois de voltar \u00E0 internet:", error);
+  }
+});
+
+window.addEventListener("offline", () => {
+  updateConnectivityUI();
+  toast("Voc\u00EA est\u00E1 offline. O conte\u00FAdo sincronizado continua dispon\u00EDvel.");
+});
+
+window.addEventListener("beforeinstallprompt", (event) => {
+  event.preventDefault();
+  deferredInstallPrompt = event;
+  $("installAppBtn")?.classList.add("install-ready");
+});
+
+window.addEventListener("appinstalled", () => {
+  deferredInstallPrompt = null;
+  $("installAppDialog")?.close();
+  toast("Cifras IEB instalado com sucesso.");
+});
+
+$("installAppBtn")?.addEventListener("click", () => {
+  const dialog = $("installAppDialog");
+
+  $("androidInstallInstructions").classList.add("hidden");
+  $("iosInstallInstructions").classList.add("hidden");
+  $("installedAppMessage").classList.add("hidden");
+
+  if (isRunningAsInstalledApp()) {
+    $("installedAppMessage").classList.remove("hidden");
+  } else if (isIosDevice()) {
+    $("iosInstallInstructions").classList.remove("hidden");
+  } else {
+    $("androidInstallInstructions").classList.remove("hidden");
+  }
+
+  dialog.showModal();
+});
+
+$("confirmInstallBtn")?.addEventListener("click", async () => {
+  if (!deferredInstallPrompt) {
+    toast("Abra o menu do navegador e escolha Instalar aplicativo.");
+    return;
+  }
+
+  deferredInstallPrompt.prompt();
+  await deferredInstallPrompt.userChoice;
+  deferredInstallPrompt = null;
+});
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", async () => {
+    try {
+      const registration = await navigator.serviceWorker.register(
+        "./service-worker.js?v=5.0.0",
+        { scope: "./" }
+      );
+
+      registration.update().catch(() => {});
+    } catch (error) {
+      console.error("N\u00E3o foi poss\u00EDvel registrar o modo offline:", error);
+    }
+  });
+}
+
+updateConnectivityUI();
