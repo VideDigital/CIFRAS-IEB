@@ -467,3 +467,96 @@ body{background:radial-gradient(circle at 100% 0,rgba(249,115,22,.10),transparen
     text-align:center;
   }
 }
+
+
+/* V2.7 - ACORDES ACIMA DA LETRA */
+.song-preview{
+  white-space:normal;
+  line-height:1.35;
+  font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+}
+.chord-sheet-line{
+  display:flex;
+  align-items:flex-end;
+  flex-wrap:wrap;
+  min-height:2.8em;
+  margin:0 0 .28em;
+  white-space:pre;
+}
+.chord-lyric-segment{
+  display:inline-grid;
+  grid-template-rows:minmax(1.25em,auto) auto;
+  align-items:end;
+  vertical-align:bottom;
+  white-space:pre;
+}
+.chord-lyric-segment .chord{
+  grid-row:1;
+  justify-self:start;
+  margin:0;
+  padding:0 2px 1px 0;
+  border:0;
+  border-radius:0;
+  background:transparent;
+  color:#fb923c;
+  font:800 .82em/1.15 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  letter-spacing:.01em;
+}
+.lyric-under-chord{
+  grid-row:2;
+  min-width:1.4ch;
+  white-space:pre;
+  color:var(--text);
+}
+.plain-lyric-segment{
+  display:inline-block;
+  align-self:flex-end;
+  padding-top:1.25em;
+  white-space:pre;
+  color:var(--text);
+}
+.lyrics-only-line{
+  min-height:1.45em;
+  margin:0 0 .16em;
+  white-space:pre-wrap;
+  color:var(--text);
+}
+.chord-only-line{
+  min-height:1.65em;
+  margin:.18em 0 .38em;
+  white-space:pre-wrap;
+}
+.chord-only-line .chord{
+  display:inline;
+  margin:0;
+  padding:0 2px;
+  border:0;
+  border-radius:0;
+  background:transparent;
+  color:#fb923c;
+  font:800 .88em/1.25 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+.song-preview.player .chord-sheet-line{
+  min-height:3em;
+  margin-bottom:.34em;
+}
+.song-preview.player .chord-lyric-segment .chord{
+  font-size:.78em;
+}
+.song-preview.player .lyric-under-chord,
+.song-preview.player .plain-lyric-segment,
+.song-preview.player .lyrics-only-line{
+  font-size:1em;
+}
+@media(max-width:700px){
+  .song-preview{
+    font-size:17px;
+    overflow-x:hidden;
+  }
+  .chord-sheet-line{
+    min-height:2.65em;
+  }
+  .chord-lyric-segment .chord{
+    font-size:.78em;
+  }
+}
