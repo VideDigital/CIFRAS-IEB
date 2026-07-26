@@ -135,10 +135,37 @@ function normalizeSectionName(value = "") {
 }
 
 function renderSectionMarker(line) {
-  const match = line.match(/^::\s*(.+?)\s*::$/);
-  if (!match) return null;
+  const repairedLine = repairRenderedText(line).trim();
 
-  const label = repairRenderedText(match[1].trim());
+  const colonMatch = repairedLine.match(/^::\s*(.+?)\s*::$/);
+  const bracketMatch = repairedLine.match(/^\[([^\]]+)\]$/);
+
+  let label = colonMatch?.[1]?.trim() || "";
+
+  if (!label && bracketMatch) {
+    const possibleLabel = bracketMatch[1].trim();
+    const normalized = normalizeSectionName(possibleLabel);
+
+    const sectionPatterns = [
+      "intro", "introducao",
+      "primeira-parte", "segunda-parte", "terceira-parte",
+      "verso", "verso-1", "verso-2", "verso-3",
+      "pre-refrao", "refrao", "pos-refrao",
+      "ponte", "interludio", "solo", "pausa",
+      "ministracao", "oracao", "espontaneo",
+      "modulacao", "final", "coda", "repete"
+    ];
+
+    const isSection = sectionPatterns.some((item) =>
+      normalized === item || normalized.startsWith(`${item}-`)
+    );
+
+    if (isSection) label = possibleLabel;
+  }
+
+  if (!label) return null;
+
+  label = repairRenderedText(label);
   const type = normalizeSectionName(label);
 
   const knownTypes = {
@@ -148,6 +175,9 @@ function renderSectionMarker(line) {
     "verso-1": "verse",
     "verso-2": "verse",
     "verso-3": "verse",
+    "primeira-parte": "verse",
+    "segunda-parte": "verse",
+    "terceira-parte": "verse",
     "pre-refrao": "prechorus",
     "refrao": "chorus",
     "pos-refrao": "postchorus",
@@ -228,7 +258,7 @@ export function renderChordMarkup(content) {
     const nextLine = lines[index + 1];
     const nextIsSection =
       typeof nextLine === "string" &&
-      /^::\s*(.+?)\s*::$/.test(nextLine);
+      Boolean(renderSectionMarker(nextLine));
 
     if (
       isChordOnlyLine(line) &&
