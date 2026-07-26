@@ -2,7 +2,7 @@
   "id": "./",
   "name": "Cifras IEB",
   "short_name": "Cifras IEB",
-  "description": "Cifras, listas e repertórios para equipes de louvor.",
+  "description": "Cifras, grupos, listas e repertórios para equipes de louvor, com acesso offline.",
   "lang": "pt-BR",
   "start_url": "./",
   "scope": "./",
@@ -52,3 +52,4 @@
       ]
     }
   ]
+}
