@@ -7,7 +7,7 @@
   <meta name="theme-color" content="#090f1d">
   <meta name="description" content="Cifras IEB &#8212; repert&#243;rio, listas e cifras para louvor.">
   <title>Cifras IEB</title>
-  <link rel="stylesheet" href="styles.css?v=3.1.0">
+  <link rel="stylesheet" href="styles.css?v=3.3.0">
 </head>
 <body>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
@@ -116,7 +116,7 @@
           <span>&#8618;</span>
           <span>Sair da conta</span>
         </button>
-        <small>Cifras IEB &#8226; Vers&#227;o 3.2</small>
+        <small>Cifras IEB &#8226; Vers&#227;o 3.3</small>
       </div>
     </aside>
     <div id="sidebarBackdrop" class="backdrop hidden"></div>
@@ -345,174 +345,4 @@ Insira o acorde entre colchetes exatamente antes da palavra onde ele deve aparec
         </div>
       </section>
 
-      <section id="listPlayerView" class="view hidden">
-        <div class="player-top">
-          <button id="exitListPlayer" class="back-button">&#8592; Sair da lista</button>
-          <span id="listProgress" class="player-progress"></span>
-          <div class="player-top-actions"><button id="playerTextOnlyBtn" class="secondary-button">Somente texto</button><button id="playerStageMode" class="secondary-button">Tela cheia</button></div>
-        </div>
-        <div class="swipe-hint">Deslize para os lados para trocar de m&#250;sica</div>
-        <div id="listPlayerSong" class="song-preview player"></div>
-        <div class="player-nav">
-          <button id="prevListSong" class="secondary-button">&#8592; Anterior</button>
-          <button id="nextListSong" class="primary">Pr&#243;xima &#8594;</button>
-        </div>
-      </section>
-    </main>
-  </div>
-
-  <dialog id="chordDialog">
-    <button class="dialog-close" data-close-dialog aria-label="Fechar">&#215;</button>
-    <span class="eyebrow">DIAGRAMA</span>
-    <h3 id="chordName">Acorde</h3>
-    <div id="chordDiagram"></div>
-    <p id="chordHelp" class="muted"></p>
-  </dialog>
-
-  <dialog id="importDialog">
-    <button class="dialog-close" data-close-dialog aria-label="Fechar">&#215;</button>
-    <span class="eyebrow">IMPORTA&#199;&#195;O</span>
-    <h3>Importar uma cifra</h3>
-    <p class="muted">Cole abaixo uma cifra usando acordes entre colchetes.</p>
-    <textarea id="importText" rows="15" placeholder="[G]Letra da m&#250;sica..."></textarea>
-    <button id="confirmImportBtn" class="primary full">Usar esta cifra</button>
-  </dialog>
-
-  <dialog id="shareDialog">
-    <button class="dialog-close" data-close-dialog aria-label="Fechar">&#215;</button>
-    <span class="eyebrow">COMPARTILHAMENTO</span>
-    <h3>Compartilhar cifra</h3>
-    <p class="muted">A pessoa poder&#225; visualizar a cifra, mas n&#227;o poder&#225; editar a sua vers&#227;o.</p>
-    <label>Link de visualiza&#231;&#227;o <input id="shareLink" readonly></label>
-    <button id="copyShareLink" class="primary full">Copiar link</button>
-  </dialog>
-
-  <dialog id="listDialog">
-    <button class="dialog-close" data-close-dialog aria-label="Fechar">&#215;</button>
-    <span class="eyebrow">REPERT&#211;RIO</span>
-    <h3 id="listDialogTitle">Nova lista</h3>
-    <label>
-      Nome do repert&#243;rio
-      <input id="listName" placeholder="Ex.: Culto de domingo">
-    </label>
-    <label>
-      Data do repert&#243;rio
-      <div class="date-input-wrap">
-        <input id="listDate" type="date">
-      </div>
-    </label>
-    <p class="field-title">Selecione as m&#250;sicas</p>
-    <div id="listSongOptions" class="check-list"></div>
-    <button id="saveListBtn" class="primary full">Salvar lista</button>
-  </dialog>
-
-
-  <dialog id="bulkImportDialog">
-    <button class="dialog-close" data-close-dialog aria-label="Fechar">&times;</button>
-    <span class="eyebrow">IMPORTA&#199;&#195;O EM MASSA</span>
-    <h3>Importar cifras do celular</h3>
-    <p class="muted">
-      Selecione uma ou v&#225;rias cifras. Arquivos PDF deixam de ficar bloqueados no iPhone
-      e ser&#227;o convertidos para cifras edit&#225;veis.
-    </p>
-
-    <label class="file-picker-box" for="bulkImportFiles">
-      <span class="file-picker-icon">&#8682;</span>
-      <strong>Selecionar arquivos</strong>
-      <small>PDF, TXT, MD, CHO, CHORDPRO, JSON e DOCX</small>
-      <input
-        id="bulkImportFiles"
-        type="file"
-        multiple
-        accept=".pdf,.txt,.md,.chordpro,.cho,.json,.docx,application/pdf,text/plain,application/json,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-      >
-    </label>
-
-    <div id="bulkImportProgress" class="import-progress hidden">
-      <div class="import-progress-head">
-        <strong id="bulkImportProgressText">Lendo arquivos...</strong>
-        <span id="bulkImportProgressCount">0/0</span>
-      </div>
-      <div class="import-progress-track">
-        <span id="bulkImportProgressBar"></span>
-      </div>
-    </div>
-
-    <div id="bulkImportSummary" class="bulk-summary hidden"></div>
-
-    <div class="bulk-actions">
-      <button id="clearBulkFilesBtn" class="secondary-button">Limpar sele&#231;&#227;o</button>
-      <button id="confirmBulkImportBtn" class="primary">Importar arquivos</button>
-    </div>
-  </dialog>
-
-
-  <dialog id="groupDialog">
-    <button class="dialog-close" data-close-dialog aria-label="Fechar">&times;</button>
-    <span class="eyebrow">NOVO GRUPO</span>
-    <h3>Criar grupo</h3>
-    <p class="muted">Crie um espa&#231;o para organizar sua equipe.</p>
-
-    <label>
-      Nome do grupo
-      <input id="groupNameInput" placeholder="Ex.: Louvor IEB">
-    </label>
-
-    <label>
-      Descri&#231;&#227;o
-      <textarea id="groupDescriptionInput" rows="4" placeholder="Ex.: Equipe respons&#225;vel pelos cultos de domingo"></textarea>
-    </label>
-
-    <button id="saveGroupBtn" class="primary full">Criar grupo</button>
-  </dialog>
-
-  <dialog id="groupDetailsDialog" class="group-details-dialog">
-    <button class="dialog-close" data-close-dialog aria-label="Fechar">&times;</button>
-    <span class="eyebrow">GRUPO</span>
-    <h3 id="groupDetailsName">Nome do grupo</h3>
-    <p id="groupDetailsDescription" class="muted"></p>
-
-    <div class="group-role-line">
-      <span id="groupRoleBadge" class="role-badge">Membro</span>
-      <span id="groupMemberCount">0 membros</span>
-    </div>
-
-    <div id="groupOwnerControls" class="group-owner-controls hidden">
-      <label>
-        Adicionar pessoa pelo ID
-        <div class="inline-form">
-          <input id="memberPublicIdInput" placeholder="Ex.: IEB-8F4K2Q" autocapitalize="characters">
-          <button id="addGroupMemberBtn" class="primary">Adicionar</button>
-        </div>
-      </label>
-      <p class="tiny">Pe&#231;a para a pessoa copiar o ID que aparece no menu da conta dela.</p>
-    </div>
-
-    <div class="group-repertoire-section">
-      <div class="group-section-heading"><div><span class="eyebrow">REPERT&#211;RIOS</span><h4>Repert&#243;rios por data</h4></div><button id="newGroupRepertoireBtn" class="secondary-button">+ Novo repert&#243;rio</button></div>
-      <div id="groupRepertoireList" class="group-repertoire-list"></div>
-    </div>
-    <div class="members-heading"><h4>Membros</h4></div>
-    <div id="groupMembersList" class="group-members-list"></div>
-
-    <button id="leaveGroupBtn" class="danger-button full">Sair do grupo</button>
-    <button id="deleteGroupBtn" class="danger-button full hidden">Excluir grupo</button>
-  </dialog>
-
-  <dialog id="repertoireDialog">
-    <button class="dialog-close" data-close-dialog aria-label="Fechar">&times;</button><span class="eyebrow">REPERT&#211;RIO DO GRUPO</span><h3>Novo repert&#243;rio</h3>
-    <label>Nome do repert&#243;rio<input id="repertoireNameInput" placeholder="Ex.: Culto de domingo"></label>
-    <label>Data<div class="date-input-wrap"><input id="repertoireDateInput" type="date"></div></label>
-    <p class="field-title">Selecione as cifras</p><div id="repertoireSongOptions" class="check-list"></div>
-    <button id="saveRepertoireBtn" class="primary full">Criar repert&#243;rio</button>
-  </dialog>
-  <dialog id="repertoireDetailsDialog">
-    <button class="dialog-close" data-close-dialog aria-label="Fechar">&times;</button><span class="eyebrow">REPERT&#211;RIO</span><h3 id="repertoireDetailsName">Repert&#243;rio</h3><p id="repertoireDetailsDate" class="muted"></p>
-    <div id="repertoireDetailsSongs" class="repertoire-song-list"></div>
-    <p class="tiny group-library-help">As cifras criadas por outras pessoas podem ser copiadas para a sua biblioteca e editadas normalmente.</p>
-    <button id="playGroupRepertoireBtn" class="primary full">Abrir modo de leitura</button>
-    <button id="deleteRepertoireBtn" class="danger-button full">Excluir repert&#243;rio</button>
-  </dialog>
-  <script type="module" src="app.js?v=3.1.0"></script>
-</body>
-</html>
+      <section id="listPlayerView" class="view hidden"
