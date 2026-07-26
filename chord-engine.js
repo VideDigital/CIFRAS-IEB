@@ -32,9 +32,80 @@ export function semitoneDistance(fromKey, toKey) {
   return (to - from + 12) % 12;
 }
 
+function escapeHtml(value = "") {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function isChordOnlyLine(line) {
+  const withoutChords = line
+    .replace(/\[[^\]]+\]/g, "")
+    .replace(/[|:()xX0-9.,;+\-\s]/g, "");
+  return withoutChords.length === 0;
+}
+
+function renderChordOnlyLine(line) {
+  const escaped = escapeHtml(line);
+  return `<div class="chord-only-line">${
+    escaped.replace(/\[([^\]]+)\]/g,
+      '<button class="chord chord-only" data-chord="$1" type="button">$1</button>')
+  }</div>`;
+}
+
+function renderLyricsWithChords(line) {
+  const chordPattern = /\[([^\]]+)\]/g;
+  const matches = [...line.matchAll(chordPattern)];
+
+  if (!matches.length) {
+    return `<div class="lyrics-only-line">${escapeHtml(line) || "&nbsp;"}</div>`;
+  }
+
+  if (isChordOnlyLine(line)) {
+    return renderChordOnlyLine(line);
+  }
+
+  let html = '<div class="chord-sheet-line">';
+  let cursor = 0;
+
+  matches.forEach((match, index) => {
+    const chordStart = match.index;
+    const chordEnd = chordStart + match[0].length;
+    const nextChordStart = index + 1 < matches.length
+      ? matches[index + 1].index
+      : line.length;
+
+    const leadingText = line.slice(cursor, chordStart);
+    if (leadingText) {
+      html += `<span class="plain-lyric-segment">${escapeHtml(leadingText)}</span>`;
+    }
+
+    const lyricText = line.slice(chordEnd, nextChordStart);
+    const chord = escapeHtml(match[1].trim());
+
+    html += `
+      <span class="chord-lyric-segment">
+        <button class="chord" data-chord="${chord}" type="button">${chord}</button>
+        <span class="lyric-under-chord">${escapeHtml(lyricText) || "&nbsp;"}</span>
+      </span>`;
+
+    cursor = nextChordStart;
+  });
+
+  if (cursor < line.length) {
+    html += `<span class="plain-lyric-segment">${escapeHtml(line.slice(cursor))}</span>`;
+  }
+
+  html += "</div>";
+  return html;
+}
+
 export function renderChordMarkup(content) {
-  const escaped = content
-    .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
-  return escaped.replace(/\[([^\]]+)\]/g,
-    '<button class="chord" data-chord="$1" type="button">$1</button>');
+  return String(content || "")
+    .replace(/\r\n/g, "\n")
+    .split("\n")
+    .map(renderLyricsWithChords)
+    .join("");
 }
