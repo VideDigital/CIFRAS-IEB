@@ -160,3 +160,99 @@ dialog h3{font-size:24px;margin:6px 0 8px}.dialog-close{float:right;background:t
   #editorPanel.mobile-hidden{display:none!important}
   .editor-tab{position:relative;z-index:2;touch-action:manipulation}
 }
+
+
+/* IMPORTACAO EM MASSA - V2.3 */
+.library-tools{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+.bulk-format-help{
+  padding:14px;
+  margin:14px 0 18px;
+  border:1px solid #2a3b58;
+  border-radius:14px;
+  background:#091322;
+}
+.bulk-format-help strong{
+  display:block;
+  margin-bottom:8px;
+}
+.bulk-format-help pre{
+  margin:0;
+  white-space:pre-wrap;
+  color:#b9c6db;
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+  font-size:12px;
+  line-height:1.55;
+}
+.bulk-actions{
+  display:flex;
+  justify-content:flex-end;
+  gap:10px;
+  margin-top:14px;
+}
+.bulk-summary{
+  margin-top:12px;
+  padding:14px;
+  border:1px solid #3b4d6d;
+  border-radius:14px;
+  background:#0b1628;
+}
+.bulk-summary>p{
+  color:var(--muted);
+  margin-bottom:0;
+}
+.bulk-song-list{
+  display:grid;
+  gap:8px;
+  margin-top:12px;
+  max-height:220px;
+  overflow:auto;
+}
+.bulk-song-item{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:10px;
+  border:1px solid #283a57;
+  border-radius:11px;
+  background:#0d192b;
+}
+.bulk-song-item>span{
+  width:28px;
+  height:28px;
+  border-radius:9px;
+  display:grid;
+  place-items:center;
+  background:#7c3aed22;
+  color:#c4b5fd;
+  font-weight:800;
+  flex:0 0 auto;
+}
+.bulk-song-item strong,
+.bulk-song-item small{
+  display:block;
+}
+.bulk-song-item small{
+  color:var(--muted);
+  margin-top:2px;
+}
+@media(max-width:700px){
+  .library-tools{
+    width:100%;
+    display:grid;
+    grid-template-columns:1fr;
+  }
+  .library-tools .secondary-button{
+    width:100%;
+  }
+  .bulk-actions{
+    display:grid;
+    grid-template-columns:1fr;
+  }
+  .bulk-actions button{
+    width:100%;
+  }
+}
