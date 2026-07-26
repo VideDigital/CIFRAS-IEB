@@ -140,3 +140,23 @@ dialog h3{font-size:24px;margin:6px 0 8px}.dialog-close{float:right;background:t
   .auth-card{padding:23px}.auth-copy h1{font-size:28px}
   .player-top{flex-wrap:wrap}.player-progress{order:3;width:100%;text-align:center}
 }
+
+
+/* CORREÃÃES V2.1 */
+.toast{
+  z-index:9999!important;
+  opacity:0;
+  visibility:hidden;
+}
+.toast.show{
+  opacity:1!important;
+  visibility:visible!important;
+}
+
+@media(max-width:980px){
+  #editorPanel{display:block}
+  #previewPanel{display:none}
+  #previewPanel.mobile-active{display:block!important}
+  #editorPanel.mobile-hidden{display:none!important}
+  .editor-tab{position:relative;z-index:2;touch-action:manipulation}
+}
