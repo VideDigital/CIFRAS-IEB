@@ -1,9 +1,9 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
 import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail, signOut, updateProfile } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
 import { getFirestore, collection, addDoc, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
-import { firebaseConfig } from "./firebase-config.js?v=4.1.0";
-import { KEYS, transposeContent, semitoneDistance, renderChordMarkup } from "./chord-engine.js?v=4.1.0";
-import { drawChordDiagram } from "./chord-diagrams.js?v=4.1.0";
+import { firebaseConfig } from "./firebase-config.js?v=4.2.0";
+import { KEYS, transposeContent, semitoneDistance, renderChordMarkup } from "./chord-engine.js?v=4.2.0";
+import { drawChordDiagram } from "./chord-diagrams.js?v=4.2.0";
 
 const firebaseApp = initializeApp(firebaseConfig);
 const auth = getAuth(firebaseApp);
@@ -31,8 +31,14 @@ let listPlayer = { songs: [], index: 0 };
 let authMode = "login";
 let touchStartX = 0;
 let isDirty = false;
+let viewingSong = null;
+let viewingSongReadOnly = false;
+let viewerTextOnlyMode = false;
+let viewerFontSize = 20;
+let viewerKey = "C";
+let viewerScrollFrame = null;
 
-const views = ["library", "lists", "groups", "shared", "editor", "listPlayer"];
+const views = ["library", "lists", "groups", "shared", "songViewer", "editor", "listPlayer"];
 
 function showView(name) {
   views.forEach((view) => $(`${view}View`).classList.toggle("hidden", view !== name));
@@ -40,6 +46,7 @@ function showView(name) {
     button.classList.toggle("active", button.dataset.view === name);
   });
   stopAutoScroll();
+  stopViewerAutoScroll();
   closeSidebar();
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
@@ -370,7 +377,10 @@ $("songSearch").oninput = (event) => renderSongs(event.target.value);
 document.addEventListener("click", async (event) => {
   const openSongButton = event.target.closest("[data-open-song]");
   if (openSongButton) {
-    openSong(openSongButton.dataset.openSong, openSongButton.dataset.shared === "true");
+    openSongViewer(
+      openSongButton.dataset.openSong,
+      openSongButton.dataset.shared === "true"
+    );
     return;
   }
 
@@ -407,12 +417,12 @@ document.addEventListener("click", async (event) => {
     event.target.closest("dialog").close();
   }
 
-  if (event.target.closest("[data-new-song]")) openSong();
+  if (event.target.closest("[data-new-song]")) openSongEditor();
   if (event.target.closest("[data-new-list]")) openListDialog();
   if (event.target.closest("[data-go-library]")) showView("library");
 });
 
-$("newSongBtn").onclick = () => openSong();
+$("newSongBtn").onclick = () => openSongEditor();
 $("newListBtn").onclick = () => openListDialog();
 $("backToLibrary").onclick = () => {
   if (isDirty && !confirm("Existem altera\u00E7\u00F5es n\u00E3o salvas. Deseja sair mesmo assim?")) return;
@@ -429,7 +439,137 @@ $("deleteSongBtn").onclick = async () => {
   showView("library");
 };
 
-function openSong(id = null, readOnly = false) {
+
+function renderDedicatedSongViewer() {
+  if (!viewingSong) return;
+
+  const originalKey = viewingSong.key || "C";
+  const semitones = semitoneDistance(originalKey, viewerKey);
+  const preferFlats = /b/.test(viewerKey);
+  const transposedContent = transposeContent(
+    viewingSong.content || "",
+    semitones,
+    preferFlats
+  );
+
+  const content = viewerTextOnlyMode
+    ? stripChordMarkup(transposedContent)
+    : transposedContent;
+
+  $("viewerSongTitle").textContent = viewingSong.title || "Sem tÃ­tulo";
+  $("viewerSongArtist").textContent = viewingSong.artist || "Artista nÃ£o informado";
+  $("viewerCurrentKey").textContent = viewerKey;
+  $("dedicatedSongViewer").style.fontSize = `${viewerFontSize}px`;
+  $("dedicatedSongViewer").innerHTML = renderChordMarkup(content);
+
+  const capo = Number(viewingSong.capo) || 0;
+  $("viewerCapoBadge").classList.toggle("hidden", capo <= 0);
+  $("viewerCapoBadge").textContent = capo > 0 ? `Capotraste ${capo}` : "";
+}
+
+function openSongViewer(id, readOnly = false) {
+  viewingSong = [...songs, ...sharedSongs].find((song) => song.id === id);
+  if (!viewingSong) {
+    toast("NÃ£o foi possÃ­vel abrir esta cifra.");
+    return;
+  }
+
+  viewingSongReadOnly = readOnly;
+  viewerTextOnlyMode = false;
+  viewerFontSize = 20;
+  viewerKey = viewingSong.key || "C";
+
+  $("viewerTextOnlyBtn").textContent = "Somente texto";
+  $("viewerTextOnlyBtn").classList.remove("active-mode");
+  $("viewerEditBtn").classList.toggle("hidden", readOnly);
+
+  renderDedicatedSongViewer();
+  $("dedicatedSongViewer").scrollTop = 0;
+  showView("songViewer");
+}
+
+$("viewerBackBtn").onclick = () => {
+  showView(viewingSongReadOnly ? "shared" : "library");
+};
+
+$("viewerEditBtn").onclick = () => {
+  if (!viewingSong || viewingSongReadOnly) return;
+  openSongEditor(viewingSong.id, false);
+};
+
+$("viewerTransposeUp").onclick = () => changeViewerKey(1);
+$("viewerTransposeDown").onclick = () => changeViewerKey(-1);
+
+function changeViewerKey(delta) {
+  const scale = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+  let index = scale.indexOf(viewerKey);
+  if (index < 0) index = 0;
+  viewerKey = scale[(index + delta + 12) % 12];
+  renderDedicatedSongViewer();
+}
+
+$("viewerFontUp").onclick = () => {
+  viewerFontSize = Math.min(40, viewerFontSize + 2);
+  renderDedicatedSongViewer();
+};
+
+$("viewerFontDown").onclick = () => {
+  viewerFontSize = Math.max(12, viewerFontSize - 2);
+  renderDedicatedSongViewer();
+};
+
+$("viewerTextOnlyBtn").onclick = () => {
+  viewerTextOnlyMode = !viewerTextOnlyMode;
+  $("viewerTextOnlyBtn").textContent =
+    viewerTextOnlyMode ? "Mostrar acordes" : "Somente texto";
+  $("viewerTextOnlyBtn").classList.toggle("active-mode", viewerTextOnlyMode);
+  renderDedicatedSongViewer();
+};
+
+$("viewerStageBtn").onclick = () => {
+  toggleStageMode($("dedicatedSongViewer").closest(".song-reader-shell"));
+};
+
+$("viewerAutoScrollBtn").onclick = () => {
+  if (viewerScrollFrame) {
+    stopViewerAutoScroll();
+    return;
+  }
+
+  const viewer = $("dedicatedSongViewer");
+  $("viewerAutoScrollBtn").textContent = "â¸ Pausar";
+  let previousTime = performance.now();
+
+  const step = (currentTime) => {
+    const difference = (currentTime - previousTime) / 16.67;
+    previousTime = currentTime;
+
+    viewer.scrollTop += Number($("viewerScrollSpeed").value) * difference;
+
+    if (
+      viewer.scrollTop + viewer.clientHeight >=
+      viewer.scrollHeight - 2
+    ) {
+      stopViewerAutoScroll();
+      return;
+    }
+
+    viewerScrollFrame = requestAnimationFrame(step);
+  };
+
+  viewerScrollFrame = requestAnimationFrame(step);
+};
+
+function stopViewerAutoScroll() {
+  if (viewerScrollFrame) cancelAnimationFrame(viewerScrollFrame);
+  viewerScrollFrame = null;
+
+  if ($("viewerAutoScrollBtn")) {
+    $("viewerAutoScrollBtn").textContent = "â¶ Iniciar";
+  }
+}
+
+function openSongEditor(id = null, readOnly = false) {
   editingSong = id ? [...songs, ...sharedSongs].find((song) => song.id === id) : null;
   const song = editingSong || {
     title: "",
