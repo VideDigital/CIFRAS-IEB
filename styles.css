@@ -256,3 +256,138 @@ dialog h3{font-size:24px;margin:6px 0 8px}.dialog-close{float:right;background:t
     width:100%;
   }
 }
+
+
+/* SISTEMA DE GRUPOS - V2.4 */
+.user-id-button{
+  margin-top:6px;
+  padding:4px 7px;
+  border:1px solid #334766;
+  border-radius:8px;
+  background:#0b1526;
+  color:#bfaeff;
+  font-size:11px;
+  text-align:left;
+}
+.id-info-card{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:18px;
+  margin-bottom:22px;
+  padding:20px;
+  border:1px solid var(--line-soft);
+  border-radius:20px;
+  background:linear-gradient(145deg,#111c30,#0c1525);
+}
+.id-info-card h3{
+  margin:7px 0;
+  color:#c4b5fd;
+  letter-spacing:.08em;
+}
+.id-info-card p{
+  margin:0;
+  color:var(--muted);
+}
+.group-role-line{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin:14px 0;
+  color:var(--muted);
+}
+.role-badge{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:5px 9px;
+  border-radius:999px;
+  background:#7c3aed22;
+  color:#c4b5fd;
+  font-size:11px;
+  font-weight:800;
+}
+.group-owner-controls{
+  padding:14px;
+  margin:16px 0;
+  border:1px solid #2c3e5c;
+  border-radius:15px;
+  background:#0b1526;
+}
+.inline-form{
+  display:grid;
+  grid-template-columns:1fr auto;
+  gap:9px;
+}
+.members-heading{
+  margin-top:18px;
+  border-bottom:1px solid var(--line-soft);
+}
+.members-heading h4{
+  margin:0 0 10px;
+}
+.group-members-list{
+  display:grid;
+  gap:8px;
+  margin-top:12px;
+  max-height:330px;
+  overflow:auto;
+}
+.group-member-row{
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr) auto auto;
+  gap:10px;
+  align-items:center;
+  padding:11px;
+  border:1px solid #293b58;
+  border-radius:13px;
+  background:#0b1628;
+}
+.member-avatar{
+  width:36px;
+  height:36px;
+  display:grid;
+  place-items:center;
+  border-radius:11px;
+  background:linear-gradient(145deg,#8b5cf6,#4f6cff);
+  color:white;
+  font-weight:900;
+}
+.member-info{
+  min-width:0;
+}
+.member-info strong,
+.member-info small{
+  display:block;
+}
+.member-info small{
+  color:var(--muted);
+  margin-top:2px;
+}
+.remove-member-button{
+  padding:7px 9px;
+  border-radius:9px;
+  background:#321824;
+  color:#ffc0c5;
+  border:1px solid #713142;
+  font-size:11px;
+}
+@media(max-width:700px){
+  .id-info-card{
+    align-items:flex-start;
+    flex-direction:column;
+  }
+  .id-info-card .secondary-button{
+    width:100%;
+  }
+  .inline-form{
+    grid-template-columns:1fr;
+  }
+  .group-member-row{
+    grid-template-columns:auto minmax(0,1fr) auto;
+  }
+  .group-member-row .remove-member-button{
+    grid-column:2/-1;
+    width:100%;
+  }
+}
