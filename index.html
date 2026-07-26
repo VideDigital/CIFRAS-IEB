@@ -392,8 +392,14 @@ Insira os acordes entre colchetes."></textarea>
     <span class="eyebrow">REPERT&#211;RIO</span>
     <h3 id="listDialogTitle">Nova lista</h3>
     <label>
-      Nome da lista
+      Nome do repert&#243;rio
       <input id="listName" placeholder="Ex.: Culto de domingo">
+    </label>
+    <label>
+      Data do repert&#243;rio
+      <div class="date-input-wrap">
+        <input id="listDate" type="date">
+      </div>
     </label>
     <p class="field-title">Selecione as m&#250;sicas</p>
     <div id="listSongOptions" class="check-list"></div>
@@ -477,7 +483,10 @@ Insira os acordes entre colchetes."></textarea>
   </dialog>
   <dialog id="repertoireDetailsDialog">
     <button class="dialog-close" data-close-dialog aria-label="Fechar">&times;</button><span class="eyebrow">REPERT&#211;RIO</span><h3 id="repertoireDetailsName">Repert&#243;rio</h3><p id="repertoireDetailsDate" class="muted"></p>
-    <div id="repertoireDetailsSongs" class="repertoire-song-list"></div><button id="playGroupRepertoireBtn" class="primary full">Abrir modo de leitura</button><button id="deleteRepertoireBtn" class="danger-button full">Excluir repert&#243;rio</button>
+    <div id="repertoireDetailsSongs" class="repertoire-song-list"></div>
+    <p class="tiny group-library-help">As cifras criadas por outras pessoas podem ser copiadas para a sua biblioteca e editadas normalmente.</p>
+    <button id="playGroupRepertoireBtn" class="primary full">Abrir modo de leitura</button>
+    <button id="deleteRepertoireBtn" class="danger-button full">Excluir repert&#243;rio</button>
   </dialog>
   <script type="module" src="app.js"></script>
 </body>
