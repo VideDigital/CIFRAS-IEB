@@ -1,9 +1,9 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
-import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, updateProfile } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
+import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail, signOut, updateProfile } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
 import { getFirestore, collection, addDoc, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
-import { firebaseConfig } from "./firebase-config.js?v=4.0.0";
-import { KEYS, transposeContent, semitoneDistance, renderChordMarkup } from "./chord-engine.js?v=4.0.0";
-import { drawChordDiagram } from "./chord-diagrams.js?v=4.0.0";
+import { firebaseConfig } from "./firebase-config.js?v=4.1.0";
+import { KEYS, transposeContent, semitoneDistance, renderChordMarkup } from "./chord-engine.js?v=4.1.0";
+import { drawChordDiagram } from "./chord-diagrams.js?v=4.1.0";
 
 const firebaseApp = initializeApp(firebaseConfig);
 const auth = getAuth(firebaseApp);
@@ -78,7 +78,10 @@ function setDirty(value) {
 
 function firebaseMessage(code) {
   const messages = {
-    "auth/invalid-credential": "E-mail ou senha inv\u00E1lidos.",
+    "auth/invalid-credential": "Senha incorreta ou conta n\u00E3o encontrada. Confira os dados ou recupere sua senha.",
+    "auth/wrong-password": "A senha informada est\u00E1 incorreta.",
+    "auth/user-not-found": "N\u00E3o encontramos uma conta com esse e-mail.",
+    "auth/missing-email": "Digite seu e-mail para recuperar a senha.",
     "auth/email-already-in-use": "Este e-mail j\u00E1 est\u00E1 cadastrado.",
     "auth/weak-password": "Use uma senha com pelo menos 6 caracteres.",
     "auth/invalid-email": "Informe um e-mail v\u00E1lido.",
@@ -92,12 +95,56 @@ KEYS.forEach((key) => {
   $("songKey").insertAdjacentHTML("beforeend", `<option value="${key}">${key}</option>`);
 });
 
-$("togglePassword").onclick = () => {
-  const input = $("passwordInput");
-  const visible = input.type === "text";
-  input.type = visible ? "password" : "text";
-  $("togglePassword").textContent = visible ? "Ver" : "Ocultar";
-};
+const togglePasswordButton = $("togglePassword");
+
+if (togglePasswordButton) {
+  togglePasswordButton.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const input = $("passwordInput");
+    const willShow = input.type === "password";
+
+    input.type = willShow ? "text" : "password";
+    togglePasswordButton.textContent = willShow ? "Ocultar" : "Ver";
+    togglePasswordButton.setAttribute(
+      "aria-label",
+      willShow ? "Ocultar senha" : "Mostrar senha"
+    );
+
+    input.focus({ preventScroll: true });
+    const end = input.value.length;
+    input.setSelectionRange(end, end);
+  });
+}
+
+const forgotPasswordButton = $("forgotPasswordBtn");
+
+if (forgotPasswordButton) {
+  forgotPasswordButton.addEventListener("click", async () => {
+    const email = $("emailInput").value.trim();
+
+    if (!email) {
+      toast("Digite seu e-mail para recuperar a senha.");
+      $("emailInput").focus();
+      return;
+    }
+
+    forgotPasswordButton.disabled = true;
+    forgotPasswordButton.textContent = "Enviando...";
+
+    try {
+      await sendPasswordResetEmail(auth, email);
+      toast("Enviamos um e-mail para voc\u00EA criar uma nova senha.");
+    } catch (error) {
+      console.error("Erro ao recuperar senha:", error);
+      toast(firebaseMessage(error.code));
+    } finally {
+      forgotPasswordButton.disabled = false;
+      forgotPasswordButton.textContent = "Esqueci minha senha";
+    }
+  });
+}
 
 $("toggleAuthMode").onclick = () => {
   authMode = authMode === "login" ? "register" : "login";
@@ -195,22 +242,43 @@ async function loadAll() {
 async function loadSongs() {
   try {
     const snapshot = await getDocs(
-      query(collection(db, "songs"), where("ownerId", "==", currentUser.uid), orderBy("updatedAt", "desc"))
+      query(collection(db, "songs"), where("ownerId", "==", currentUser.uid))
     );
-    songs = snapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
-    renderSongs();
+
+    songs = snapshot.docs
+      .map((item) => ({ id: item.id, ...item.data() }))
+      .sort((a, b) => {
+        const aTime = a.updatedAt?.toMillis?.() || a.createdAt?.toMillis?.() || 0;
+        const bTime = b.updatedAt?.toMillis?.() || b.createdAt?.toMillis?.() || 0;
+        return bTime - aTime;
+      });
+
+    renderSongs($("songSearch")?.value || "");
   } catch (error) {
-    console.error(error);
-    toast("N\u00E3o foi poss\u00EDvel carregar as cifras. Talvez seja necess\u00E1rio criar um \u00EDndice no Firestore.");
+    console.error("Erro ao carregar cifras:", error);
+
+    if (error?.code === "permission-denied") {
+      toast("O Firebase bloqueou a leitura das cifras. Verifique as regras.");
+    } else {
+      toast("N\u00E3o foi poss\u00EDvel carregar as cifras. Atualize a p\u00E1gina e tente novamente.");
+    }
   }
 }
 
 async function loadLists() {
   try {
     const snapshot = await getDocs(
-      query(collection(db, "lists"), where("ownerId", "==", currentUser.uid), orderBy("updatedAt", "desc"))
+      query(collection(db, "lists"), where("ownerId", "==", currentUser.uid))
     );
-    lists = snapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
+
+    lists = snapshot.docs
+      .map((item) => ({ id: item.id, ...item.data() }))
+      .sort((a, b) => {
+        const aTime = a.updatedAt?.toMillis?.() || a.createdAt?.toMillis?.() || 0;
+        const bTime = b.updatedAt?.toMillis?.() || b.createdAt?.toMillis?.() || 0;
+        return bTime - aTime;
+      });
+
     renderLists();
   } catch (error) {
     console.error(error);
@@ -1310,7 +1378,7 @@ async function extractDocxText(file) {
 
   if (typeof mammoth.extractRawText !== "function") {
     throw new Error(
-      "O leitor de DOCX nÃ£o carregou corretamente. Feche a pÃ¡gina e tente novamente."
+      "O leitor de DOCX n\u00E3o carregou corretamente. Feche a p\u00E1gina e tente novamente."
     );
   }
 
@@ -1588,8 +1656,9 @@ $("confirmBulkImportBtn").onclick = async () => {
     "Importa\u00E7\u00E3o conclu\u00EDda"
   );
 
+  $("songSearch").value = "";
   await loadSongs();
-  renderSongs($("songSearch").value || "");
+  renderSongs("");
   updateStats();
 
   if (importedCount > 0) {
@@ -1601,7 +1670,7 @@ $("confirmBulkImportBtn").onclick = async () => {
     toast(
       failedCount
         ? `${importedCount} cifra(s) na Biblioteca e ${failedCount} com erro.`
-        : `${importedCount} cifra(s) adicionada(s) Ã  Biblioteca!`
+        : `${importedCount} cifra(s) adicionada(s) \u00E0 Biblioteca!`
     );
   } else {
     toast("N\u00E3o foi poss\u00EDvel importar as cifras.");
