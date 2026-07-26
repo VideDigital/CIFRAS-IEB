@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#111827">
+  <title>Cifra Hub</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="toast" class="toast"></div>
+
+  <section id="authScreen" class="auth-screen">
+    <div class="auth-card">
+      <div class="brand">
+        <span class="brand-mark">CH</span>
+        <div><strong>Cifra Hub</strong><small>Seu repertório em qualquer lugar</small></div>
+      </div>
+      <h1>Entre no seu repertório</h1>
+      <p class="muted">Crie, importe, organize, transponha e compartilhe cifras.</p>
+      <form id="authForm">
+        <label>Nome <input id="nameInput" autocomplete="name" placeholder="Seu nome"></label>
+        <label>E-mail <input id="emailInput" type="email" autocomplete="email" required placeholder="voce@email.com"></label>
+        <label>Senha <input id="passwordInput" type="password" autocomplete="current-password" minlength="6" required placeholder="Mínimo 6 caracteres"></label>
+        <button class="primary" type="submit">Entrar</button>
+      </form>
+      <button id="toggleAuthMode" class="ghost">Ainda não tenho conta</button>
+      <p id="authHint" class="tiny">Para entrar, informe e-mail e senha.</p>
+    </div>
+  </section>
+
+  <div id="app" class="app hidden">
+    <header class="topbar">
+      <button id="menuBtn" class="icon-btn" aria-label="Menu">☰</button>
+      <div class="brand compact"><span class="brand-mark">CH</span><strong>Cifra Hub</strong></div>
+      <div class="top-actions">
+        <button id="newSongBtn" class="primary small">+ Nova cifra</button>
+        <button id="logoutBtn" class="icon-btn" aria-label="Sair">↪</button>
+      </div>
+    </header>
+
+    <aside id="sidebar" class="sidebar">
+      <div class="user-box">
+        <strong id="userName">Usuário</strong>
+        <small id="userEmail"></small>
+      </div>
+      <nav>
+        <button class="nav-btn active" data-view="library">Biblioteca</button>
+        <button class="nav-btn" data-view="lists">Minhas listas</button>
+        <button class="nav-btn" data-view="shared">Compartilhadas comigo</button>
+      </nav>
+    </aside>
+    <div id="sidebarBackdrop" class="backdrop hidden"></div>
+
+    <main class="main">
+      <section id="libraryView" class="view">
+        <div class="section-head">
+          <div><h2>Biblioteca</h2><p>Suas cifras pessoais e editáveis.</p></div>
+          <input id="songSearch" class="search" placeholder="Buscar música ou artista">
+        </div>
+        <div id="songGrid" class="card-grid"></div>
+        <div id="emptyLibrary" class="empty hidden">Você ainda não criou nenhuma cifra.</div>
+      </section>
+
+      <section id="listsView" class="view hidden">
+        <div class="section-head">
+          <div><h2>Minhas listas</h2><p>Monte repertórios para cultos, ensaios e eventos.</p></div>
+          <button id="newListBtn" class="primary">+ Nova lista</button>
+        </div>
+        <div id="listGrid" class="card-grid"></div>
+        <div id="emptyLists" class="empty hidden">Nenhuma lista criada.</div>
+      </section>
+
+      <section id="sharedView" class="view hidden">
+        <div class="section-head"><div><h2>Compartilhadas comigo</h2><p>Visualização somente leitura.</p></div></div>
+        <div id="sharedGrid" class="card-grid"></div>
+        <div id="emptyShared" class="empty hidden">Nenhuma cifra compartilhada com você.</div>
+      </section>
+
+      <section id="editorView" class="view hidden">
+        <div class="editor-head">
+          <button id="backToLibrary" class="ghost">← Voltar</button>
+          <div class="editor-actions">
+            <button id="importBtn" class="ghost">Importar</button>
+            <button id="shareBtn" class="ghost">Compartilhar</button>
+            <button id="deleteSongBtn" class="danger">Excluir</button>
+            <button id="saveSongBtn" class="primary">Salvar</button>
+          </div>
+        </div>
+
+        <div class="editor-layout">
+          <div class="editor-panel">
+            <label>Título <input id="songTitle" placeholder="Nome da música"></label>
+            <label>Artista/Ministério <input id="songArtist" placeholder="Artista"></label>
+            <div class="form-row">
+              <label>Tom original <select id="songKey"></select></label>
+              <label>Capotraste <input id="songCapo" type="number" min="0" max="12" value="0"></label>
+            </div>
+            <label>Cifra
+              <textarea id="songContent" rows="22" spellcheck="false" placeholder="[G]Santo, Santo...
+[C]Todo-poderoso..."></textarea>
+            </label>
+            <p class="tiny">Use acordes entre colchetes, como [G], [Am7], [F#], [Bb/D].</p>
+          </div>
+
+          <div class="preview-panel">
+            <div class="viewer-toolbar">
+              <div class="transpose">
+                <button id="transposeDown" class="icon-btn">−</button>
+                <span id="currentKeyLabel">Tom: C</span>
+                <button id="transposeUp" class="icon-btn">+</button>
+              </div>
+              <div>
+                <button id="fontDown" class="icon-btn">A−</button>
+                <button id="fontUp" class="icon-btn">A+</button>
+              </div>
+              <div class="autoscroll">
+                <button id="autoScrollBtn" class="ghost small">▶ Rolagem</button>
+                <select id="scrollSpeed">
+                  <option value="0.35">Muito lenta</option>
+                  <option value="0.7">Lenta</option>
+                  <option value="1.2" selected>Normal</option>
+                  <option value="2">Rápida</option>
+                  <option value="3.2">Muito rápida</option>
+                </select>
+              </div>
+            </div>
+            <article id="songPreview" class="song-preview"></article>
+          </div>
+        </div>
+      </section>
+
+      <section id="listPlayerView" class="view hidden">
+        <div class="player-head">
+          <button id="exitListPlayer" class="ghost">← Sair da lista</button>
+          <span id="listProgress"></span>
+        </div>
+        <div id="listPlayerSong" class="song-preview player"></div>
+        <div class="player-nav">
+          <button id="prevListSong" class="ghost">← Anterior</button>
+          <button id="nextListSong" class="primary">Próxima →</button>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <dialog id="chordDialog">
+    <button class="dialog-close" data-close-dialog>×</button>
+    <h3 id="chordName">Acorde</h3>
+    <div id="chordDiagram"></div>
+    <p id="chordHelp" class="muted"></p>
+  </dialog>
+
+  <dialog id="importDialog">
+    <button class="dialog-close" data-close-dialog>×</button>
+    <h3>Importar cifra</h3>
+    <p class="muted">Cole uma cifra com acordes entre colchetes.</p>
+    <textarea id="importText" rows="15" placeholder="[C]Letra da música..."></textarea>
+    <button id="confirmImportBtn" class="primary full">Importar conteúdo</button>
+  </dialog>
+
+  <dialog id="shareDialog">
+    <button class="dialog-close" data-close-dialog>×</button>
+    <h3>Compartilhar cifra</h3>
+    <p class="muted">Quem abrir o link poderá visualizar, mas não editar.</p>
+    <input id="shareLink" readonly>
+    <button id="copyShareLink" class="primary full">Copiar link</button>
+  </dialog>
+
+  <dialog id="listDialog">
+    <button class="dialog-close" data-close-dialog>×</button>
+    <h3 id="listDialogTitle">Nova lista</h3>
+    <label>Nome da lista <input id="listName" placeholder="Ex.: Culto de domingo"></label>
+    <div id="listSongOptions" class="check-list"></div>
+    <button id="saveListBtn" class="primary full">Salvar lista</button>
+  </dialog>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
