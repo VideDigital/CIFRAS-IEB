@@ -1474,3 +1474,217 @@ body{background:radial-gradient(circle at 100% 0,rgba(249,115,22,.10),transparen
     height:auto;
   }
 }
+
+
+/* V4.6 â BUSCA GLOBAL E LEITURA PROFISSIONAL */
+.global-search-shell{
+  max-width:980px;
+  margin:0 auto;
+}
+.global-search-box{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:0 16px;
+  border:1px solid #2d405d;
+  border-radius:18px;
+  background:#08111f;
+}
+.global-search-box span{
+  color:#fb923c;
+  font-size:22px;
+}
+.global-search-box input{
+  width:100%;
+  min-height:58px;
+  border:0;
+  background:transparent;
+  color:#f8fafc;
+  font-size:18px;
+}
+.global-search-filters{
+  display:flex;
+  gap:8px;
+  overflow-x:auto;
+  margin:14px 0 10px;
+}
+.global-search-filters button{
+  flex:0 0 auto;
+  min-height:40px;
+  padding:8px 15px;
+  border:1px solid #2f4058;
+  border-radius:999px;
+  background:#101a2a;
+  color:#cbd5e1;
+  font:inherit;
+  font-size:13px;
+  font-weight:800;
+}
+.global-search-filters button.active{
+  border-color:#fb923c;
+  background:#2b170d;
+  color:#fb923c;
+}
+.global-search-summary{
+  margin:10px 0 14px;
+  color:#94a3b8;
+  font-size:13px;
+}
+.global-search-results{
+  display:grid;
+  gap:10px;
+}
+.global-search-result{
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr) auto;
+  align-items:center;
+  gap:14px;
+  padding:15px;
+  border:1px solid #253650;
+  border-radius:18px;
+  background:#091321;
+}
+.global-search-result-icon{
+  display:grid;
+  width:46px;
+  height:46px;
+  place-items:center;
+  border-radius:13px;
+  background:#2b170d;
+  color:#fb923c;
+  font-size:18px;
+  font-weight:900;
+}
+.global-search-result-content{
+  min-width:0;
+}
+.global-search-result-content span{
+  color:#fb923c;
+  font-size:10px;
+  font-weight:800;
+  letter-spacing:.09em;
+  text-transform:uppercase;
+}
+.global-search-result-content h3{
+  margin:3px 0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.global-search-result-content p{
+  margin:0;
+  overflow:hidden;
+  color:#94a3b8;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.compact-empty{
+  padding:36px 20px;
+}
+
+.viewer-meta-row{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:8px;
+}
+.viewer-meta-row p{
+  margin:0;
+}
+.viewer-meta-pill{
+  display:inline-flex;
+  align-items:center;
+  min-height:28px;
+  padding:5px 10px;
+  border:1px solid #33445f;
+  border-radius:999px;
+  background:#0c1727;
+  color:#cbd5e1;
+  font-size:11px;
+  font-weight:800;
+}
+
+.song-reader-shell{
+  border-color:#263b59;
+  background:
+    radial-gradient(circle at top right, rgba(251,146,60,.08), transparent 24%),
+    #07101d;
+}
+.song-reader-heading{
+  padding:4px 2px 18px;
+  border-bottom:1px solid #1d2b40;
+}
+.song-reader-heading h1{
+  margin-top:7px;
+  letter-spacing:-.03em;
+}
+.dedicated-song-viewer,
+.list-player-song{
+  border:0;
+  border-radius:0;
+  background:transparent;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono",monospace;
+}
+.song-preview .chord-line,
+.song-preview .lyrics-line,
+.song-preview .plain-line{
+  line-height:1.65;
+}
+.song-section-marker{
+  margin:26px 0 18px;
+  border:1px solid #3a4f6e;
+  border-radius:8px;
+  background:#26364d;
+  box-shadow:inset 3px 0 0 #fb923c;
+}
+.song-section-marker span{
+  color:#f8fafc;
+  font-size:12px;
+  letter-spacing:.14em;
+}
+.chord{
+  color:#fb923c;
+  font-weight:900;
+}
+.song-preview h1{
+  font-family:inherit;
+}
+.viewer-toolbar,
+.list-player-toolbar{
+  border-radius:18px;
+  background:#081321;
+}
+.viewer-toolbar .tool-group,
+.list-player-toolbar .tool-group{
+  border-color:#263b58;
+  background:#0c1829;
+}
+.viewer-toolbar .secondary-button,
+.list-player-toolbar .secondary-button,
+.viewer-toolbar .icon-btn,
+.list-player-toolbar .icon-btn{
+  border-radius:13px;
+}
+.viewer-toolbar .is-scrolling,
+.list-player-toolbar .is-scrolling{
+  background:#fb7a1b;
+  color:white;
+}
+
+@media(max-width:640px){
+  .global-search-result{
+    grid-template-columns:auto minmax(0,1fr);
+  }
+  .global-search-result > button{
+    grid-column:1 / -1;
+    width:100%;
+  }
+  .song-reader-heading h1{
+    font-size:36px;
+  }
+  .dedicated-song-viewer,
+  .list-player-song{
+    padding-left:8px;
+    padding-right:8px;
+  }
+}
