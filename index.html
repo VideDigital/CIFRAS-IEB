@@ -5,9 +5,9 @@
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#090f1d">
-  <meta name="description" content="Cifras IEB &#8212; repert&#243;rio, listas e cifras para louvor.">
+  <meta name="description" content="Cifras IEB — repertório, listas e cifras para louvor.">
   <title>Cifras IEB</title>
-  <link rel="stylesheet" href="styles.css?v=4.3.0">
+  <link rel="stylesheet" href="styles.css?v=4.4.0">
 </head>
 <body>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
@@ -19,20 +19,20 @@
         <span class="brand-mark">IEB</span>
         <div>
           <strong>Cifras IEB</strong>
-          <small>Seu repert&#243;rio de louvor</small>
+          <small>Seu repertório de louvor</small>
         </div>
       </div>
 
       <div class="auth-copy">
         <span class="eyebrow">BEM-VINDO</span>
-        <h1>Todo o seu repert&#243;rio em um s&#243; lugar</h1>
-        <p>Crie cifras, organize listas, altere o tom e compartilhe m&#250;sicas com sua equipe.</p>
+        <h1>Todo o seu repertório em um só lugar</h1>
+        <p>Crie cifras, organize listas, altere o tom e compartilhe músicas com sua equipe.</p>
       </div>
 
       <form id="authForm">
         <label id="nameLabel" class="hidden">
           Nome
-          <input id="nameInput" autocomplete="name" placeholder="Como devemos chamar voc&#234;?">
+          <input id="nameInput" autocomplete="name" placeholder="Como devemos chamar você?">
         </label>
 
         <label>
@@ -43,7 +43,7 @@
         <label>
           Senha
           <div class="password-wrap">
-            <input id="passwordInput" type="password" autocomplete="current-password" minlength="6" required placeholder="M&#237;nimo de 6 caracteres">
+            <input id="passwordInput" type="password" autocomplete="current-password" minlength="6" required placeholder="Mínimo de 6 caracteres">
             <button id="togglePassword" type="button" class="input-action" aria-label="Mostrar ou ocultar senha">Ver</button>
           </div>
         </label>
@@ -69,13 +69,13 @@
         <span class="brand-mark">IEB</span>
         <div>
           <strong>Cifras IEB</strong>
-          <small>Repert&#243;rio</small>
+          <small>Repertório</small>
         </div>
       </button>
 
       <div class="top-actions">
         <button id="newSongBtn" class="primary new-song-button">
-          <span>&#65291;</span><span>Nova cifra</span>
+          <span>＋</span><span>Nova cifra</span>
         </button>
         <button id="profileBtn" class="profile-button" aria-label="Abrir menu">
           <span id="profileInitial">D</span>
@@ -87,7 +87,7 @@
       <div class="sidebar-head">
         <div class="user-avatar" id="sidebarInitial">D</div>
         <div class="user-info">
-          <strong id="userName">Usu&#225;rio</strong>
+          <strong id="userName">Usuário</strong>
           <small id="userEmail"></small>
           <button id="copyUserIdBtn" class="user-id-button" type="button">
             ID: <span id="userPublicId">preparando...</span>
@@ -97,29 +97,29 @@
 
       <nav class="sidebar-nav">
         <button class="nav-btn active" data-view="library">
-          <span class="nav-icon">&#8962;</span>
+          <span class="nav-icon">⌂</span>
           <span>Biblioteca</span>
         </button>
         <button class="nav-btn" data-view="lists">
-          <span class="nav-icon">&#9783;</span>
+          <span class="nav-icon">☷</span>
           <span>Minhas listas</span>
         </button>
         <button class="nav-btn" data-view="groups">
-          <span class="nav-icon">&#9737;</span>
+          <span class="nav-icon">☉</span>
           <span>Meus grupos</span>
         </button>
         <button class="nav-btn" data-view="shared">
-          <span class="nav-icon">&#8599;</span>
+          <span class="nav-icon">↗</span>
           <span>Compartilhadas comigo</span>
         </button>
       </nav>
 
       <div class="sidebar-footer">
         <button id="logoutBtn" class="logout-button">
-          <span>&#8618;</span>
+          <span>↪</span>
           <span>Sair da conta</span>
         </button>
-        <small>Cifras IEB &#8226; Vers&#227;o 4.3</small>
+        <small>Cifras IEB • Versão 4.4</small>
       </div>
     </aside>
     <div id="sidebarBackdrop" class="backdrop hidden"></div>
@@ -128,24 +128,24 @@
       <section id="libraryView" class="view">
         <div class="welcome-panel">
           <div>
-            <span class="eyebrow">SEU REPERT&#211;RIO</span>
-            <h1 id="welcomeTitle">Ol&#225;! O que vamos tocar hoje?</h1>
-            <p>Encontre rapidamente suas m&#250;sicas ou crie uma nova cifra.</p>
+            <span class="eyebrow">SEU REPERTÓRIO</span>
+            <h1 id="welcomeTitle">Olá! O que vamos tocar hoje?</h1>
+            <p>Encontre rapidamente suas músicas ou crie uma nova cifra.</p>
           </div>
-          <button class="primary desktop-quick-add" data-new-song>&#65291; Criar cifra</button>
+          <button class="primary desktop-quick-add" data-new-song>＋ Criar cifra</button>
         </div>
 
         <div class="stats-grid">
           <article class="stat-card">
-            <span class="stat-icon">&#9835;</span>
+            <span class="stat-icon">♫</span>
             <div><strong id="songCount">0</strong><small>Cifras</small></div>
           </article>
           <article class="stat-card">
-            <span class="stat-icon">&#9783;</span>
+            <span class="stat-icon">☷</span>
             <div><strong id="listCount">0</strong><small>Listas</small></div>
           </article>
           <article class="stat-card">
-            <span class="stat-icon">&#8599;</span>
+            <span class="stat-icon">↗</span>
             <div><strong id="sharedCount">0</strong><small>Compartilhadas</small></div>
           </article>
         </div>
@@ -153,13 +153,13 @@
         <div class="section-head">
           <div>
             <h2>Minha biblioteca</h2>
-            <p>Suas cifras pessoais e edit&#225;veis.</p>
+            <p>Suas cifras pessoais e editáveis.</p>
           </div>
           <div class="library-tools">
             <button id="bulkImportBtn" class="secondary-button">Importar em massa</button>
             <div class="search-wrap">
-              <span>&#8981;</span>
-              <input id="songSearch" class="search" placeholder="Buscar m&#250;sica ou artista">
+              <span>⌕</span>
+              <input id="songSearch" class="search" placeholder="Buscar música ou artista">
             </div>
           </div>
         </div>
@@ -167,28 +167,28 @@
         <div id="songGrid" class="card-grid"></div>
 
         <div id="emptyLibrary" class="empty-state hidden">
-          <div class="empty-icon">&#9835;</div>
-          <h3>Sua biblioteca est&#225; vazia</h3>
+          <div class="empty-icon">♫</div>
+          <h3>Sua biblioteca está vazia</h3>
           <p>Comece criando ou importando sua primeira cifra.</p>
-          <button class="primary" data-new-song>&#65291; Criar primeira cifra</button>
+          <button class="primary" data-new-song>＋ Criar primeira cifra</button>
         </div>
       </section>
 
       <section id="listsView" class="view hidden">
         <div class="section-head page-heading">
           <div>
-            <span class="eyebrow">ORGANIZA&#199;&#195;O</span>
+            <span class="eyebrow">ORGANIZAÇÃO</span>
             <h1>Minhas listas</h1>
-            <p>Organize repert&#243;rios para cultos, ensaios e eventos.</p>
+            <p>Organize repertórios para cultos, ensaios e eventos.</p>
           </div>
-          <button id="newListBtn" class="primary">&#65291; Nova lista</button>
+          <button id="newListBtn" class="primary">＋ Nova lista</button>
         </div>
         <div id="listGrid" class="card-grid"></div>
         <div id="emptyLists" class="empty-state hidden">
-          <div class="empty-icon">&#9783;</div>
+          <div class="empty-icon">☷</div>
           <h3>Nenhuma lista criada</h3>
-          <p>Monte uma sequ&#234;ncia de m&#250;sicas para seu pr&#243;ximo momento de louvor.</p>
-          <button class="primary" data-new-list>&#65291; Criar primeira lista</button>
+          <p>Monte uma sequência de músicas para seu próximo momento de louvor.</p>
+          <button class="primary" data-new-list>＋ Criar primeira lista</button>
         </div>
       </section>
 
@@ -200,14 +200,14 @@
             <h1>Meus grupos</h1>
             <p>Crie grupos e adicione pessoas usando o ID individual de cada conta.</p>
           </div>
-          <button id="newGroupBtn" class="primary">&#65291; Novo grupo</button>
+          <button id="newGroupBtn" class="primary">＋ Novo grupo</button>
         </div>
 
         <div class="id-info-card">
           <div>
-            <span class="eyebrow">SEU ID P&#218;BLICO</span>
+            <span class="eyebrow">SEU ID PÚBLICO</span>
             <h3 id="groupPageUserId">Gerando ID...</h3><small id="publicIdStatus" class="public-id-status">Preparando sua conta para grupos.</small>
-            <p>Envie esse ID para quem quiser adicionar voc&#234; a um grupo.</p>
+            <p>Envie esse ID para quem quiser adicionar você a um grupo.</p>
           </div>
           <button id="copyGroupPageUserId" class="secondary-button">Copiar ID</button>
         </div>
@@ -215,33 +215,33 @@
         <div id="groupGrid" class="card-grid"></div>
 
         <div id="emptyGroups" class="empty-state hidden">
-          <div class="empty-icon">&#9737;</div>
-          <h3>Voc&#234; ainda n&#227;o participa de grupos</h3>
+          <div class="empty-icon">☉</div>
+          <h3>Você ainda não participa de grupos</h3>
           <p>Crie um grupo para organizar sua equipe de louvor.</p>
-          <button class="primary" data-new-group>&#65291; Criar primeiro grupo</button>
+          <button class="primary" data-new-group>＋ Criar primeiro grupo</button>
         </div>
       </section>
 
       <section id="sharedView" class="view hidden">
         <div class="section-head page-heading">
           <div>
-            <span class="eyebrow">COLABORA&#199;&#195;O</span>
+            <span class="eyebrow">COLABORAÇÃO</span>
             <h1>Compartilhadas comigo</h1>
             <p>Cifras recebidas em modo somente leitura.</p>
           </div>
         </div>
         <div id="sharedGrid" class="card-grid"></div>
         <div id="emptyShared" class="empty-state hidden">
-          <div class="empty-icon">&#8599;</div>
+          <div class="empty-icon">↗</div>
           <h3>Nenhuma cifra compartilhada</h3>
-          <p>Quando algu&#233;m compartilhar uma cifra com voc&#234;, ela aparecer&#225; aqui.</p>
+          <p>Quando alguém compartilhar uma cifra com você, ela aparecerá aqui.</p>
         </div>
       </section>
 
 
       <section id="songViewerView" class="view hidden">
         <div class="song-viewer-top">
-          <button id="viewerBackBtn" class="back-button">&#8592; Biblioteca</button>
+          <button id="viewerBackBtn" class="back-button">← Biblioteca</button>
 
           <div class="song-viewer-actions">
             <button id="viewerEditBtn" class="secondary-button">Editar cifra</button>
@@ -253,7 +253,7 @@
           <header class="song-reader-heading">
             <div>
               <span class="eyebrow">MODO DE LEITURA</span>
-              <h1 id="viewerSongTitle">TÃ­tulo da mÃºsica</h1>
+              <h1 id="viewerSongTitle">Título da música</h1>
               <p id="viewerSongArtist"></p>
             </div>
             <span id="viewerCapoBadge" class="viewer-capo-badge hidden"></span>
@@ -263,17 +263,17 @@
             <div class="tool-group">
               <span class="tool-label">Tom</span>
               <div class="stepper">
-                <button id="viewerTransposeDown" class="icon-btn" aria-label="Diminuir tom">&#8722;</button>
+                <button id="viewerTransposeDown" class="icon-btn" aria-label="Diminuir tom">−</button>
                 <strong id="viewerCurrentKey">C</strong>
-                <button id="viewerTransposeUp" class="icon-btn" aria-label="Aumentar tom">&#65291;</button>
+                <button id="viewerTransposeUp" class="icon-btn" aria-label="Aumentar tom">＋</button>
               </div>
             </div>
 
             <div class="tool-group">
               <span class="tool-label">Tamanho do texto</span>
               <div class="stepper">
-                <button id="viewerFontDown" class="icon-btn" aria-label="Diminuir texto">A&#8722;</button>
-                <button id="viewerFontUp" class="icon-btn" aria-label="Aumentar texto">A&#65291;</button>
+                <button id="viewerFontDown" class="icon-btn" aria-label="Diminuir texto">A−</button>
+                <button id="viewerFontUp" class="icon-btn" aria-label="Aumentar texto">A＋</button>
               </div>
             </div>
 
@@ -283,15 +283,15 @@
             </div>
 
             <div class="tool-group scroll-tools">
-              <span class="tool-label">Rolagem automÃ¡tica</span>
+              <span class="tool-label">Rolagem automática</span>
               <div class="scroll-control">
-                <button id="viewerAutoScrollBtn" class="secondary-button">&#9654; Iniciar</button>
+                <button id="viewerAutoScrollBtn" class="secondary-button">▶ Iniciar</button>
                 <select id="viewerScrollSpeed" aria-label="Velocidade da rolagem">
                   <option value="0.20">Muito lenta</option>
                   <option value="0.40">Lenta</option>
                   <option value="0.75" selected>Normal</option>
-                  <option value="1.25">RÃ¡pida</option>
-                  <option value="2.00">Muito rÃ¡pida</option>
+                  <option value="1.25">Rápida</option>
+                  <option value="2.00">Muito rápida</option>
                 </select>
               </div>
             </div>
@@ -303,10 +303,10 @@
 
       <section id="editorView" class="view hidden">
         <div class="editor-top">
-          <button id="backToLibrary" class="back-button">&#8592; Biblioteca</button>
+          <button id="backToLibrary" class="back-button">← Biblioteca</button>
           <div class="save-state">
             <span id="saveStateDot"></span>
-            <span id="saveStateText">Altera&#231;&#245;es n&#227;o salvas</span>
+            <span id="saveStateText">Alterações não salvas</span>
           </div>
           <div class="editor-actions">
             <button id="importBtn" class="secondary-button">Importar</button>
@@ -324,16 +324,16 @@
         <div class="editor-layout">
           <div id="editorPanel" class="editor-panel">
             <div class="panel-title">
-              <div><span class="eyebrow">EDITOR</span><h2>Informa&#231;&#245;es da cifra</h2></div>
+              <div><span class="eyebrow">EDITOR</span><h2>Informações da cifra</h2></div>
             </div>
 
             <label>
-              T&#237;tulo da m&#250;sica
+              Título da música
               <input id="songTitle" placeholder="Ex.: Bondade de Deus">
             </label>
 
             <label>
-              Artista ou minist&#233;rio
+              Artista ou ministério
               <input id="songArtist" placeholder="Ex.: Isaias Saad">
             </label>
 
@@ -359,21 +359,21 @@
                   </span>
                 </button>
               </div>
-              <div class="structure-toolbar" aria-label="Inserir parte da mÃºsica">
-                <button type="button" data-insert-section="INTRODUÃÃO">IntroduÃ§Ã£o</button>
+              <div class="structure-toolbar" aria-label="Inserir parte da música">
+                <button type="button" data-insert-section="INTRODUÇÃO">Introdução</button>
                 <button type="button" data-insert-section="VERSO 1">Verso</button>
-                <button type="button" data-insert-section="PRÃ-REFRÃO">PrÃ©-refrÃ£o</button>
-                <button type="button" data-insert-section="REFRÃO">RefrÃ£o</button>
+                <button type="button" data-insert-section="PRÉ-REFRÃO">Pré-refrão</button>
+                <button type="button" data-insert-section="REFRÃO">Refrão</button>
                 <button type="button" data-insert-section="PONTE">Ponte</button>
-                <button type="button" data-insert-section="INTERLÃDIO">InterlÃºdio</button>
+                <button type="button" data-insert-section="INTERLÚDIO">Interlúdio</button>
                 <button type="button" data-insert-section="SOLO">Solo</button>
                 <button type="button" data-insert-section="PAUSA">Pausa</button>
-                <button type="button" data-insert-section="MINISTRAÃÃO">MinistraÃ§Ã£o</button>
-                <button type="button" data-insert-section="ESPONTÃNEO">EspontÃ¢neo</button>
-                <button type="button" data-insert-section="MODULAÃÃO">ModulaÃ§Ã£o</button>
+                <button type="button" data-insert-section="MINISTRAÇÃO">Ministração</button>
+                <button type="button" data-insert-section="ESPONTÂNEO">Espontâneo</button>
+                <button type="button" data-insert-section="MODULAÇÃO">Modulação</button>
                 <button type="button" data-insert-section="FINAL">Final</button>
               </div>
-              <textarea id="songContent" rows="22" spellcheck="false" placeholder="::INTRODUÃÃO::
+              <textarea id="songContent" rows="22" spellcheck="false" placeholder="::INTRODUÇÃO::
 
 [G]   [D]   [Em]   [C]
 
@@ -382,15 +382,15 @@
 [G]
 Poderoso
 
-[D]Grande Ã© o Senhor"></textarea>
+[D]Grande é o Senhor"></textarea>
             </label>
 
             <div class="editor-help">
               <strong>Como escrever os acordes?</strong>
-              <p>VocÃª pode colocar o acorde antes da palavra: <code>[G]Poderoso</code>, ou em uma linha acima:</p>
+              <p>Você pode colocar o acorde antes da palavra: <code>[G]Poderoso</code>, ou em uma linha acima:</p>
               <pre><code>[G]
 Poderoso</code></pre>
-              <p>Para posicionar vÃ¡rios acordes, use espaÃ§os na linha superior. Os botÃµes acima inserem automaticamente as partes da mÃºsica.</p>
+              <p>Para posicionar vários acordes, use espaços na linha superior. Os botões acima inserem automaticamente as partes da música.</p>
             </div>
           </div>
 
@@ -398,8 +398,8 @@ Poderoso</code></pre>
             <div class="preview-header">
               <div>
                 <span class="eyebrow">MODO DE LEITURA</span>
-                <h2 id="previewSongTitle">Pr&#233;via da cifra</h2>
-                <p id="previewSongArtist">A visualiza&#231;&#227;o ser&#225; atualizada enquanto voc&#234; digita.</p>
+                <h2 id="previewSongTitle">Prévia da cifra</h2>
+                <p id="previewSongArtist">A visualização será atualizada enquanto você digita.</p>
               </div>
               <button id="stageModeBtn" class="secondary-button">Tela cheia</button>
             </div>
@@ -408,31 +408,31 @@ Poderoso</code></pre>
               <div class="tool-group">
                 <span class="tool-label">Tom</span>
                 <div class="stepper">
-                  <button id="transposeDown" class="icon-btn" aria-label="Diminuir tom">&#8722;</button>
+                  <button id="transposeDown" class="icon-btn" aria-label="Diminuir tom">−</button>
                   <strong id="currentKeyLabel">C</strong>
-                  <button id="transposeUp" class="icon-btn" aria-label="Aumentar tom">&#65291;</button>
+                  <button id="transposeUp" class="icon-btn" aria-label="Aumentar tom">＋</button>
                 </div>
               </div>
 
               <div class="tool-group">
                 <span class="tool-label">Tamanho</span>
                 <div class="stepper">
-                  <button id="fontDown" class="icon-btn">A&#8722;</button>
-                  <button id="fontUp" class="icon-btn">A&#65291;</button>
+                  <button id="fontDown" class="icon-btn">A−</button>
+                  <button id="fontUp" class="icon-btn">A＋</button>
                 </div>
               </div>
 
-              <div class="tool-group"><span class="tool-label">Exibi&#231;&#227;o</span><button id="textOnlyBtn" class="secondary-button">Somente texto</button></div>
+              <div class="tool-group"><span class="tool-label">Exibição</span><button id="textOnlyBtn" class="secondary-button">Somente texto</button></div>
               <div class="tool-group scroll-tools">
-                <span class="tool-label">Rolagem autom&#225;tica</span>
+                <span class="tool-label">Rolagem automática</span>
                 <div class="scroll-control">
-                  <button id="autoScrollBtn" class="secondary-button">&#9654; Iniciar</button>
+                  <button id="autoScrollBtn" class="secondary-button">▶ Iniciar</button>
                   <select id="scrollSpeed" aria-label="Velocidade da rolagem">
                     <option value="0.30">Muito lenta</option>
                     <option value="0.60">Lenta</option>
                     <option value="1.05" selected>Normal</option>
-                    <option value="1.75">R&#225;pida</option>
-                    <option value="2.80">Muito r&#225;pida</option>
+                    <option value="1.75">Rápida</option>
+                    <option value="2.80">Muito rápida</option>
                   </select>
                 </div>
               </div>
@@ -444,16 +444,70 @@ Poderoso</code></pre>
       </section>
 
       <section id="listPlayerView" class="view hidden">
-        <div class="player-top">
-          <button id="exitListPlayer" class="back-button">&#8592; Sair da lista</button>
-          <span id="listProgress" class="player-progress"></span>
-          <div class="player-top-actions"><button id="playerTextOnlyBtn" class="secondary-button">Somente texto</button><button id="playerStageMode" class="secondary-button">Tela cheia</button></div>
-        </div>
-        <div class="swipe-hint">Deslize para os lados para trocar de m&#250;sica</div>
-        <div id="listPlayerSong" class="song-preview player"></div>
-        <div class="player-nav">
-          <button id="prevListSong" class="secondary-button">&#8592; Anterior</button>
-          <button id="nextListSong" class="primary">Pr&#243;xima &#8594;</button>
+        <div id="listPlayerShell" class="list-player-shell">
+          <div class="list-player-header">
+            <button id="exitListPlayer" class="back-button" type="button">← Sair da lista</button>
+
+            <div class="list-player-heading">
+              <span class="eyebrow">MODO DE LEITURA</span>
+              <strong id="listProgress" class="player-progress"></strong>
+            </div>
+
+            <button id="playerStageMode" class="secondary-button" type="button">
+              Tela cheia
+            </button>
+          </div>
+
+          <div class="viewer-toolbar list-player-toolbar">
+            <div class="tool-group">
+              <span class="tool-label">Tom</span>
+              <div class="stepper">
+                <button id="playerTransposeDown" class="icon-btn" type="button" aria-label="Diminuir tom">−</button>
+                <strong id="playerCurrentKey">C</strong>
+                <button id="playerTransposeUp" class="icon-btn" type="button" aria-label="Aumentar tom">＋</button>
+              </div>
+            </div>
+
+            <div class="tool-group">
+              <span class="tool-label">Tamanho do texto</span>
+              <div class="stepper">
+                <button id="playerFontDown" class="icon-btn" type="button" aria-label="Diminuir texto">A−</button>
+                <button id="playerFontUp" class="icon-btn" type="button" aria-label="Aumentar texto">A＋</button>
+              </div>
+            </div>
+
+            <div class="tool-group">
+              <span class="tool-label">Acordes</span>
+              <button id="playerTextOnlyBtn" class="secondary-button" type="button">
+                Somente texto
+              </button>
+            </div>
+
+            <div class="tool-group scroll-tools">
+              <span class="tool-label">Rolagem automática</span>
+              <div class="scroll-control">
+                <button id="playerAutoScrollBtn" class="secondary-button" type="button">
+                  ▶ Iniciar
+                </button>
+                <select id="playerScrollSpeed" aria-label="Velocidade da rolagem">
+                  <option value="0.20">Muito lenta</option>
+                  <option value="0.40">Lenta</option>
+                  <option value="0.75" selected>Normal</option>
+                  <option value="1.25">Rápida</option>
+                  <option value="2.00">Muito rápida</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="swipe-hint">Deslize para os lados ou use os botões para trocar de música.</div>
+
+          <div id="listPlayerSong" class="song-preview player list-player-song"></div>
+
+          <div class="player-nav list-player-nav">
+            <button id="prevListSong" class="secondary-button" type="button">← Anterior</button>
+            <button id="nextListSong" class="primary" type="button">Próxima →</button>
+          </div>
         </div>
       </section>
     </main>
@@ -461,7 +515,7 @@ Poderoso</code></pre>
 
 
   <dialog id="chordLibraryDialog" class="chord-library-dialog">
-    <button class="dialog-close" data-close-dialog aria-label="Fechar">&#215;</button>
+    <button class="dialog-close" data-close-dialog aria-label="Fechar">×</button>
 
     <div class="chord-library-heading">
       <div>
@@ -472,14 +526,14 @@ Poderoso</code></pre>
     </div>
 
     <div class="chord-library-search">
-      <span>&#8981;</span>
+      <span>⌕</span>
       <input id="chordLibrarySearch" type="search" placeholder="Buscar C, Am7, F#7M, Bb...">
     </div>
 
     <div class="chord-library-tabs" role="tablist">
       <button type="button" class="chord-library-tab active" data-chord-tab="all">Todos</button>
       <button type="button" class="chord-library-tab" data-chord-tab="roots">Por tom</button>
-      <button type="button" class="chord-library-tab" data-chord-tab="fields">Campos harmÃ´nicos</button>
+      <button type="button" class="chord-library-tab" data-chord-tab="fields">Campos harmônicos</button>
       <button type="button" class="chord-library-tab" data-chord-tab="custom">Meus acordes</button>
     </div>
 
@@ -508,8 +562,8 @@ Poderoso</code></pre>
       </div>
 
       <div class="harmonic-field-explanation">
-        <strong id="harmonicFieldTitle">Campo harmÃ´nico de C maior</strong>
-        <small id="harmonicFieldFormula">I Â· ii Â· iii Â· IV Â· V Â· vi Â· viiÂ°</small>
+        <strong id="harmonicFieldTitle">Campo harmônico de C maior</strong>
+        <small id="harmonicFieldFormula">I · ii · iii · IV · V · vi · vii°</small>
       </div>
 
       <div id="harmonicFieldGrid" class="harmonic-field-grid"></div>
@@ -520,7 +574,7 @@ Poderoso</code></pre>
         <div>
           <span class="eyebrow">ACORDE PERSONALIZADO</span>
           <h4>Criar um acorde</h4>
-          <p class="muted">Use para acordes que nÃ£o aparecem na biblioteca.</p>
+          <p class="muted">Use para acordes que não aparecem na biblioteca.</p>
         </div>
 
         <div class="custom-chord-fields">
@@ -535,7 +589,7 @@ Poderoso</code></pre>
               <option value="Personalizados">Personalizados</option>
               <option value="Maior">Maior</option>
               <option value="Menor">Menor</option>
-              <option value="SÃ©tima">SÃ©tima</option>
+              <option value="Sétima">Sétima</option>
               <option value="Suspenso">Suspenso</option>
               <option value="Diminuto">Diminuto</option>
               <option value="Alterado">Alterado</option>
@@ -558,7 +612,7 @@ Poderoso</code></pre>
   </dialog>
 
   <dialog id="chordDialog">
-    <button class="dialog-close" data-close-dialog aria-label="Fechar">&#215;</button>
+    <button class="dialog-close" data-close-dialog aria-label="Fechar">×</button>
     <span class="eyebrow">DIAGRAMA</span>
     <h3 id="chordName">Acorde</h3>
     <div id="chordDiagram"></div>
@@ -566,54 +620,54 @@ Poderoso</code></pre>
   </dialog>
 
   <dialog id="importDialog">
-    <button class="dialog-close" data-close-dialog aria-label="Fechar">&#215;</button>
-    <span class="eyebrow">IMPORTA&#199;&#195;O</span>
+    <button class="dialog-close" data-close-dialog aria-label="Fechar">×</button>
+    <span class="eyebrow">IMPORTAÇÃO</span>
     <h3>Importar uma cifra</h3>
     <p class="muted">Cole abaixo uma cifra usando acordes entre colchetes.</p>
-    <textarea id="importText" rows="15" placeholder="[G]Letra da m&#250;sica..."></textarea>
+    <textarea id="importText" rows="15" placeholder="[G]Letra da música..."></textarea>
     <button id="confirmImportBtn" class="primary full">Usar esta cifra</button>
   </dialog>
 
   <dialog id="shareDialog">
-    <button class="dialog-close" data-close-dialog aria-label="Fechar">&#215;</button>
+    <button class="dialog-close" data-close-dialog aria-label="Fechar">×</button>
     <span class="eyebrow">COMPARTILHAMENTO</span>
     <h3>Compartilhar cifra</h3>
-    <p class="muted">A pessoa poder&#225; visualizar a cifra, mas n&#227;o poder&#225; editar a sua vers&#227;o.</p>
-    <label>Link de visualiza&#231;&#227;o <input id="shareLink" readonly></label>
+    <p class="muted">A pessoa poderá visualizar a cifra, mas não poderá editar a sua versão.</p>
+    <label>Link de visualização <input id="shareLink" readonly></label>
     <button id="copyShareLink" class="primary full">Copiar link</button>
   </dialog>
 
   <dialog id="listDialog">
-    <button class="dialog-close" data-close-dialog aria-label="Fechar">&#215;</button>
-    <span class="eyebrow">REPERT&#211;RIO</span>
+    <button class="dialog-close" data-close-dialog aria-label="Fechar">×</button>
+    <span class="eyebrow">REPERTÓRIO</span>
     <h3 id="listDialogTitle">Nova lista</h3>
     <label>
-      Nome do repert&#243;rio
+      Nome do repertório
       <input id="listName" placeholder="Ex.: Culto de domingo">
     </label>
     <label>
-      Data do repert&#243;rio
+      Data do repertório
       <div class="date-input-wrap">
         <input id="listDate" type="date">
       </div>
     </label>
-    <p class="field-title">Selecione as m&#250;sicas</p>
+    <p class="field-title">Selecione as músicas</p>
     <div id="listSongOptions" class="check-list"></div>
     <button id="saveListBtn" class="primary full">Salvar lista</button>
   </dialog>
 
 
   <dialog id="bulkImportDialog">
-    <button class="dialog-close" data-close-dialog aria-label="Fechar">&times;</button>
-    <span class="eyebrow">IMPORTA&#199;&#195;O EM MASSA</span>
+    <button class="dialog-close" data-close-dialog aria-label="Fechar">×</button>
+    <span class="eyebrow">IMPORTAÇÃO EM MASSA</span>
     <h3>Importar cifras do celular</h3>
     <p class="muted">
-      Selecione uma ou v&#225;rias cifras. Arquivos PDF deixam de ficar bloqueados no iPhone
-      e ser&#227;o convertidos para cifras edit&#225;veis.
+      Selecione uma ou várias cifras. Arquivos PDF deixam de ficar bloqueados no iPhone
+      e serão convertidos para cifras editáveis.
     </p>
 
     <label class="file-picker-box" for="bulkImportFiles">
-      <span class="file-picker-icon">&#8682;</span>
+      <span class="file-picker-icon">⇪</span>
       <strong>Selecionar arquivos</strong>
       <small>PDF, TXT, MD, CHO, CHORDPRO, JSON e DOCX</small>
       <input
@@ -637,17 +691,17 @@ Poderoso</code></pre>
     <div id="bulkImportSummary" class="bulk-summary hidden"></div>
 
     <div class="bulk-actions">
-      <button id="clearBulkFilesBtn" class="secondary-button">Limpar sele&#231;&#227;o</button>
+      <button id="clearBulkFilesBtn" class="secondary-button">Limpar seleção</button>
       <button id="confirmBulkImportBtn" class="primary">Importar arquivos</button>
     </div>
   </dialog>
 
 
   <dialog id="groupDialog">
-    <button class="dialog-close" data-close-dialog aria-label="Fechar">&times;</button>
+    <button class="dialog-close" data-close-dialog aria-label="Fechar">×</button>
     <span class="eyebrow">NOVO GRUPO</span>
     <h3>Criar grupo</h3>
-    <p class="muted">Crie um espa&#231;o para organizar sua equipe.</p>
+    <p class="muted">Crie um espaço para organizar sua equipe.</p>
 
     <label>
       Nome do grupo
@@ -655,15 +709,15 @@ Poderoso</code></pre>
     </label>
 
     <label>
-      Descri&#231;&#227;o
-      <textarea id="groupDescriptionInput" rows="4" placeholder="Ex.: Equipe respons&#225;vel pelos cultos de domingo"></textarea>
+      Descrição
+      <textarea id="groupDescriptionInput" rows="4" placeholder="Ex.: Equipe responsável pelos cultos de domingo"></textarea>
     </label>
 
     <button id="saveGroupBtn" class="primary full">Criar grupo</button>
   </dialog>
 
   <dialog id="groupDetailsDialog" class="group-details-dialog">
-    <button class="dialog-close" data-close-dialog aria-label="Fechar">&times;</button>
+    <button class="dialog-close" data-close-dialog aria-label="Fechar">×</button>
     <span class="eyebrow">GRUPO</span>
     <h3 id="groupDetailsName">Nome do grupo</h3>
     <p id="groupDetailsDescription" class="muted"></p>
@@ -681,11 +735,11 @@ Poderoso</code></pre>
           <button id="addGroupMemberBtn" class="primary">Adicionar</button>
         </div>
       </label>
-      <p class="tiny">Pe&#231;a para a pessoa copiar o ID que aparece no menu da conta dela.</p>
+      <p class="tiny">Peça para a pessoa copiar o ID que aparece no menu da conta dela.</p>
     </div>
 
     <div class="group-repertoire-section">
-      <div class="group-section-heading"><div><span class="eyebrow">REPERT&#211;RIOS</span><h4>Repert&#243;rios por data</h4></div><button id="newGroupRepertoireBtn" class="secondary-button">+ Novo repert&#243;rio</button></div>
+      <div class="group-section-heading"><div><span class="eyebrow">REPERTÓRIOS</span><h4>Repertórios por data</h4></div><button id="newGroupRepertoireBtn" class="secondary-button">+ Novo repertório</button></div>
       <div id="groupRepertoireList" class="group-repertoire-list"></div>
     </div>
     <div class="members-heading"><h4>Membros</h4></div>
@@ -696,19 +750,19 @@ Poderoso</code></pre>
   </dialog>
 
   <dialog id="repertoireDialog">
-    <button class="dialog-close" data-close-dialog aria-label="Fechar">&times;</button><span class="eyebrow">REPERT&#211;RIO DO GRUPO</span><h3>Novo repert&#243;rio</h3>
-    <label>Nome do repert&#243;rio<input id="repertoireNameInput" placeholder="Ex.: Culto de domingo"></label>
+    <button class="dialog-close" data-close-dialog aria-label="Fechar">×</button><span class="eyebrow">REPERTÓRIO DO GRUPO</span><h3>Novo repertório</h3>
+    <label>Nome do repertório<input id="repertoireNameInput" placeholder="Ex.: Culto de domingo"></label>
     <label>Data<div class="date-input-wrap"><input id="repertoireDateInput" type="date"></div></label>
     <p class="field-title">Selecione as cifras</p><div id="repertoireSongOptions" class="check-list"></div>
-    <button id="saveRepertoireBtn" class="primary full">Criar repert&#243;rio</button>
+    <button id="saveRepertoireBtn" class="primary full">Criar repertório</button>
   </dialog>
   <dialog id="repertoireDetailsDialog">
-    <button class="dialog-close" data-close-dialog aria-label="Fechar">&times;</button><span class="eyebrow">REPERT&#211;RIO</span><h3 id="repertoireDetailsName">Repert&#243;rio</h3><p id="repertoireDetailsDate" class="muted"></p>
+    <button class="dialog-close" data-close-dialog aria-label="Fechar">×</button><span class="eyebrow">REPERTÓRIO</span><h3 id="repertoireDetailsName">Repertório</h3><p id="repertoireDetailsDate" class="muted"></p>
     <div id="repertoireDetailsSongs" class="repertoire-song-list"></div>
     <p class="tiny group-library-help">As cifras criadas por outras pessoas podem ser copiadas para a sua biblioteca e editadas normalmente.</p>
     <button id="playGroupRepertoireBtn" class="primary full">Abrir modo de leitura</button>
-    <button id="deleteRepertoireBtn" class="danger-button full">Excluir repert&#243;rio</button>
+    <button id="deleteRepertoireBtn" class="danger-button full">Excluir repertório</button>
   </dialog>
-  <script type="module" src="app.js?v=4.3.0"></script>
+  <script type="module" src="app.js?v=4.4.0"></script>
 </body>
 </html>
