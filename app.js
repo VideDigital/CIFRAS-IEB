@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
 import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, updateProfile } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
-import { getFirestore, collection, addDoc, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp, arrayUnion } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
 import { firebaseConfig } from "./firebase-config.js";
 import { KEYS, transposeContent, semitoneDistance, renderChordMarkup } from "./chord-engine.js";
 import { drawChordDiagram } from "./chord-diagrams.js";
@@ -14,6 +14,9 @@ let currentUser = null;
 let songs = [];
 let lists = [];
 let sharedSongs = [];
+let groups = [];
+let currentGroup = null;
+let currentPublicId = "";
 let editingSong = null;
 let editingList = null;
 let previewKey = "C";
@@ -24,7 +27,7 @@ let authMode = "login";
 let touchStartX = 0;
 let isDirty = false;
 
-const views = ["library", "lists", "shared", "editor", "listPlayer"];
+const views = ["library", "lists", "groups", "shared", "editor", "listPlayer"];
 
 function showView(name) {
   views.forEach((view) => $(`${view}View`).classList.toggle("hidden", view !== name));
@@ -155,7 +158,7 @@ onAuthStateChanged(auth, async (user) => {
 });
 
 async function loadAll() {
-  await Promise.all([loadSongs(), loadLists(), loadShared()]);
+  await Promise.all([loadSongs(), loadLists(), loadGroups(), loadShared()]);
   updateStats();
 }
 
@@ -766,6 +769,320 @@ function closeSidebar() {
   $("sidebarBackdrop").classList.add("hidden");
 }
 
+
+
+function generatePublicId() {
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let value = "IEB-";
+  for (let index = 0; index < 6; index += 1) {
+    value += alphabet[Math.floor(Math.random() * alphabet.length)];
+  }
+  return value;
+}
+
+async function ensurePublicProfile(user) {
+  const userReference = doc(db, "users", user.uid);
+  const profileReference = doc(db, "publicProfiles", user.uid);
+  const [userSnapshot, profileSnapshot] = await Promise.all([
+    getDoc(userReference),
+    getDoc(profileReference)
+  ]);
+
+  let publicId = userSnapshot.exists() ? userSnapshot.data().publicId : "";
+
+  if (!publicId) {
+    for (let attempt = 0; attempt < 8; attempt += 1) {
+      const candidate = generatePublicId();
+      const duplicateQuery = query(
+        collection(db, "publicProfiles"),
+        where("publicId", "==", candidate)
+      );
+      const duplicateSnapshot = await getDocs(duplicateQuery);
+
+      if (duplicateSnapshot.empty) {
+        publicId = candidate;
+        break;
+      }
+    }
+  }
+
+  if (!publicId) throw new Error("N\u00e3o foi poss\u00edvel gerar um ID.");
+
+  const name = user.displayName || userSnapshot.data()?.name || "Usu\u00e1rio";
+
+  await setDoc(userReference, {
+    name,
+    email: user.email || "",
+    publicId,
+    updatedAt: serverTimestamp()
+  }, { merge: true });
+
+  await setDoc(profileReference, {
+    uid: user.uid,
+    publicId,
+    name,
+    updatedAt: serverTimestamp()
+  }, { merge: true });
+
+  currentPublicId = publicId;
+  $("userPublicId").textContent = publicId;
+  $("groupPageUserId").textContent = publicId;
+}
+
+async function copyPublicId() {
+  if (!currentPublicId) return;
+  try {
+    await navigator.clipboard.writeText(currentPublicId);
+    toast("ID copiado!");
+  } catch {
+    toast(`Seu ID \u00e9 ${currentPublicId}`);
+  }
+}
+
+$("copyUserIdBtn").onclick = copyPublicId;
+$("copyGroupPageUserId").onclick = copyPublicId;
+
+async function loadGroups() {
+  try {
+    const snapshot = await getDocs(
+      query(collection(db, "groups"), where("memberIds", "array-contains", currentUser.uid))
+    );
+    groups = snapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
+    groups.sort((a, b) => (a.name || "").localeCompare(b.name || "", "pt-BR"));
+    renderGroups();
+  } catch (error) {
+    console.error("Erro ao carregar grupos:", error);
+    toast("N\u00e3o foi poss\u00edvel carregar os grupos.");
+  }
+}
+
+function renderGroups() {
+  $("groupGrid").innerHTML = groups.map((group) => {
+    const isOwner = group.ownerId === currentUser.uid;
+    return `
+      <article class="card">
+        <div>
+          <span class="song-card-key">${group.memberIds?.length || 1}</span>
+          <h3>${safeText(group.name || "Grupo sem nome")}</h3>
+          <p>${safeText(group.description || "Sem descri\u00e7\u00e3o")}</p>
+        </div>
+        <div>
+          <span class="meta">${isOwner ? "Voc\u00ea \u00e9 o respons\u00e1vel" : "Voc\u00ea participa deste grupo"}</span>
+          <div class="card-actions">
+            <button class="primary" data-open-group="${group.id}">Abrir grupo</button>
+          </div>
+        </div>
+      </article>
+    `;
+  }).join("");
+
+  $("emptyGroups").classList.toggle("hidden", groups.length > 0);
+}
+
+function openGroupDialog() {
+  $("groupNameInput").value = "";
+  $("groupDescriptionInput").value = "";
+  $("groupDialog").showModal();
+}
+
+$("newGroupBtn").onclick = openGroupDialog;
+document.addEventListener("click", (event) => {
+  if (event.target.closest("[data-new-group]")) openGroupDialog();
+
+  const openGroupButton = event.target.closest("[data-open-group]");
+  if (openGroupButton) openGroupDetails(openGroupButton.dataset.openGroup);
+});
+
+$("saveGroupBtn").onclick = async () => {
+  const name = $("groupNameInput").value.trim();
+  const description = $("groupDescriptionInput").value.trim();
+
+  if (!name) {
+    toast("Informe o nome do grupo.");
+    return;
+  }
+
+  const button = $("saveGroupBtn");
+  button.disabled = true;
+  button.textContent = "Criando...";
+
+  try {
+    await addDoc(collection(db, "groups"), {
+      name,
+      description,
+      ownerId: currentUser.uid,
+      adminIds: [currentUser.uid],
+      memberIds: [currentUser.uid],
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    });
+
+    $("groupDialog").close();
+    toast("Grupo criado com sucesso!");
+    await loadGroups();
+  } catch (error) {
+    console.error(error);
+    toast("N\u00e3o foi poss\u00edvel criar o grupo.");
+  } finally {
+    button.disabled = false;
+    button.textContent = "Criar grupo";
+  }
+};
+
+async function getGroupMembers(group) {
+  const ids = group.memberIds || [];
+  const profiles = await Promise.all(ids.map(async (uid) => {
+    const snapshot = await getDoc(doc(db, "publicProfiles", uid));
+    return snapshot.exists()
+      ? { uid, ...snapshot.data() }
+      : { uid, name: "Usu\u00e1rio", publicId: "ID indispon\u00edvel" };
+  }));
+  return profiles;
+}
+
+async function openGroupDetails(groupId) {
+  currentGroup = groups.find((group) => group.id === groupId);
+  if (!currentGroup) return;
+
+  const isOwner = currentGroup.ownerId === currentUser.uid;
+
+  $("groupDetailsName").textContent = currentGroup.name || "Grupo";
+  $("groupDetailsDescription").textContent = currentGroup.description || "Sem descri\u00e7\u00e3o.";
+  $("groupRoleBadge").textContent = isOwner ? "Respons\u00e1vel" : "Membro";
+  $("groupMemberCount").textContent = `${currentGroup.memberIds?.length || 0} membro(s)`;
+  $("groupOwnerControls").classList.toggle("hidden", !isOwner);
+  $("deleteGroupBtn").classList.toggle("hidden", !isOwner);
+  $("leaveGroupBtn").classList.toggle("hidden", isOwner);
+  $("memberPublicIdInput").value = "";
+
+  $("groupMembersList").innerHTML = '<div class="muted">Carregando membros...</div>';
+  $("groupDetailsDialog").showModal();
+
+  const members = await getGroupMembers(currentGroup);
+  $("groupMembersList").innerHTML = members.map((member) => {
+    const memberIsOwner = member.uid === currentGroup.ownerId;
+    return `
+      <div class="group-member-row">
+        <div class="member-avatar">${safeText((member.name || "U")[0].toUpperCase())}</div>
+        <div class="member-info">
+          <strong>${safeText(member.name || "Usu\u00e1rio")}</strong>
+          <small>${safeText(member.publicId || "")}</small>
+        </div>
+        <span class="role-badge">${memberIsOwner ? "Respons\u00e1vel" : "Membro"}</span>
+        ${isOwner && !memberIsOwner
+          ? `<button class="remove-member-button" data-remove-member="${member.uid}">Remover</button>`
+          : ""}
+      </div>
+    `;
+  }).join("");
+}
+
+$("addGroupMemberBtn").onclick = async () => {
+  if (!currentGroup || currentGroup.ownerId !== currentUser.uid) return;
+
+  const publicId = $("memberPublicIdInput").value.trim().toUpperCase();
+
+  if (!/^IEB-[A-Z0-9]{6}$/.test(publicId)) {
+    toast("Digite um ID v\u00e1lido, como IEB-8F4K2Q.");
+    return;
+  }
+
+  const button = $("addGroupMemberBtn");
+  button.disabled = true;
+  button.textContent = "Buscando...";
+
+  try {
+    const profileQuery = query(
+      collection(db, "publicProfiles"),
+      where("publicId", "==", publicId)
+    );
+    const profileSnapshot = await getDocs(profileQuery);
+
+    if (profileSnapshot.empty) {
+      toast("Nenhuma pessoa foi encontrada com esse ID.");
+      return;
+    }
+
+    const profile = profileSnapshot.docs[0].data();
+    const uid = profile.uid;
+
+    if (currentGroup.memberIds?.includes(uid)) {
+      toast("Essa pessoa j\u00e1 participa do grupo.");
+      return;
+    }
+
+    await updateDoc(doc(db, "groups", currentGroup.id), {
+      memberIds: arrayUnion(uid),
+      updatedAt: serverTimestamp()
+    });
+
+    toast(`${profile.name || "Pessoa"} foi adicionada ao grupo.`);
+    await loadGroups();
+    await openGroupDetails(currentGroup.id);
+  } catch (error) {
+    console.error(error);
+    toast("N\u00e3o foi poss\u00edvel adicionar a pessoa.");
+  } finally {
+    button.disabled = false;
+    button.textContent = "Adicionar";
+  }
+};
+
+document.addEventListener("click", async (event) => {
+  const removeButton = event.target.closest("[data-remove-member]");
+  if (!removeButton || !currentGroup) return;
+
+  if (!confirm("Deseja remover esta pessoa do grupo?")) return;
+
+  try {
+    await updateDoc(doc(db, "groups", currentGroup.id), {
+      memberIds: arrayRemove(removeButton.dataset.removeMember),
+      adminIds: arrayRemove(removeButton.dataset.removeMember),
+      updatedAt: serverTimestamp()
+    });
+
+    toast("Pessoa removida do grupo.");
+    await loadGroups();
+    await openGroupDetails(currentGroup.id);
+  } catch (error) {
+    console.error(error);
+    toast("N\u00e3o foi poss\u00edvel remover a pessoa.");
+  }
+});
+
+$("leaveGroupBtn").onclick = async () => {
+  if (!currentGroup || currentGroup.ownerId === currentUser.uid) return;
+  if (!confirm("Deseja sair deste grupo?")) return;
+
+  try {
+    await updateDoc(doc(db, "groups", currentGroup.id), {
+      memberIds: arrayRemove(currentUser.uid),
+      adminIds: arrayRemove(currentUser.uid),
+      updatedAt: serverTimestamp()
+    });
+    $("groupDetailsDialog").close();
+    toast("Voc\u00ea saiu do grupo.");
+    await loadGroups();
+  } catch (error) {
+    console.error(error);
+    toast("N\u00e3o foi poss\u00edvel sair do grupo.");
+  }
+};
+
+$("deleteGroupBtn").onclick = async () => {
+  if (!currentGroup || currentGroup.ownerId !== currentUser.uid) return;
+  if (!confirm("Excluir este grupo permanentemente?")) return;
+
+  try {
+    await deleteDoc(doc(db, "groups", currentGroup.id));
+    $("groupDetailsDialog").close();
+    toast("Grupo exclu\u00eddo.");
+    await loadGroups();
+  } catch (error) {
+    console.error(error);
+    toast("N\u00e3o foi poss\u00edvel excluir o grupo.");
+  }
+};
 
 function normalizeImportedKey(value = "C") {
   const clean = value.trim().replace(/\s+/g, "");
