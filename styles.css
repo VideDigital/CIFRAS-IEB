@@ -2101,3 +2101,129 @@ body{
     margin-top:28px;
   }
 }
+
+
+/* V5.0 â APLICATIVO INSTALÃVEL E OFFLINE */
+.connectivity-banner{
+  position:fixed;
+  top:calc(10px + env(safe-area-inset-top));
+  right:14px;
+  left:14px;
+  z-index:12000;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-wrap:wrap;
+  gap:5px 10px;
+  padding:10px 14px;
+  border:1px solid #85551d;
+  border-radius:14px;
+  background:rgba(54,32,10,.97);
+  color:#ffd39f;
+  box-shadow:0 12px 35px rgba(0,0,0,.35);
+  backdrop-filter:blur(15px);
+  font-size:12px;
+  text-align:center;
+}
+
+.connectivity-banner strong{
+  color:#ff9a45;
+}
+
+.install-app-button{
+  display:flex;
+  width:100%;
+  min-height:46px;
+  align-items:center;
+  justify-content:center;
+  gap:9px;
+  margin-bottom:10px;
+  border:1px solid #364965;
+  border-radius:13px;
+  background:#111c2d;
+  color:#dbeafe;
+  font:inherit;
+  font-size:12px;
+  font-weight:800;
+}
+
+.install-app-button.install-ready{
+  border-color:#ff7a1a;
+  color:#ff9a45;
+  box-shadow:0 0 24px rgba(255,122,26,.12);
+}
+
+.sync-status-card{
+  display:flex;
+  align-items:center;
+  gap:9px;
+  margin-bottom:10px;
+  padding:10px 11px;
+  border:1px solid #263650;
+  border-radius:13px;
+  background:#0a1422;
+}
+
+.sync-status-card > span{
+  flex:0 0 9px;
+  width:9px;
+  height:9px;
+  border-radius:50%;
+  background:#34d399;
+  box-shadow:0 0 12px rgba(52,211,153,.55);
+}
+
+.sync-status-card > span.offline{
+  background:#f59e0b;
+  box-shadow:0 0 12px rgba(245,158,11,.45);
+}
+
+.sync-status-card strong,
+.sync-status-card small{
+  display:block;
+}
+
+.sync-status-card strong{
+  color:#e5edf8;
+  font-size:11px;
+}
+
+.sync-status-card small{
+  margin-top:2px;
+  color:#7f8da2;
+  font-size:9px;
+}
+
+.install-app-dialog{
+  width:min(480px,calc(100vw - 24px));
+}
+
+.install-instructions{
+  margin-top:16px;
+  padding:16px;
+  border:1px solid #2c3e59;
+  border-radius:16px;
+  background:#0a1422;
+}
+
+.install-instructions ol{
+  margin:0;
+  padding-left:22px;
+}
+
+.install-instructions li + li{
+  margin-top:10px;
+}
+
+.offline-mode [aria-disabled="true"]{
+  opacity:.45;
+  cursor:not-allowed;
+  filter:saturate(.4);
+}
+
+@media(max-width:760px){
+  .connectivity-banner{
+    top:calc(8px + env(safe-area-inset-top));
+    font-size:11px;
+  }
+}
