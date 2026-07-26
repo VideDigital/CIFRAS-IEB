@@ -1,9 +1,9 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
 import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail, signOut, updateProfile } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
 import { getFirestore, collection, addDoc, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
-import { firebaseConfig } from "./firebase-config.js?v=4.6.0";
-import { KEYS, transposeContent, semitoneDistance, renderChordMarkup } from "./chord-engine.js?v=4.6.0";
-import { drawChordDiagram } from "./chord-diagrams.js?v=4.6.0";
+import { firebaseConfig } from "./firebase-config.js?v=4.7.0";
+import { KEYS, transposeContent, semitoneDistance, renderChordMarkup } from "./chord-engine.js?v=4.7.0";
+import { drawChordDiagram } from "./chord-diagrams.js?v=4.7.0";
 
 const firebaseApp = initializeApp(firebaseConfig);
 const auth = getAuth(firebaseApp);
@@ -76,62 +76,64 @@ function safeText(value = "") {
   })[character]);
 }
 
+function windows1252Byte(character) {
+  const special = new Map([
+    [0x20AC, 0x80], [0x201A, 0x82], [0x0192, 0x83],
+    [0x201E, 0x84], [0x2026, 0x85], [0x2020, 0x86],
+    [0x2021, 0x87], [0x02C6, 0x88], [0x2030, 0x89],
+    [0x0160, 0x8A], [0x2039, 0x8B], [0x0152, 0x8C],
+    [0x017D, 0x8E], [0x2018, 0x91], [0x2019, 0x92],
+    [0x201C, 0x93], [0x201D, 0x94], [0x2022, 0x95],
+    [0x2013, 0x96], [0x2014, 0x97], [0x02DC, 0x98],
+    [0x2122, 0x99], [0x0161, 0x9A], [0x203A, 0x9B],
+    [0x0153, 0x9C], [0x017E, 0x9E], [0x0178, 0x9F]
+  ]);
+
+  const code = character.codePointAt(0);
+  if (code <= 0xFF) return code;
+  return special.get(code) ?? null;
+}
+
+function decodeBrokenUtf8Once(value) {
+  const bytes = [];
+
+  for (const character of String(value)) {
+    const byte = windows1252Byte(character);
+    if (byte === null) return String(value);
+    bytes.push(byte);
+  }
+
+  try {
+    return new TextDecoder("utf-8", { fatal: true })
+      .decode(new Uint8Array(bytes));
+  } catch {
+    return String(value);
+  }
+}
+
 function repairBrokenText(value = "") {
   let text = String(value ?? "");
 
-  const directMap = new Map([
-    ["nÃÆÃÂ£o", "nÃ£o"], ["NÃÆÃÂ£o", "NÃ£o"], ["ÃÆÃÂ§", "Ã§"],
-    ["ÃÆÃÂ£", "Ã£"], ["ÃÆÃÂ¡", "Ã¡"], ["ÃÆÃÂ©", "Ã©"],
-    ["ÃÆÃÂª", "Ãª"], ["ÃÆÃÂ­", "Ã­"], ["ÃÆÃÂ³", "Ã³"],
-    ["ÃÆÃÂ´", "Ã´"], ["ÃÆÃÂµ", "Ãµ"], ["ÃÆÃÂº", "Ãº"],
-    ["ÃÆÃÂ", "Ã"], ["ÃÆÃÂ", "Ã"], ["ÃÆÃâ°", "Ã"],
-    ["ÃÆÃâ", "Ã"], ["ÃÆÃÅ¡", "Ã"],
-    ["Ãâ", ""], ["Ã", ""],
-    ["ÃÂ¡", "Ã¡"], ["Ã ", "Ã "], ["ÃÂ¢", "Ã¢"], ["ÃÂ£", "Ã£"],
-    ["ÃÂ©", "Ã©"], ["ÃÂª", "Ãª"], ["ÃÂ­", "Ã­"],
-    ["ÃÂ³", "Ã³"], ["ÃÂ´", "Ã´"], ["ÃÂµ", "Ãµ"],
-    ["ÃÂº", "Ãº"], ["ÃÂ§", "Ã§"], ["ÃÂ", "Ã"],
-    ["ÃÂ", "Ã"], ["ÃÂ", "Ã"], ["ÃÂ", "Ã"], ["ÃÂ", "Ã"],
-    ["ÃÂ", "Ã"], ["ÃÂ", "Ã"], ["ÃÂ", "Ã"],
-    ["ÃÂ", "Ã"], ["ÃÂ", "Ã"], ["ÃÂ", "Ã"], ["ÃÂ", "Ã"],
-    ["Ã¢ÂÂ", "â"], ["Ã¢ÂÂ", "â"], ["Ã¢ÂÂ", "â"],
-    ["Ã¢ÂÂ", "â"], ["Ã¢ÂÂ", "â"], ["Ã¢ÂÂ¦", "â¦"],
-    ["Ã¢ÂÂ", "â"], ["Ã¢ÂÂ", "â"]
-  ]);
-
   for (let pass = 0; pass < 4; pass += 1) {
-    const before = text;
-
-    directMap.forEach((correct, broken) => {
-      text = text.split(broken).join(correct);
-    });
-
-    // Fix common replacement-glyph patterns produced by broken UTF-8.
-    text = text
-      .replace(/INTRODU.{1,8}O/gi, (match) =>
-        match === match.toUpperCase() ? "INTRODUÃÃO" : "IntroduÃ§Ã£o"
-      )
-      .replace(/PR.{1,5}-REFR.{1,5}O/gi, (match) =>
-        match === match.toUpperCase() ? "PRÃ-REFRÃO" : "PrÃ©-refrÃ£o"
-      )
-      .replace(/REFR.{1,5}O/gi, (match) =>
-        match === match.toUpperCase() ? "REFRÃO" : "RefrÃ£o"
-      )
-      .replace(/INTERL.{1,5}DIO/gi, (match) =>
-        match === match.toUpperCase() ? "INTERLÃDIO" : "InterlÃºdio"
-      )
-      .replace(/MINISTRA.{1,5}O/gi, (match) =>
-        match === match.toUpperCase() ? "MINISTRAÃÃO" : "MinistraÃ§Ã£o"
-      )
-      .replace(/MODULA.{1,5}O/gi, (match) =>
-        match === match.toUpperCase() ? "MODULAÃÃO" : "ModulaÃ§Ã£o"
-      )
-      .replace(/ESPONT.{1,5}NEO/gi, (match) =>
-        match === match.toUpperCase() ? "ESPONTÃNEO" : "EspontÃ¢neo"
-      );
-
-    if (text === before) break;
+    if (!/[\u00C3\u00C2\u00E2\u00F0\u0192\u2021]/.test(text)) break;
+    const decoded = decodeBrokenUtf8Once(text);
+    if (decoded === text) break;
+    text = decoded;
   }
+
+  const sections = [
+    [/INTRODU[^A-Z\n]{0,12}O/gi, "INTRODU\u00C7\u00C3O"],
+    [/PR[^A-Z\n]{0,8}-REFR[^A-Z\n]{0,8}O/gi, "PR\u00C9-REFR\u00C3O"],
+    [/REFR[^A-Z\n]{0,8}O/gi, "REFR\u00C3O"],
+    [/INTERL[^A-Z\n]{0,8}DIO/gi, "INTERL\u00DADIO"],
+    [/MINISTRA[^A-Z\n]{0,8}O/gi, "MINISTRA\u00C7\u00C3O"],
+    [/MODULA[^A-Z\n]{0,8}O/gi, "MODULA\u00C7\u00C3O"],
+    [/ESPONT[^A-Z\n]{0,8}NEO/gi, "ESPONT\u00C2NEO"]
+  ];
+
+  sections.forEach(([pattern, replacement]) => {
+    text = text.replace(pattern, replacement);
+  });
 
   return text
     .replace(/\uFFFD/g, "")
@@ -166,8 +168,8 @@ function buildGlobalSearchResults(queryText) {
       results.push({
         type: "songs",
         id: song.id,
-        title: repairBrokenText(song.title || "Sem tÃ­tulo"),
-        subtitle: `${repairBrokenText(song.artist || "Artista nÃ£o informado")} â¢ Tom ${song.key || "C"}`,
+        title: repairBrokenText(song.title || "Sem t\u00EDtulo"),
+        subtitle: `${repairBrokenText(song.artist || "Artista n\u00E3o informado")} \u2022 Tom ${song.key || "C"}`,
         meta: "Cifra",
         action: "Abrir"
       });
@@ -188,7 +190,7 @@ function buildGlobalSearchResults(queryText) {
         type: "lists",
         id: list.id,
         title: repairBrokenText(list.name || "Lista sem nome"),
-        subtitle: `${list.songSnapshots?.length || list.songIds?.length || 0} mÃºsica(s)`,
+        subtitle: `${list.songSnapshots?.length || list.songIds?.length || 0} m\u00FAsica(s)`,
         meta: "Lista",
         action: "Abrir"
       });
@@ -205,7 +207,7 @@ function buildGlobalSearchResults(queryText) {
         type: "groups",
         id: group.id,
         title: repairBrokenText(group.name || "Grupo sem nome"),
-        subtitle: repairBrokenText(group.description || "Sem descriÃ§Ã£o"),
+        subtitle: repairBrokenText(group.description || "Sem descri\u00E7\u00E3o"),
         meta: "Grupo",
         action: "Abrir"
       });
@@ -247,7 +249,7 @@ function renderGlobalSearch() {
         </article>
       `).join("")
     : queryValue.trim()
-      ? '<div class="empty-state compact-empty"><h3>Nada encontrado</h3><p>Tente outro tÃ­tulo, artista ou nome de lista.</p></div>'
+      ? '<div class="empty-state compact-empty"><h3>Nada encontrado</h3><p>Tente outro t\u00EDtulo, artista ou nome de lista.</p></div>'
       : "";
 }
 
@@ -540,21 +542,29 @@ function updateStats() {
 }
 
 function songCard(song, shared = false) {
-  return `<article class="card">
-    <div>
-      <span class="song-card-key">${safeText(song.key || "C")}</span>
-      <h3>${safeText(song.title || "Sem t\u00EDtulo")}</h3>
-      <p>${safeText(song.artist || "Artista n\u00E3o informado")}</p>
-    </div>
-    <div>
-      <span class="meta">Atualizada em ${formatDate(song.updatedAt)}</span>
-      <div class="card-actions">
-        <button class="primary" data-open-song="${song.id}" data-shared="${shared}">
-          ${shared ? "Visualizar" : "Abrir cifra"}
-        </button>
-      </div>
-    </div>
-  </article>`;
+  song = normalizeSongText(song);
+
+  const title = song.title || "Sem t\u00EDtulo";
+  const artist = song.artist || "Artista n\u00E3o informado";
+  const key = song.key || "C";
+
+  return `
+    <article class="song-row-card">
+      <button
+        type="button"
+        class="song-row-open"
+        data-open-song="${song.id}"
+        data-shared="${shared}"
+      >
+        <span class="song-row-key">${safeText(key)}</span>
+        <span class="song-row-copy">
+          <strong>${safeText(title)}</strong>
+          <small>${safeText(artist)} \u2022 Tom ${safeText(key)}</small>
+          <em>Atualizada em ${formatDate(song.updatedAt)}</em>
+        </span>
+        <span class="song-row-arrow" aria-hidden="true">\u203A</span>
+      </button>
+    </article>`;
 }
 
 function renderSongs(filter = "") {
@@ -573,24 +583,34 @@ function renderShared() {
 }
 
 function renderLists() {
-  $("listGrid").innerHTML = lists.map((list) => `
-    <article class="card">
-      <div>
-        <span class="song-card-key">${list.songIds?.length || 0}</span>
-        <h3>${safeText(list.name)}</h3>
-        <p>${list.date ? `Repert\u00F3rio de ${formatRepertoireDate(list.date)}` : "Repert\u00F3rio sem data definida"}</p>
-        <p>${list.songIds?.length || 0} m\u00FAsica(s) neste repert\u00F3rio</p>
-      </div>
-      <div>
-        <span class="meta">Atualizado em ${formatDate(list.updatedAt)}</span>
-        <div class="card-actions">
-          <button class="primary" data-play-list="${list.id}">Abrir lista</button>
-          <button class="secondary-button" data-edit-list="${list.id}">Editar</button>
-          <button class="danger-button" data-delete-list="${list.id}">Excluir</button>
+  $("listGrid").innerHTML = lists.map((list) => {
+    const name = repairBrokenText(list.name || "Lista sem nome");
+    const amount = list.songIds?.length || list.songSnapshots?.length || 0;
+    const dateText = list.date
+      ? formatRepertoireDate(list.date)
+      : "Data n\u00E3o definida";
+
+    return `
+      <article class="repertoire-row-card">
+        <button
+          type="button"
+          class="repertoire-row-main"
+          data-play-list="${list.id}"
+        >
+          <span class="repertoire-row-icon">L</span>
+          <span class="repertoire-row-copy">
+            <strong>${safeText(name)}</strong>
+            <small>${amount} m\u00FAsica(s) \u2022 ${safeText(dateText)}</small>
+          </span>
+          <span class="song-row-arrow" aria-hidden="true">\u203A</span>
+        </button>
+
+        <div class="repertoire-row-actions">
+          <button type="button" data-edit-list="${list.id}">Editar</button>
+          <button type="button" class="danger-text" data-delete-list="${list.id}">Excluir</button>
         </div>
-      </div>
-    </article>
-  `).join("");
+      </article>`;
+  }).join("");
 
   $("emptyLists").classList.toggle("hidden", lists.length > 0);
 }
@@ -680,9 +700,9 @@ function renderDedicatedSongViewer() {
     : transposedContent;
 
   $("viewerSongTitle").textContent =
-    repairBrokenText(viewingSong.title || "Sem tÃ­tulo");
+    repairBrokenText(viewingSong.title || "Sem t\u00EDtulo");
   $("viewerSongArtist").textContent =
-    repairBrokenText(viewingSong.artist || "Artista nÃ£o informado");
+    repairBrokenText(viewingSong.artist || "Artista n\u00E3o informado");
   $("viewerCurrentKey").textContent = viewerKey;
   $("viewerSongKeyMeta").textContent = `Tom ${viewerKey}`;
   $("dedicatedSongViewer").style.fontSize = `${viewerFontSize}px`;
@@ -696,7 +716,7 @@ function renderDedicatedSongViewer() {
 function openSongViewer(id, readOnly = false) {
   viewingSong = [...songs, ...sharedSongs].find((song) => song.id === id);
   if (!viewingSong) {
-    toast("NÃ£o foi possÃ­vel abrir esta cifra.");
+    toast("N\u00E3o foi poss\u00EDvel abrir esta cifra.");
     return;
   }
 
@@ -894,7 +914,7 @@ const CHORD_SUFFIX_GROUPS = [
     suffixes: ["m", "m7", "m6", "m9", "m11", "m13", "m7M"]
   },
   {
-    group: "SÃ©timas",
+    group: "S\u00E9timas",
     suffixes: ["7", "7(9)", "7(11)", "7(13)", "7(b9)", "7(#9)", "7(b5)", "7(#5)"]
   },
   {
@@ -952,7 +972,7 @@ function loadCustomChords() {
       ? parsed.filter((item) => item && item.name)
       : [];
   } catch (error) {
-    console.warn("NÃ£o foi possÃ­vel carregar acordes personalizados:", error);
+    console.warn("N\u00E3o foi poss\u00EDvel carregar acordes personalizados:", error);
     customChords = [];
   }
 }
@@ -964,13 +984,13 @@ function persistCustomChords() {
       JSON.stringify(customChords)
     );
   } catch (error) {
-    console.warn("NÃ£o foi possÃ­vel salvar acordes personalizados:", error);
+    console.warn("N\u00E3o foi poss\u00EDvel salvar acordes personalizados:", error);
   }
 }
 
 function chordButtonHtml(chord, options = {}) {
   const removeButton = options.removable
-    ? `<button type="button" class="remove-custom-chord" data-remove-custom-chord="${safeText(chord.name)}" aria-label="Remover ${safeText(chord.name)}">Ã</button>`
+    ? `<button type="button" class="remove-custom-chord" data-remove-custom-chord="${safeText(chord.name)}" aria-label="Remover ${safeText(chord.name)}">\u00D7</button>`
     : "";
 
   return `
@@ -1062,7 +1082,7 @@ function buildHarmonicField(root, mode) {
   const degrees = mode === "minor"
     ? [
         { degree: "i", suffix: "m" },
-        { degree: "iiÂ°", suffix: "dim" },
+        { degree: "ii\u00B0", suffix: "dim" },
         { degree: "III", suffix: "" },
         { degree: "iv", suffix: "m" },
         { degree: "v", suffix: "m" },
@@ -1076,7 +1096,7 @@ function buildHarmonicField(root, mode) {
         { degree: "IV", suffix: "" },
         { degree: "V", suffix: "" },
         { degree: "vi", suffix: "m" },
-        { degree: "viiÂ°", suffix: "dim" }
+        { degree: "vii\u00B0", suffix: "dim" }
       ];
 
   return intervals.map((interval, index) => {
@@ -1095,12 +1115,12 @@ function renderHarmonicField() {
   const field = buildHarmonicField(root, mode);
 
   $("harmonicFieldTitle").textContent =
-    `Campo harmÃ´nico de ${root} ${mode === "minor" ? "menor" : "maior"}`;
+    `Campo harm\u00F4nico de ${root} ${mode === "minor" ? "menor" : "maior"}`;
 
   $("harmonicFieldFormula").textContent =
     mode === "minor"
-      ? "i Â· iiÂ° Â· III Â· iv Â· v Â· VI Â· VII"
-      : "I Â· ii Â· iii Â· IV Â· V Â· vi Â· viiÂ°";
+      ? "i \u00B7 ii\u00B0 \u00B7 III \u00B7 iv \u00B7 v \u00B7 VI \u00B7 VII"
+      : "I \u00B7 ii \u00B7 iii \u00B7 IV \u00B7 V \u00B7 vi \u00B7 vii\u00B0";
 
   $("harmonicFieldGrid").innerHTML = field.map((chord) => `
     <button
@@ -1122,7 +1142,7 @@ function renderCustomChords() {
         .sort((a, b) => a.name.localeCompare(b.name, "pt-BR"))
         .map((chord) => chordButtonHtml(chord, { removable: true }))
         .join("")
-    : '<div class="empty-mini">VocÃª ainda nÃ£o criou acordes personalizados.</div>';
+    : '<div class="empty-mini">Voc\u00EA ainda n\u00E3o criou acordes personalizados.</div>';
 }
 
 function switchChordLibraryTab(tab) {
@@ -1222,7 +1242,7 @@ $("saveCustomChordBtn").onclick = () => {
     return;
   }
 
-  if (!/^[A-G](?:#|b)?[A-Za-z0-9()+/#Â°Âº+\-]*$/.test(name)) {
+  if (!/^[A-G](?:#|b)?[A-Za-z0-9()+/#\u00B0\u00BA+\-]*$/.test(name)) {
     toast("Use um nome como Cadd9/G, F#m7 ou Bb7M.");
     $("customChordName").focus();
     return;
@@ -1232,7 +1252,7 @@ $("saveCustomChordBtn").onclick = () => {
     .some((chord) => chord.name.toLowerCase() === name.toLowerCase());
 
   if (alreadyExists) {
-    toast("Esse acorde jÃ¡ existe na biblioteca.");
+    toast("Esse acorde j\u00E1 existe na biblioteca.");
     return;
   }
 
@@ -1675,7 +1695,7 @@ function renderListSong() {
     : transposedContent;
 
   $("listProgress").textContent =
-    `${listPlayer.index + 1} de ${listPlayer.songs.length} â¢ ${song.title}`;
+    `${listPlayer.index + 1} de ${listPlayer.songs.length} \u2022 ${song.title}`;
 
   $("playerCurrentKey").textContent = playerKey;
   $("listPlayerSong").style.fontSize = `${playerFontSize}px`;
@@ -1683,9 +1703,9 @@ function renderListSong() {
   $("listPlayerSong").innerHTML = `
     <h1>${safeText(song.title)}</h1>
     <p class="muted">
-      ${safeText(song.artist || "Artista nÃ£o informado")}
-      â¢ Tom ${safeText(playerKey)}
-      ${Number(song.capo) > 0 ? ` â¢ Capotraste ${Number(song.capo)}` : ""}
+      ${safeText(song.artist || "Artista n\u00E3o informado")}
+      \u2022 Tom ${safeText(playerKey)}
+      ${Number(song.capo) > 0 ? ` \u2022 Capotraste ${Number(song.capo)}` : ""}
     </p>
     ${renderChordMarkup(content)}
   `;
@@ -2837,4 +2857,60 @@ window.addEventListener("beforeunload", (event) => {
   if (!isDirty) return;
   event.preventDefault();
   event.returnValue = "";
+});
+
+
+document.querySelectorAll("[data-mobile-view]").forEach((button) => {
+  button.addEventListener("click", () => {
+    const view = button.dataset.mobileView;
+    showView(view);
+
+    document.querySelectorAll("[data-mobile-view]").forEach((item) => {
+      item.classList.toggle("active", item === button);
+    });
+  });
+});
+
+document.querySelector("[data-mobile-menu]")?.addEventListener("click", () => {
+  $("menuBtn")?.click();
+});
+
+document.addEventListener("click", (event) => {
+  const readerButton = event.target.closest("[data-reader-action]");
+
+  if (readerButton) {
+    const action = readerButton.dataset.readerAction;
+    const actions = {
+      back: () => $("viewerBackBtn")?.click(),
+      "key-down": () => $("viewerTransposeDown")?.click(),
+      "key-up": () => $("viewerTransposeUp")?.click(),
+      scroll: () => $("viewerAutoScrollBtn")?.click(),
+      "font-down": () => $("viewerFontDown")?.click(),
+      "font-up": () => $("viewerFontUp")?.click(),
+      "text-only": () => $("viewerTextOnlyBtn")?.click(),
+      fullscreen: () => $("viewerStageBtn")?.click(),
+      edit: () => $("viewerEditBtn")?.click(),
+      more: () => $("readerQuickPanel")?.classList.toggle("hidden")
+    };
+    actions[action]?.();
+    return;
+  }
+
+  const listButton = event.target.closest("[data-list-action]");
+
+  if (listButton) {
+    const action = listButton.dataset.listAction;
+    const actions = {
+      previous: () => $("prevListSong")?.click(),
+      next: () => $("nextListSong")?.click(),
+      scroll: () => $("playerAutoScrollBtn")?.click(),
+      "font-down": () => $("playerFontDown")?.click(),
+      "font-up": () => $("playerFontUp")?.click(),
+      "text-only": () => $("playerTextOnlyBtn")?.click(),
+      fullscreen: () => $("playerStageMode")?.click(),
+      exit: () => $("exitListPlayer")?.click(),
+      more: () => $("listQuickPanel")?.classList.toggle("hidden")
+    };
+    actions[action]?.();
+  }
 });
