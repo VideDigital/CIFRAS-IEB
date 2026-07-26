@@ -86,6 +86,9 @@
         <div class="user-info">
           <strong id="userName">Usu&#225;rio</strong>
           <small id="userEmail"></small>
+          <button id="copyUserIdBtn" class="user-id-button" type="button">
+            ID: <span id="userPublicId">gerando...</span>
+          </button>
         </div>
       </div>
 
@@ -97,6 +100,10 @@
         <button class="nav-btn" data-view="lists">
           <span class="nav-icon">&#9783;</span>
           <span>Minhas listas</span>
+        </button>
+        <button class="nav-btn" data-view="groups">
+          <span class="nav-icon">&#9737;</span>
+          <span>Meus grupos</span>
         </button>
         <button class="nav-btn" data-view="shared">
           <span class="nav-icon">&#8599;</span>
@@ -179,6 +186,36 @@
           <h3>Nenhuma lista criada</h3>
           <p>Monte uma sequ&#234;ncia de m&#250;sicas para seu pr&#243;ximo momento de louvor.</p>
           <button class="primary" data-new-list>&#65291; Criar primeira lista</button>
+        </div>
+      </section>
+
+
+      <section id="groupsView" class="view hidden">
+        <div class="section-head page-heading">
+          <div>
+            <span class="eyebrow">EQUIPE</span>
+            <h1>Meus grupos</h1>
+            <p>Crie grupos e adicione pessoas usando o ID individual de cada conta.</p>
+          </div>
+          <button id="newGroupBtn" class="primary">&#65291; Novo grupo</button>
+        </div>
+
+        <div class="id-info-card">
+          <div>
+            <span class="eyebrow">SEU ID P&#218;BLICO</span>
+            <h3 id="groupPageUserId">Carregando...</h3>
+            <p>Envie esse ID para quem quiser adicionar voc&#234; a um grupo.</p>
+          </div>
+          <button id="copyGroupPageUserId" class="secondary-button">Copiar ID</button>
+        </div>
+
+        <div id="groupGrid" class="card-grid"></div>
+
+        <div id="emptyGroups" class="empty-state hidden">
+          <div class="empty-icon">&#9737;</div>
+          <h3>Voc&#234; ainda n&#227;o participa de grupos</h3>
+          <p>Crie um grupo para organizar sua equipe de louvor.</p>
+          <button class="primary" data-new-group>&#65291; Criar primeiro grupo</button>
         </div>
       </section>
 
@@ -399,6 +436,57 @@ Cifra:
       <button id="previewBulkImportBtn" class="secondary-button">Conferir cifras</button>
       <button id="confirmBulkImportBtn" class="primary">Importar todas</button>
     </div>
+  </dialog>
+
+
+  <dialog id="groupDialog">
+    <button class="dialog-close" data-close-dialog aria-label="Fechar">&times;</button>
+    <span class="eyebrow">NOVO GRUPO</span>
+    <h3>Criar grupo</h3>
+    <p class="muted">Crie um espa&#231;o para organizar sua equipe.</p>
+
+    <label>
+      Nome do grupo
+      <input id="groupNameInput" placeholder="Ex.: Louvor IEB">
+    </label>
+
+    <label>
+      Descri&#231;&#227;o
+      <textarea id="groupDescriptionInput" rows="4" placeholder="Ex.: Equipe respons&#225;vel pelos cultos de domingo"></textarea>
+    </label>
+
+    <button id="saveGroupBtn" class="primary full">Criar grupo</button>
+  </dialog>
+
+  <dialog id="groupDetailsDialog" class="group-details-dialog">
+    <button class="dialog-close" data-close-dialog aria-label="Fechar">&times;</button>
+    <span class="eyebrow">GRUPO</span>
+    <h3 id="groupDetailsName">Nome do grupo</h3>
+    <p id="groupDetailsDescription" class="muted"></p>
+
+    <div class="group-role-line">
+      <span id="groupRoleBadge" class="role-badge">Membro</span>
+      <span id="groupMemberCount">0 membros</span>
+    </div>
+
+    <div id="groupOwnerControls" class="group-owner-controls hidden">
+      <label>
+        Adicionar pessoa pelo ID
+        <div class="inline-form">
+          <input id="memberPublicIdInput" placeholder="Ex.: IEB-8F4K2Q" autocapitalize="characters">
+          <button id="addGroupMemberBtn" class="primary">Adicionar</button>
+        </div>
+      </label>
+      <p class="tiny">Pe&#231;a para a pessoa copiar o ID que aparece no menu da conta dela.</p>
+    </div>
+
+    <div class="members-heading">
+      <h4>Membros</h4>
+    </div>
+    <div id="groupMembersList" class="group-members-list"></div>
+
+    <button id="leaveGroupBtn" class="danger-button full">Sair do grupo</button>
+    <button id="deleteGroupBtn" class="danger-button full hidden">Excluir grupo</button>
   </dialog>
 
   <script type="module" src="app.js"></script>
