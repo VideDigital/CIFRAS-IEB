@@ -32,6 +32,29 @@ export function semitoneDistance(fromKey, toKey) {
   return (to - from + 12) % 12;
 }
 
+function repairRenderedText(value = "") {
+  let text = String(value ?? "");
+
+  const replacements = [
+    ["ÃÂ¡", "Ã¡"], ["ÃÂ¢", "Ã¢"], ["ÃÂ£", "Ã£"], ["ÃÂ©", "Ã©"],
+    ["ÃÂª", "Ãª"], ["ÃÂ­", "Ã­"], ["ÃÂ³", "Ã³"], ["ÃÂ´", "Ã´"],
+    ["ÃÂµ", "Ãµ"], ["ÃÂº", "Ãº"], ["ÃÂ§", "Ã§"], ["ÃÂ", "Ã"],
+    ["ÃÂ", "Ã"], ["ÃÂ", "Ã"], ["ÃÂ", "Ã"], ["ÃÂ", "Ã"],
+    ["Ã", ""], ["Ã¢ÂÂ", "â"], ["Ã¢ÂÂ", "â"],
+    ["Ã¢ÂÂ", "â"], ["Ã¢ÂÂ", "â"]
+  ];
+
+  for (let pass = 0; pass < 3; pass += 1) {
+    const before = text;
+    replacements.forEach(([broken, correct]) => {
+      text = text.split(broken).join(correct);
+    });
+    if (text === before) break;
+  }
+
+  return text.replace(/\uFFFD/g, "");
+}
+
 function escapeHtml(value = "") {
   return String(value)
     .replace(/&/g, "&amp;")
@@ -115,7 +138,7 @@ function renderSectionMarker(line) {
   const match = line.match(/^::\s*(.+?)\s*::$/);
   if (!match) return null;
 
-  const label = match[1].trim();
+  const label = repairRenderedText(match[1].trim());
   const type = normalizeSectionName(label);
 
   const knownTypes = {
@@ -187,7 +210,7 @@ function mergeChordLineWithLyric(chordLine, lyricLine) {
 }
 
 export function renderChordMarkup(content) {
-  const lines = String(content || "")
+  const lines = repairRenderedText(content || "")
     .replace(/\r\n/g, "\n")
     .split("\n");
 
