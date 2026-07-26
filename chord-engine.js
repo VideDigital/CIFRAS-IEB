@@ -102,10 +102,130 @@ function renderLyricsWithChords(line) {
   return html;
 }
 
+function normalizeSectionName(value = "") {
+  return String(value)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "-");
+}
+
+function renderSectionMarker(line) {
+  const match = line.match(/^::\s*(.+?)\s*::$/);
+  if (!match) return null;
+
+  const label = match[1].trim();
+  const type = normalizeSectionName(label);
+
+  const knownTypes = {
+    "introducao": "intro",
+    "intro": "intro",
+    "verso": "verse",
+    "verso-1": "verse",
+    "verso-2": "verse",
+    "verso-3": "verse",
+    "pre-refrao": "prechorus",
+    "refrao": "chorus",
+    "pos-refrao": "postchorus",
+    "ponte": "bridge",
+    "interludio": "interlude",
+    "solo": "solo",
+    "pausa": "pause",
+    "ministracao": "ministry",
+    "oracao": "prayer",
+    "espontaneo": "spontaneous",
+    "modulacao": "modulation",
+    "final": "ending",
+    "coda": "ending",
+    "repete": "repeat"
+  };
+
+  const cssType = knownTypes[type] || "custom";
+
+  return `
+    <div class="song-section-marker section-${cssType}">
+      <span>${escapeHtml(label)}</span>
+    </div>`;
+}
+
+function mergeChordLineWithLyric(chordLine, lyricLine) {
+  const matches = [...chordLine.matchAll(/\[([^\]]+)\]/g)];
+  if (!matches.length) return lyricLine;
+
+  let merged = lyricLine;
+  let removedCharacters = 0;
+
+  const placements = matches.map((match) => {
+    const visualPosition = Math.max(
+      0,
+      (match.index || 0) - removedCharacters
+    );
+    removedCharacters += match[0].length;
+    return {
+      chord: match[1].trim(),
+      position: visualPosition
+    };
+  });
+
+  for (let index = placements.length - 1; index >= 0; index -= 1) {
+    const placement = placements[index];
+    const position = Math.min(placement.position, merged.length);
+
+    if (position >= merged.length) {
+      const padding = " ".repeat(Math.max(1, position - merged.length));
+      merged += `${padding}[${placement.chord}]`;
+    } else {
+      merged =
+        merged.slice(0, position) +
+        `[${placement.chord}]` +
+        merged.slice(position);
+    }
+  }
+
+  return merged;
+}
+
 export function renderChordMarkup(content) {
-  return String(content || "")
+  const lines = String(content || "")
     .replace(/\r\n/g, "\n")
-    .split("\n")
-    .map(renderLyricsWithChords)
-    .join("");
+    .split("\n");
+
+  const rendered = [];
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index];
+    const section = renderSectionMarker(line);
+
+    if (section) {
+      rendered.push(section);
+      continue;
+    }
+
+    const nextLine = lines[index + 1];
+    const nextIsSection =
+      typeof nextLine === "string" &&
+      /^::\s*(.+?)\s*::$/.test(nextLine);
+
+    if (
+      isChordOnlyLine(line) &&
+      /\[[^\]]+\]/.test(line) &&
+      typeof nextLine === "string" &&
+      nextLine.trim() &&
+      !isChordOnlyLine(nextLine) &&
+      !nextIsSection
+    ) {
+      rendered.push(
+        renderLyricsWithChords(
+          mergeChordLineWithLyric(line, nextLine)
+        )
+      );
+      index += 1;
+      continue;
+    }
+
+    rendered.push(renderLyricsWithChords(line));
+  }
+
+  return rendered.join("");
 }
