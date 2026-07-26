@@ -706,3 +706,35 @@ body{background:radial-gradient(circle at 100% 0,rgba(249,115,22,.10),transparen
     margin-top:15px;
   }
 }
+
+
+/* V4.1 - LOGIN E RECUPERAÃÃO */
+.forgot-password-button{
+  display:block;
+  width:max-content;
+  max-width:100%;
+  margin:12px auto 2px;
+  color:#f59e72;
+  font-weight:700;
+}
+.forgot-password-button:disabled{
+  opacity:.6;
+  cursor:wait;
+}
+.password-wrap{
+  position:relative;
+}
+.password-wrap .input-action{
+  position:absolute;
+  z-index:3;
+  top:50%;
+  right:8px;
+  min-width:68px;
+  min-height:38px;
+  transform:translateY(-50%);
+  touch-action:manipulation;
+  -webkit-tap-highlight-color:transparent;
+}
+.password-wrap input{
+  padding-right:84px;
+}
