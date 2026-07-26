@@ -7,7 +7,7 @@
   <meta name="theme-color" content="#090f1d">
   <meta name="description" content="Cifras IEB &#8212; repert&#243;rio, listas e cifras para louvor.">
   <title>Cifras IEB</title>
-  <link rel="stylesheet" href="styles.css?v=4.2.0">
+  <link rel="stylesheet" href="styles.css?v=4.3.0">
 </head>
 <body>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
@@ -119,7 +119,7 @@
           <span>&#8618;</span>
           <span>Sair da conta</span>
         </button>
-        <small>Cifras IEB &#8226; Vers&#227;o 4.2</small>
+        <small>Cifras IEB &#8226; Vers&#227;o 4.3</small>
       </div>
     </aside>
     <div id="sidebarBackdrop" class="backdrop hidden"></div>
@@ -350,6 +350,15 @@
 
             <label>
               Letra e acordes
+              <div class="editor-insert-tools">
+                <button id="openChordLibraryBtn" class="chord-library-trigger" type="button">
+                  <span class="chord-library-trigger-icon">Am</span>
+                  <span>
+                    <strong>Biblioteca de acordes</strong>
+                    <small>Escolha um acorde e insira no editor</small>
+                  </span>
+                </button>
+              </div>
               <div class="structure-toolbar" aria-label="Inserir parte da mÃºsica">
                 <button type="button" data-insert-section="INTRODUÃÃO">IntroduÃ§Ã£o</button>
                 <button type="button" data-insert-section="VERSO 1">Verso</button>
@@ -449,6 +458,104 @@ Poderoso</code></pre>
       </section>
     </main>
   </div>
+
+
+  <dialog id="chordLibraryDialog" class="chord-library-dialog">
+    <button class="dialog-close" data-close-dialog aria-label="Fechar">&#215;</button>
+
+    <div class="chord-library-heading">
+      <div>
+        <span class="eyebrow">EDITOR MUSICAL</span>
+        <h3>Biblioteca de acordes</h3>
+        <p class="muted">Toque em um acorde para inseri-lo no ponto atual do editor.</p>
+      </div>
+    </div>
+
+    <div class="chord-library-search">
+      <span>&#8981;</span>
+      <input id="chordLibrarySearch" type="search" placeholder="Buscar C, Am7, F#7M, Bb...">
+    </div>
+
+    <div class="chord-library-tabs" role="tablist">
+      <button type="button" class="chord-library-tab active" data-chord-tab="all">Todos</button>
+      <button type="button" class="chord-library-tab" data-chord-tab="roots">Por tom</button>
+      <button type="button" class="chord-library-tab" data-chord-tab="fields">Campos harmÃ´nicos</button>
+      <button type="button" class="chord-library-tab" data-chord-tab="custom">Meus acordes</button>
+    </div>
+
+    <section id="chordLibraryAllPanel" class="chord-library-panel">
+      <div id="chordLibraryAllGrid" class="chord-library-grid"></div>
+    </section>
+
+    <section id="chordLibraryRootsPanel" class="chord-library-panel hidden">
+      <div id="chordRootFilter" class="chord-root-filter"></div>
+      <div id="chordLibraryRootGrid" class="chord-library-grid"></div>
+    </section>
+
+    <section id="chordLibraryFieldsPanel" class="chord-library-panel hidden">
+      <div class="field-controls">
+        <label>
+          Tom
+          <select id="harmonicFieldRoot"></select>
+        </label>
+        <label>
+          Campo
+          <select id="harmonicFieldMode">
+            <option value="major">Maior</option>
+            <option value="minor">Menor natural</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="harmonic-field-explanation">
+        <strong id="harmonicFieldTitle">Campo harmÃ´nico de C maior</strong>
+        <small id="harmonicFieldFormula">I Â· ii Â· iii Â· IV Â· V Â· vi Â· viiÂ°</small>
+      </div>
+
+      <div id="harmonicFieldGrid" class="harmonic-field-grid"></div>
+    </section>
+
+    <section id="chordLibraryCustomPanel" class="chord-library-panel hidden">
+      <div class="custom-chord-form">
+        <div>
+          <span class="eyebrow">ACORDE PERSONALIZADO</span>
+          <h4>Criar um acorde</h4>
+          <p class="muted">Use para acordes que nÃ£o aparecem na biblioteca.</p>
+        </div>
+
+        <div class="custom-chord-fields">
+          <label>
+            Nome do acorde
+            <input id="customChordName" maxlength="24" placeholder="Ex.: Cadd9/G">
+          </label>
+
+          <label>
+            Grupo
+            <select id="customChordGroup">
+              <option value="Personalizados">Personalizados</option>
+              <option value="Maior">Maior</option>
+              <option value="Menor">Menor</option>
+              <option value="SÃ©tima">SÃ©tima</option>
+              <option value="Suspenso">Suspenso</option>
+              <option value="Diminuto">Diminuto</option>
+              <option value="Alterado">Alterado</option>
+            </select>
+          </label>
+        </div>
+
+        <button id="saveCustomChordBtn" type="button" class="primary">
+          Salvar acorde personalizado
+        </button>
+      </div>
+
+      <div class="custom-chord-list-heading">
+        <h4>Meus acordes</h4>
+        <small>Toque para inserir ou use a lixeira para remover.</small>
+      </div>
+
+      <div id="customChordGrid" class="chord-library-grid"></div>
+    </section>
+  </dialog>
 
   <dialog id="chordDialog">
     <button class="dialog-close" data-close-dialog aria-label="Fechar">&#215;</button>
@@ -602,6 +709,6 @@ Poderoso</code></pre>
     <button id="playGroupRepertoireBtn" class="primary full">Abrir modo de leitura</button>
     <button id="deleteRepertoireBtn" class="danger-button full">Excluir repert&#243;rio</button>
   </dialog>
-  <script type="module" src="app.js?v=4.2.0"></script>
+  <script type="module" src="app.js?v=4.3.0"></script>
 </body>
 </html>
