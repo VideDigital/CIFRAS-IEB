@@ -170,7 +170,7 @@ onAuthStateChanged(auth, async (user) => {
     await loadAll();
   } catch (error) {
     console.error("Erro ao carregar dados da conta:", error);
-    toast("Alguns dados nÃ£o puderam ser carregados. Atualize a pÃ¡gina.");
+    toast("Alguns dados n\u00E3o puderam ser carregados. Atualize a p\u00E1gina.");
   }
 });
 
@@ -184,7 +184,7 @@ async function loadAll() {
 
   results.forEach((result, index) => {
     if (result.status === "rejected") {
-      const areas = ["cifras", "repertÃ³rios pessoais", "grupos", "compartilhamentos"];
+      const areas = ["cifras", "repert\u00F3rios pessoais", "grupos", "compartilhamentos"];
       console.error(`Erro ao carregar ${areas[index]}:`, result.reason);
     }
   });
@@ -865,7 +865,7 @@ async function ensurePublicProfile(user) {
       user.displayName ||
       userSnapshot.data()?.name ||
       profileSnapshot.data()?.name ||
-      "UsuÃ¡rio";
+      "Usu\u00E1rio";
 
     showPublicId(savedPublicId, "ID pronto para compartilhar.");
 
@@ -887,14 +887,14 @@ async function ensurePublicProfile(user) {
 
     showPublicId(savedPublicId, "ID sincronizado com sucesso.");
   } catch (error) {
-    console.error("Erro ao sincronizar ID pÃºblico:", error);
+    console.error("Erro ao sincronizar ID p\u00FAblico:", error);
     showPublicId(
       fallbackPublicId,
-      "O ID estÃ¡ disponÃ­vel neste aparelho, mas verifique as regras do Firestore para usar grupos."
+      "O ID est\u00E1 dispon\u00EDvel neste aparelho, mas verifique as regras do Firestore para usar grupos."
     );
 
     if (error.code === "permission-denied") {
-      toast("Seu ID foi gerado, mas o Firebase bloqueou a sincronizaÃ§Ã£o. Atualize as regras enviadas na V3.");
+      toast("Seu ID foi gerado, mas o Firebase bloqueou a sincroniza\u00E7\u00E3o. Atualize as regras enviadas na V3.");
     }
   }
 }
@@ -1026,7 +1026,7 @@ async function openGroupDetails(groupId) {
   $("memberPublicIdInput").value = "";
 
   $("groupMembersList").innerHTML = '<div class="muted">Carregando membros...</div>';
-  $("groupRepertoireList").innerHTML = '<div class="muted">Carregando repertÃ³rios...</div>';
+  $("groupRepertoireList").innerHTML = '<div class="muted">Carregando repert\u00F3rios...</div>';
   $("groupDetailsDialog").showModal();
   await loadGroupRepertoires(currentGroup.id);
   const members = await getGroupMembers(currentGroup);
@@ -1327,7 +1327,7 @@ function inferSongFromFile(fileName, rawText) {
         sourceFileName: fileName
       })).filter((song) => song.title && song.content);
     } catch (error) {
-      console.warn("JSON invÃ¡lido:", fileName, error);
+      console.warn("JSON inv\u00E1lido:", fileName, error);
     }
   }
 
@@ -1341,10 +1341,10 @@ function inferSongFromFile(fileName, rawText) {
   lines.forEach((line, index) => {
     const trimmed = line.trim();
 
-    if (/^t[iÃ­]tulo\s*:/i.test(trimmed)) {
-      title = trimmed.replace(/^t[iÃ­]tulo\s*:/i, "").trim();
-    } else if (/^(artista|minist[eÃ©]rio)\s*:/i.test(trimmed)) {
-      artist = trimmed.replace(/^(artista|minist[eÃ©]rio)\s*:/i, "").trim();
+    if (/^t[i\u00ED]tulo\s*:/i.test(trimmed)) {
+      title = trimmed.replace(/^t[i\u00ED]tulo\s*:/i, "").trim();
+    } else if (/^(artista|minist[e\u00E9]rio)\s*:/i.test(trimmed)) {
+      artist = trimmed.replace(/^(artista|minist[e\u00E9]rio)\s*:/i, "").trim();
     } else if (/^tom\s*:/i.test(trimmed)) {
       key = normalizeImportedKey(trimmed.replace(/^tom\s*:/i, "").trim());
     } else if (/^capotraste\s*:/i.test(trimmed)) {
@@ -1355,7 +1355,7 @@ function inferSongFromFile(fileName, rawText) {
   });
 
   const metadataPattern =
-    /^(t[iÃ­]tulo|artista|minist[eÃ©]rio|tom|capotraste)\s*:/i;
+    /^(t[i\u00ED]tulo|artista|minist[e\u00E9]rio|tom|capotraste)\s*:/i;
 
   let rawContent = contentStart >= 0
     ? lines.slice(contentStart).join("\n").trim()
@@ -1364,7 +1364,7 @@ function inferSongFromFile(fileName, rawText) {
         .join("\n")
         .trim();
 
-  // PDFs frequentemente repetem o tÃ­tulo no comeÃ§o.
+  // PDFs frequentemente repetem o t\u00EDtulo no come\u00E7o.
   if (!title && lines[0]?.trim()) {
     const firstLine = lines[0].trim();
     if (
@@ -1415,16 +1415,16 @@ function renderBulkImportSummary(items, failures = []) {
              <span>${index + 1}</span>
              <div>
                <strong>${safeText(song.title)}</strong>
-               <small>${safeText(song.sourceFileName)} â¢ Tom ${safeText(song.key)}</small>
+               <small>${safeText(song.sourceFileName)} \u2022 Tom ${safeText(song.key)}</small>
              </div>
            </div>
          `).join("")}
        </div>`
-    : "<strong>Nenhuma cifra vÃ¡lida foi encontrada.</strong>";
+    : "<strong>Nenhuma cifra v\u00E1lida foi encontrada.</strong>";
 
   const failuresHtml = failures.length
     ? `<div class="import-errors">
-         <strong>${failures.length} arquivo(s) nÃ£o puderam ser lidos</strong>
+         <strong>${failures.length} arquivo(s) n\u00E3o puderam ser lidos</strong>
          ${failures.map((failure) => `
            <small>${safeText(failure.file)}: ${safeText(failure.reason)}</small>
          `).join("")}
@@ -1465,7 +1465,7 @@ $("bulkImportFiles").addEventListener("change", async (event) => {
       if (!inferredSongs.length) {
         failures.push({
           file: file.name,
-          reason: "nÃ£o foi encontrado texto selecionÃ¡vel; o PDF pode ser uma imagem digitalizada"
+          reason: "n\u00E3o foi encontrado texto selecion\u00E1vel; o PDF pode ser uma imagem digitalizada"
         });
       } else {
         selectedBulkSongs.push(...inferredSongs);
@@ -1474,14 +1474,14 @@ $("bulkImportFiles").addEventListener("change", async (event) => {
       console.error("Erro ao ler arquivo:", file.name, error);
       failures.push({
         file: file.name,
-        reason: error?.message || "formato nÃ£o reconhecido"
+        reason: error?.message || "formato n\u00E3o reconhecido"
       });
     }
 
     setImportProgress(
       index + 1,
       files.length,
-      index + 1 === files.length ? "Leitura concluÃ­da" : "Lendo arquivos..."
+      index + 1 === files.length ? "Leitura conclu\u00EDda" : "Lendo arquivos..."
     );
   }
 
@@ -1548,7 +1548,7 @@ $("confirmBulkImportBtn").onclick = async () => {
   setImportProgress(
     selectedBulkSongs.length,
     selectedBulkSongs.length,
-    "ImportaÃ§Ã£o concluÃ­da"
+    "Importa\u00E7\u00E3o conclu\u00EDda"
   );
 
   await loadSongs();
@@ -1564,16 +1564,16 @@ $("confirmBulkImportBtn").onclick = async () => {
         : `${importedCount} cifra(s) importada(s) com sucesso!`
     );
   } else {
-    toast("NÃ£o foi possÃ­vel importar as cifras.");
+    toast("N\u00E3o foi poss\u00EDvel importar as cifras.");
   }
 };
 
 $("textOnlyBtn").onclick=()=>{textOnlyMode=!textOnlyMode;$("textOnlyBtn").textContent=textOnlyMode?"Mostrar acordes":"Somente texto";$("textOnlyBtn").classList.toggle("active-mode",textOnlyMode);updatePreview();};
 $("playerTextOnlyBtn").onclick=()=>{playerTextOnlyMode=!playerTextOnlyMode;$("playerTextOnlyBtn").textContent=playerTextOnlyMode?"Mostrar acordes":"Somente texto";$("playerTextOnlyBtn").classList.toggle("active-mode",playerTextOnlyMode);renderListSong();};
-async function loadGroupRepertoires(groupId){try{const snap=await getDocs(query(collection(db,"groupRepertoires"),where("groupId","==",groupId)));groupRepertoires=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>String(a.date||"").localeCompare(String(b.date||"")));renderGroupRepertoires();}catch(e){console.error(e);$("groupRepertoireList").innerHTML='<p class="muted">NÃ£o foi possÃ­vel carregar os repertÃ³rios.</p>';}}
-function formatRepertoireDate(v){if(!v)return"Data nÃ£o informada";const[y,m,d]=v.split("-");return`${d}/${m}/${y}`;}
-function renderGroupRepertoires(){$("groupRepertoireList").innerHTML=groupRepertoires.length?groupRepertoires.map(r=>`<button class="repertoire-card" data-open-repertoire="${r.id}"><span class="repertoire-date">${safeText(formatRepertoireDate(r.date))}</span><strong>${safeText(r.name||"RepertÃ³rio")}</strong><small>${r.songSnapshots?.length||r.songIds?.length||0} mÃºsica(s)</small></button>`).join(""):'<div class="empty-mini">Nenhum repertÃ³rio criado neste grupo.</div>';}
-$("newGroupRepertoireBtn").onclick=()=>{if(!currentGroup)return;$("repertoireNameInput").value="";$("repertoireDateInput").value=new Date().toISOString().slice(0,10);$("repertoireSongOptions").innerHTML=songs.length?songs.map(s=>`<label class="check-row"><input type="checkbox" value="${s.id}"><span>${safeText(s.title)} â ${safeText(s.artist||"Sem artista")}</span></label>`).join(""):'<div class="empty-mini">VocÃª ainda nÃ£o possui cifras.</div>';$("repertoireDialog").showModal();};
+async function loadGroupRepertoires(groupId){try{const snap=await getDocs(query(collection(db,"groupRepertoires"),where("groupId","==",groupId)));groupRepertoires=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>String(a.date||"").localeCompare(String(b.date||"")));renderGroupRepertoires();}catch(e){console.error(e);$("groupRepertoireList").innerHTML='<p class="muted">N\u00E3o foi poss\u00EDvel carregar os repert\u00F3rios.</p>';}}
+function formatRepertoireDate(v){if(!v)return"Data n\u00E3o informada";const[y,m,d]=v.split("-");return`${d}/${m}/${y}`;}
+function renderGroupRepertoires(){$("groupRepertoireList").innerHTML=groupRepertoires.length?groupRepertoires.map(r=>`<button class="repertoire-card" data-open-repertoire="${r.id}"><span class="repertoire-date">${safeText(formatRepertoireDate(r.date))}</span><strong>${safeText(r.name||"Repert\u00F3rio")}</strong><small>${r.songSnapshots?.length||r.songIds?.length||0} m\u00FAsica(s)</small></button>`).join(""):'<div class="empty-mini">Nenhum repert\u00F3rio criado neste grupo.</div>';}
+$("newGroupRepertoireBtn").onclick=()=>{if(!currentGroup)return;$("repertoireNameInput").value="";$("repertoireDateInput").value=new Date().toISOString().slice(0,10);$("repertoireSongOptions").innerHTML=songs.length?songs.map(s=>`<label class="check-row"><input type="checkbox" value="${s.id}"><span>${safeText(s.title)} \u2014 ${safeText(s.artist||"Sem artista")}</span></label>`).join(""):'<div class="empty-mini">Voc\u00EA ainda n\u00E3o possui cifras.</div>';$("repertoireDialog").showModal();};
 $("saveRepertoireBtn").onclick=async()=>{
   if(!currentGroup)return;
 
@@ -1581,7 +1581,7 @@ $("saveRepertoireBtn").onclick=async()=>{
   const date=$("repertoireDateInput").value;
   const songIds=[...$("repertoireSongOptions").querySelectorAll("input:checked")].map(i=>i.value);
 
-  if(!name){toast("Informe o nome do repertÃ³rio.");return}
+  if(!name){toast("Informe o nome do repert\u00F3rio.");return}
   if(!date){toast("Selecione a data.");return}
   if(!songIds.length){toast("Selecione pelo menos uma cifra.");return}
 
@@ -1591,7 +1591,7 @@ $("saveRepertoireBtn").onclick=async()=>{
     .map(song=>({
       sourceSongId:song.id,
       sourceOwnerId:song.ownerId||currentUser.uid,
-      title:song.title||"Sem tÃ­tulo",
+      title:song.title||"Sem t\u00EDtulo",
       artist:song.artist||"",
       key:song.key||"C",
       capo:Number(song.capo)||0,
@@ -1610,7 +1610,7 @@ $("saveRepertoireBtn").onclick=async()=>{
   });
 
   $("repertoireDialog").close();
-  toast("RepertÃ³rio criado!");
+  toast("Repert\u00F3rio criado!");
   await loadGroupRepertoires(currentGroup.id);
 };
 
@@ -1622,7 +1622,7 @@ function getCurrentRepertoireSongs() {
       id: song.sourceSongId || `group-${currentRepertoire.id}-${index}`,
       sourceSongId: song.sourceSongId || "",
       sourceOwnerId: song.sourceOwnerId || "",
-      title: song.title || "Sem tÃ­tulo",
+      title: song.title || "Sem t\u00EDtulo",
       artist: song.artist || "",
       key: song.key || "C",
       capo: Number(song.capo) || 0,
@@ -1651,7 +1651,7 @@ function openGroupRepertoireAt(index) {
   const repertoireSongs = getCurrentRepertoireSongs();
 
   if (!repertoireSongs.length) {
-    toast("Nenhuma cifra disponÃ­vel neste repertÃ³rio.");
+    toast("Nenhuma cifra dispon\u00EDvel neste repert\u00F3rio.");
     return;
   }
 
@@ -1672,7 +1672,7 @@ document.addEventListener("click",(event)=>{
   currentRepertoire=groupRepertoires.find((item)=>item.id===button.dataset.openRepertoire);
   if(!currentRepertoire)return;
 
-  $("repertoireDetailsName").textContent=currentRepertoire.name||"RepertÃ³rio";
+  $("repertoireDetailsName").textContent=currentRepertoire.name||"Repert\u00F3rio";
   $("repertoireDetailsDate").textContent=formatRepertoireDate(currentRepertoire.date);
 
   const repertoireSongs=getCurrentRepertoireSongs();
@@ -1688,19 +1688,19 @@ document.addEventListener("click",(event)=>{
               <span>${index+1}</span>
               <div>
                 <strong>${safeText(song.title)}</strong>
-                <small>${safeText(song.artist||"Sem artista")} â¢ Tom ${safeText(song.key||"C")}</small>
+                <small>${safeText(song.artist||"Sem artista")} \u2022 Tom ${safeText(song.key||"C")}</small>
               </div>
             </button>
             ${isOwnSong
-              ? '<span class="library-status">JÃ¡ Ã© sua</span>'
+              ? '<span class="library-status">J\u00E1 \u00E9 sua</span>'
               : alreadyAdded
                 ? '<span class="library-status added">Adicionada</span>'
-                : `<button class="add-to-library-button" data-add-group-song="${index}">Adicionar Ã  minha biblioteca</button>`
+                : `<button class="add-to-library-button" data-add-group-song="${index}">Adicionar \u00E0 minha biblioteca</button>`
             }
           </div>
         `;
       }).join("")
-    : '<div class="empty-mini">Nenhuma cifra foi encontrada neste repertÃ³rio.</div>';
+    : '<div class="empty-mini">Nenhuma cifra foi encontrada neste repert\u00F3rio.</div>';
 
   $("repertoireDetailsDialog").showModal();
 });
@@ -1719,12 +1719,12 @@ document.addEventListener("click", async (event) => {
   const groupSong = repertoireSongs[Number(button.dataset.addGroupSong)];
 
   if (!groupSong) {
-    toast("NÃ£o foi possÃ­vel localizar essa cifra.");
+    toast("N\u00E3o foi poss\u00EDvel localizar essa cifra.");
     return;
   }
 
   if (groupSongAlreadyInLibrary(groupSong)) {
-    toast("Essa cifra jÃ¡ estÃ¡ na sua biblioteca.");
+    toast("Essa cifra j\u00E1 est\u00E1 na sua biblioteca.");
     return;
   }
 
@@ -1751,16 +1751,16 @@ document.addEventListener("click", async (event) => {
 
     button.textContent = "Adicionada";
     button.classList.add("added");
-    toast("Cifra adicionada Ã  sua biblioteca! Agora vocÃª pode editÃ¡-la.");
+    toast("Cifra adicionada \u00E0 sua biblioteca! Agora voc\u00EA pode edit\u00E1-la.");
   } catch (error) {
     console.error("Erro ao adicionar cifra do grupo:", error);
     button.disabled = false;
-    button.textContent = "Adicionar Ã  minha biblioteca";
-    toast("NÃ£o foi possÃ­vel adicionar a cifra.");
+    button.textContent = "Adicionar \u00E0 minha biblioteca";
+    toast("N\u00E3o foi poss\u00EDvel adicionar a cifra.");
   }
 });
 
-$("deleteRepertoireBtn").onclick=async()=>{if(!currentRepertoire||!confirm("Excluir este repertÃ³rio?"))return;await deleteDoc(doc(db,"groupRepertoires",currentRepertoire.id));$("repertoireDetailsDialog").close();toast("RepertÃ³rio excluÃ­do.");await loadGroupRepertoires(currentGroup.id);};
+$("deleteRepertoireBtn").onclick=async()=>{if(!currentRepertoire||!confirm("Excluir este repert\u00F3rio?"))return;await deleteDoc(doc(db,"groupRepertoires",currentRepertoire.id));$("repertoireDetailsDialog").close();toast("Repert\u00F3rio exclu\u00EDdo.");await loadGroupRepertoires(currentGroup.id);};
 
 window.addEventListener("beforeunload", (event) => {
   if (!isDirty) return;
