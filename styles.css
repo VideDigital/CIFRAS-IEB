@@ -738,3 +738,134 @@ body{background:radial-gradient(circle at 100% 0,rgba(249,115,22,.10),transparen
 .password-wrap input{
   padding-right:84px;
 }
+
+
+/* V4.2 - MODO DE LEITURA SEPARADO */
+.song-viewer-top{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:18px;
+}
+.song-viewer-actions{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+}
+.song-reader-shell{
+  position:relative;
+  min-height:calc(100vh - 150px);
+  padding:22px;
+  border:1px solid #25334a;
+  border-radius:24px;
+  background:#08111f;
+  overflow:hidden;
+}
+.song-reader-heading{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:16px;
+  margin-bottom:18px;
+}
+.song-reader-heading h1{
+  margin:5px 0 4px;
+  font-size:clamp(28px,5vw,48px);
+  line-height:1.05;
+}
+.song-reader-heading p{
+  margin:0;
+  color:#94a3b8;
+}
+.viewer-capo-badge{
+  flex:0 0 auto;
+  padding:8px 12px;
+  border:1px solid #9a4d19;
+  border-radius:999px;
+  background:#2b170d;
+  color:#fb923c;
+  font-size:12px;
+  font-weight:800;
+}
+.dedicated-viewer-toolbar{
+  position:sticky;
+  top:0;
+  z-index:5;
+  margin-bottom:16px;
+  border-radius:16px;
+  background:rgba(8,17,31,.96);
+  backdrop-filter:blur(12px);
+}
+.dedicated-song-viewer{
+  height:calc(100vh - 390px);
+  min-height:420px;
+  overflow-y:auto;
+  padding:24px clamp(12px,4vw,38px) 45vh;
+  border:1px solid #1e2c42;
+  border-radius:18px;
+  background:#050b14;
+  scroll-behavior:auto;
+}
+.song-reader-shell.stage-mode{
+  position:fixed;
+  inset:0;
+  z-index:9999;
+  width:100vw;
+  height:100dvh;
+  padding:14px;
+  border:0;
+  border-radius:0;
+  background:#02060d;
+}
+.song-reader-shell.stage-mode .song-reader-heading{
+  display:none;
+}
+.song-reader-shell.stage-mode .dedicated-viewer-toolbar{
+  margin-bottom:8px;
+}
+.song-reader-shell.stage-mode .dedicated-song-viewer{
+  height:calc(100dvh - 105px);
+  min-height:0;
+  border-radius:12px;
+}
+.song-reader-shell.stage-mode #viewerStageBtn{
+  position:fixed;
+  top:12px;
+  right:12px;
+  z-index:10001;
+}
+@media(max-width:700px){
+  .song-viewer-top{
+    align-items:stretch;
+    flex-direction:column;
+  }
+  .song-viewer-actions{
+    justify-content:stretch;
+  }
+  .song-viewer-actions button{
+    flex:1;
+  }
+  .song-reader-shell{
+    padding:14px;
+    border-radius:18px;
+  }
+  .song-reader-heading{
+    align-items:flex-start;
+  }
+  .dedicated-viewer-toolbar{
+    display:flex;
+    flex-wrap:nowrap;
+    overflow-x:auto;
+    padding:10px;
+  }
+  .dedicated-viewer-toolbar .tool-group{
+    flex:0 0 auto;
+  }
+  .dedicated-song-viewer{
+    height:calc(100dvh - 410px);
+    min-height:390px;
+    padding:20px 10px 50vh;
+  }
+}
