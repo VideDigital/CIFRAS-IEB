@@ -107,4 +107,36 @@ label{display:grid;gap:8px;color:#dae2f2;font-size:14px;margin-bottom:16px}
 .auth-copy{margin:32px 0 24px}.auth-copy h1{font-size:32px;line-height:1.08;margin:8px 0}.auth-copy p{color:var(--muted);line-height:1.5}
 .password-wrap{position:relative}.password-wrap input{padding-right:60px}.input-action{position:absolute;right:7px;top:7px;bottom:7px;background:#1a2943;color:#c4b5fd;border-radius:9px;padding:0 11px}
 .muted,.tiny{color:var(--muted)}.tiny{font-size:12px}.centered{text-align:center}
-.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translate(-50
+.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translate(-50%,30px);background:#121d31;border:1px solid #344764;padding:13px 18px;border-radius:13px;opacity:0;pointer-events:none;transition:.25s;z-index:100;box-shadow:var(--shadow);white-space:nowrap;max-width:calc(100% - 30px);overflow:hidden;text-overflow:ellipsis}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+dialog{width:min(540px,calc(100% - 28px));background:#101a2d;color:var(--text);border:1px solid var(--line);border-radius:22px;padding:24px;box-shadow:var(--shadow)}
+dialog::backdrop{background:#020617c7;backdrop-filter:blur(5px)}
+dialog h3{font-size:24px;margin:6px 0 8px}.dialog-close{float:right;background:transparent;color:white;font-size:28px}
+.check-list{max-height:320px;overflow:auto;display:grid;gap:8px}.check-row{display:flex;gap:10px;align-items:center;padding:12px;background:#0b1526;border:1px solid #263753;border-radius:12px;margin:0}.check-row input{width:auto}.field-title{font-size:13px;color:#dbe6f8}
+.backdrop{position:fixed;inset:76px 0 0;background:#0009;z-index:30}
+.stage-mode{position:fixed!important;inset:0!important;z-index:90!important;border-radius:0!important;max-height:none!important;background:#050a13!important;padding:clamp(20px,5vw,70px)!important}
+.stage-mode .viewer-toolbar,.stage-mode .preview-header{position:relative;z-index:2}
+.stage-mode .song-preview{max-height:calc(100vh - 180px);font-size:clamp(20px,2.5vw,32px)}
+@media(max-width:980px){
+  .sidebar{transform:translateX(-105%);transition:.24s}.sidebar.open{transform:translateX(0)}
+  .main{margin-left:0;padding:20px}.editor-layout{grid-template-columns:1fr}
+  .preview-panel{display:none}.preview-panel.mobile-active{display:block}.editor-panel.mobile-hidden{display:none}
+  .mobile-editor-tabs{display:grid;grid-template-columns:1fr 1fr;padding:4px;background:#0d1729;border:1px solid var(--line-soft);border-radius:14px;margin-bottom:15px}
+  .editor-tab{padding:11px;background:transparent;color:var(--muted);border-radius:10px}.editor-tab.active{background:#1a2842;color:#fff}
+}
+@media(max-width:700px){
+  .topbar{height:70px;padding:0 14px}.sidebar{top:70px}.backdrop{inset:70px 0 0}
+  .brand-button div{display:none}.brand-mark{width:42px;height:42px}
+  .profile-button{display:none}.new-song-button span:last-child{display:none}.new-song-button{width:46px;height:46px;padding:0;justify-content:center;font-size:22px}
+  .main{padding:16px 14px 100px}.welcome-panel{padding:22px}.welcome-panel h1{font-size:29px}.desktop-quick-add{display:none}
+  .stats-grid{grid-template-columns:repeat(3,1fr);gap:8px}.stat-card{padding:13px 9px;display:block;text-align:center}.stat-icon{margin:0 auto 8px}.stat-card strong{font-size:21px}
+  .section-head{align-items:stretch;flex-direction:column}.search-wrap{width:100%}
+  .card-grid{grid-template-columns:1fr}.card{min-height:160px}
+  .editor-top{align-items:flex-start;flex-wrap:wrap}.save-state{order:3;width:100%}.editor-actions{width:100%;overflow-x:auto;padding-bottom:3px}.editor-actions button{white-space:nowrap}
+  .editor-panel,.preview-panel{padding:16px}.form-row{display:grid;grid-template-columns:1fr 1fr}
+  .preview-header{align-items:flex-start}.preview-header .secondary-button{white-space:nowrap;padding:9px 11px}
+  .viewer-toolbar{display:grid;grid-template-columns:1fr 1fr}.scroll-tools{grid-column:1/-1;margin:0}.scroll-control{display:grid;grid-template-columns:auto 1fr}
+  .song-preview{min-height:430px;padding:24px 5px;max-height:none}
+  .auth-card{padding:23px}.auth-copy h1{font-size:28px}
+  .player-top{flex-wrap:wrap}.player-progress{order:3;width:100%;text-align:center}
+}
