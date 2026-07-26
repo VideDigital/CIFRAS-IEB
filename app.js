@@ -1,9 +1,9 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
 import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, updateProfile } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
 import { getFirestore, collection, addDoc, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
-import { firebaseConfig } from "./firebase-config.js?v=3.1.0";
-import { KEYS, transposeContent, semitoneDistance, renderChordMarkup } from "./chord-engine.js?v=3.1.0";
-import { drawChordDiagram } from "./chord-diagrams.js?v=3.1.0";
+import { firebaseConfig } from "./firebase-config.js?v=3.3.0";
+import { KEYS, transposeContent, semitoneDistance, renderChordMarkup } from "./chord-engine.js?v=3.3.0";
+import { drawChordDiagram } from "./chord-diagrams.js?v=3.3.0";
 
 const firebaseApp = initializeApp(firebaseConfig);
 const auth = getAuth(firebaseApp);
@@ -1273,15 +1273,24 @@ async function extractPdfText(file) {
 }
 
 async function extractDocxText(file) {
-  const mammoth = await import(
+  const mammothModule = await import(
     "https://cdn.jsdelivr.net/npm/mammoth@1.9.1/+esm"
   );
+
+  // No Safari/iPhone, o pacote pode expor a API dentro de "default".
+  const mammoth = mammothModule.default || mammothModule;
+
+  if (typeof mammoth.extractRawText !== "function") {
+    throw new Error(
+      "O leitor de DOCX nÃ£o carregou corretamente. Feche a pÃ¡gina e tente novamente."
+    );
+  }
 
   const result = await mammoth.extractRawText({
     arrayBuffer: await file.arrayBuffer()
   });
 
-  return result.value || "";
+  return result?.value || "";
 }
 
 async function readImportedFile(file) {
@@ -1552,16 +1561,19 @@ $("confirmBulkImportBtn").onclick = async () => {
   );
 
   await loadSongs();
+  renderSongs($("songSearch").value || "");
   updateStats();
 
   if (importedCount > 0) {
+    selectedBulkSongs = [];
+    $("bulkImportFiles").value = "";
     window.setTimeout(() => $("bulkImportDialog").close(), 450);
     showView("library");
 
     toast(
       failedCount
-        ? `${importedCount} cifra(s) importada(s) e ${failedCount} com erro.`
-        : `${importedCount} cifra(s) importada(s) com sucesso!`
+        ? `${importedCount} cifra(s) na Biblioteca e ${failedCount} com erro.`
+        : `${importedCount} cifra(s) adicionada(s) Ã  Biblioteca!`
     );
   } else {
     toast("N\u00E3o foi poss\u00EDvel importar as cifras.");
