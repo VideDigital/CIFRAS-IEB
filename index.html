@@ -7,7 +7,7 @@
   <meta name="theme-color" content="#090f1d">
   <meta name="description" content="Cifras IEB &#8212; repert&#243;rio, listas e cifras para louvor.">
   <title>Cifras IEB</title>
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css?v=3.1.0">
 </head>
 <body>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
@@ -87,7 +87,7 @@
           <strong id="userName">Usu&#225;rio</strong>
           <small id="userEmail"></small>
           <button id="copyUserIdBtn" class="user-id-button" type="button">
-            ID: <span id="userPublicId">gerando...</span>
+            ID: <span id="userPublicId">preparando...</span>
           </button>
         </div>
       </div>
@@ -116,7 +116,7 @@
           <span>&#8618;</span>
           <span>Sair da conta</span>
         </button>
-        <small>Cifras IEB &#8226; Vers&#227;o 2.2</small>
+        <small>Cifras IEB &#8226; Vers&#227;o 3.1</small>
       </div>
     </aside>
     <div id="sidebarBackdrop" class="backdrop hidden"></div>
@@ -203,7 +203,7 @@
         <div class="id-info-card">
           <div>
             <span class="eyebrow">SEU ID P&#218;BLICO</span>
-            <h3 id="groupPageUserId">Carregando...</h3>
+            <h3 id="groupPageUserId">Gerando ID...</h3><small id="publicIdStatus" class="public-id-status">Preparando sua conta para grupos.</small>
             <p>Envie esse ID para quem quiser adicionar voc&#234; a um grupo.</p>
           </div>
           <button id="copyGroupPageUserId" class="secondary-button">Copiar ID</button>
@@ -410,15 +410,40 @@ Insira o acorde entre colchetes exatamente antes da palavra onde ele deve aparec
   <dialog id="bulkImportDialog">
     <button class="dialog-close" data-close-dialog aria-label="Fechar">&times;</button>
     <span class="eyebrow">IMPORTA&#199;&#195;O EM MASSA</span>
-    <h3>Selecionar arquivos de cifras</h3>
-    <p class="muted">Escolha um ou v&#225;rios arquivos do celular. Cada arquivo ser&#225; salvo como uma cifra edit&#225;vel.</p>
+    <h3>Importar cifras do celular</h3>
+    <p class="muted">
+      Selecione uma ou v&#225;rias cifras. Arquivos PDF deixam de ficar bloqueados no iPhone
+      e ser&#227;o convertidos para cifras edit&#225;veis.
+    </p>
+
     <label class="file-picker-box" for="bulkImportFiles">
-      <span class="file-picker-icon">&#8682;</span><strong>Selecionar arquivos</strong>
-      <small>TXT, MD, CHORDPRO, CHO ou JSON</small>
-      <input id="bulkImportFiles" type="file" multiple accept=".txt,.md,.chordpro,.cho,.json,text/plain,application/json">
+      <span class="file-picker-icon">&#8682;</span>
+      <strong>Selecionar arquivos</strong>
+      <small>PDF, TXT, MD, CHO, CHORDPRO, JSON e DOCX</small>
+      <input
+        id="bulkImportFiles"
+        type="file"
+        multiple
+        accept=".pdf,.txt,.md,.chordpro,.cho,.json,.docx,application/pdf,text/plain,application/json,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+      >
     </label>
+
+    <div id="bulkImportProgress" class="import-progress hidden">
+      <div class="import-progress-head">
+        <strong id="bulkImportProgressText">Lendo arquivos...</strong>
+        <span id="bulkImportProgressCount">0/0</span>
+      </div>
+      <div class="import-progress-track">
+        <span id="bulkImportProgressBar"></span>
+      </div>
+    </div>
+
     <div id="bulkImportSummary" class="bulk-summary hidden"></div>
-    <div class="bulk-actions"><button id="clearBulkFilesBtn" class="secondary-button">Limpar sele&#231;&#227;o</button><button id="confirmBulkImportBtn" class="primary">Importar arquivos</button></div>
+
+    <div class="bulk-actions">
+      <button id="clearBulkFilesBtn" class="secondary-button">Limpar sele&#231;&#227;o</button>
+      <button id="confirmBulkImportBtn" class="primary">Importar arquivos</button>
+    </div>
   </dialog>
 
 
@@ -488,6 +513,6 @@ Insira o acorde entre colchetes exatamente antes da palavra onde ele deve aparec
     <button id="playGroupRepertoireBtn" class="primary full">Abrir modo de leitura</button>
     <button id="deleteRepertoireBtn" class="danger-button full">Excluir repert&#243;rio</button>
   </dialog>
-  <script type="module" src="app.js"></script>
+  <script type="module" src="app.js?v=3.1.0"></script>
 </body>
 </html>
