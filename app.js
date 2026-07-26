@@ -1,9 +1,9 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
 import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail, signOut, updateProfile } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
 import { getFirestore, collection, addDoc, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
-import { firebaseConfig } from "./firebase-config.js?v=4.5.0";
-import { KEYS, transposeContent, semitoneDistance, renderChordMarkup } from "./chord-engine.js?v=4.5.0";
-import { drawChordDiagram } from "./chord-diagrams.js?v=4.5.0";
+import { firebaseConfig } from "./firebase-config.js?v=4.6.0";
+import { KEYS, transposeContent, semitoneDistance, renderChordMarkup } from "./chord-engine.js?v=4.6.0";
+import { drawChordDiagram } from "./chord-diagrams.js?v=4.6.0";
 
 const firebaseApp = initializeApp(firebaseConfig);
 const auth = getAuth(firebaseApp);
@@ -41,7 +41,7 @@ let viewerFontSize = 20;
 let viewerKey = "C";
 let viewerScrollFrame = null;
 
-const views = ["library", "lists", "groups", "shared", "songViewer", "editor", "listPlayer"];
+const views = ["library", "lists", "groups", "search", "shared", "songViewer", "editor", "listPlayer"];
 
 function showView(name) {
   views.forEach((view) => $(`${view}View`).classList.toggle("hidden", view !== name));
@@ -79,36 +79,207 @@ function safeText(value = "") {
 function repairBrokenText(value = "") {
   let text = String(value ?? "");
 
-  const replacements = new Map([
-    ["ÃÂ¡", "Ã¡"], ["Ã ", "Ã "], ["ÃÂ¢", "Ã¢"], ["ÃÂ£", "Ã£"], ["ÃÂ¤", "Ã¤"],
-    ["ÃÂ©", "Ã©"], ["ÃÂª", "Ãª"], ["ÃÂ¨", "Ã¨"], ["ÃÂ«", "Ã«"],
-    ["ÃÂ­", "Ã­"], ["ÃÂ¬", "Ã¬"], ["ÃÂ®", "Ã®"], ["ÃÂ¯", "Ã¯"],
-    ["ÃÂ³", "Ã³"], ["ÃÂ´", "Ã´"], ["ÃÂµ", "Ãµ"], ["ÃÂ²", "Ã²"], ["ÃÂ¶", "Ã¶"],
-    ["ÃÂº", "Ãº"], ["ÃÂ¹", "Ã¹"], ["ÃÂ»", "Ã»"], ["ÃÂ¼", "Ã¼"],
-    ["ÃÂ§", "Ã§"], ["ÃÂ", "Ã"],
+  const directMap = new Map([
+    ["nÃÆÃÂ£o", "nÃ£o"], ["NÃÆÃÂ£o", "NÃ£o"], ["ÃÆÃÂ§", "Ã§"],
+    ["ÃÆÃÂ£", "Ã£"], ["ÃÆÃÂ¡", "Ã¡"], ["ÃÆÃÂ©", "Ã©"],
+    ["ÃÆÃÂª", "Ãª"], ["ÃÆÃÂ­", "Ã­"], ["ÃÆÃÂ³", "Ã³"],
+    ["ÃÆÃÂ´", "Ã´"], ["ÃÆÃÂµ", "Ãµ"], ["ÃÆÃÂº", "Ãº"],
+    ["ÃÆÃÂ", "Ã"], ["ÃÆÃÂ", "Ã"], ["ÃÆÃâ°", "Ã"],
+    ["ÃÆÃâ", "Ã"], ["ÃÆÃÅ¡", "Ã"],
+    ["Ãâ", ""], ["Ã", ""],
+    ["ÃÂ¡", "Ã¡"], ["Ã ", "Ã "], ["ÃÂ¢", "Ã¢"], ["ÃÂ£", "Ã£"],
+    ["ÃÂ©", "Ã©"], ["ÃÂª", "Ãª"], ["ÃÂ­", "Ã­"],
+    ["ÃÂ³", "Ã³"], ["ÃÂ´", "Ã´"], ["ÃÂµ", "Ãµ"],
+    ["ÃÂº", "Ãº"], ["ÃÂ§", "Ã§"], ["ÃÂ", "Ã"],
     ["ÃÂ", "Ã"], ["ÃÂ", "Ã"], ["ÃÂ", "Ã"], ["ÃÂ", "Ã"],
     ["ÃÂ", "Ã"], ["ÃÂ", "Ã"], ["ÃÂ", "Ã"],
     ["ÃÂ", "Ã"], ["ÃÂ", "Ã"], ["ÃÂ", "Ã"], ["ÃÂ", "Ã"],
-    ["ÃÂº", "Âº"], ["ÃÂª", "Âª"], ["ÃÂ·", "Â·"], ["Ã", ""],
-    ["Ã¢ÂÂ", "â"], ["Ã¢ÂÂ", "â"], ["Ã¢ÂÂ", "â"], ["Ã¢ÂÂ", "â"],
-    ["Ã¢ÂÂ", "â"], ["Ã¢ÂÂ¦", "â¦"], ["Ã¢ÂÂ", "â"], ["Ã¢ÂÂ", "â"],
-    ["Ã¢ÂÂ¶", ""], ["Ã¢ÂÂ¸", ""], ["Ã°ÂÂÂµ", ""]
+    ["Ã¢ÂÂ", "â"], ["Ã¢ÂÂ", "â"], ["Ã¢ÂÂ", "â"],
+    ["Ã¢ÂÂ", "â"], ["Ã¢ÂÂ", "â"], ["Ã¢ÂÂ¦", "â¦"],
+    ["Ã¢ÂÂ", "â"], ["Ã¢ÂÂ", "â"]
   ]);
 
-  for (let pass = 0; pass < 3; pass += 1) {
+  for (let pass = 0; pass < 4; pass += 1) {
     const before = text;
 
-    replacements.forEach((replacement, broken) => {
-      text = text.split(broken).join(replacement);
+    directMap.forEach((correct, broken) => {
+      text = text.split(broken).join(correct);
     });
+
+    // Fix common replacement-glyph patterns produced by broken UTF-8.
+    text = text
+      .replace(/INTRODU.{1,8}O/gi, (match) =>
+        match === match.toUpperCase() ? "INTRODUÃÃO" : "IntroduÃ§Ã£o"
+      )
+      .replace(/PR.{1,5}-REFR.{1,5}O/gi, (match) =>
+        match === match.toUpperCase() ? "PRÃ-REFRÃO" : "PrÃ©-refrÃ£o"
+      )
+      .replace(/REFR.{1,5}O/gi, (match) =>
+        match === match.toUpperCase() ? "REFRÃO" : "RefrÃ£o"
+      )
+      .replace(/INTERL.{1,5}DIO/gi, (match) =>
+        match === match.toUpperCase() ? "INTERLÃDIO" : "InterlÃºdio"
+      )
+      .replace(/MINISTRA.{1,5}O/gi, (match) =>
+        match === match.toUpperCase() ? "MINISTRAÃÃO" : "MinistraÃ§Ã£o"
+      )
+      .replace(/MODULA.{1,5}O/gi, (match) =>
+        match === match.toUpperCase() ? "MODULAÃÃO" : "ModulaÃ§Ã£o"
+      )
+      .replace(/ESPONT.{1,5}NEO/gi, (match) =>
+        match === match.toUpperCase() ? "ESPONTÃNEO" : "EspontÃ¢neo"
+      );
 
     if (text === before) break;
   }
 
   return text
     .replace(/\uFFFD/g, "")
-    .replace(/[ \t]+\n/g, "\n");
+    .replace(/[ \t]+\n/g, "\n")
+    .trimEnd();
 }
+
+
+let globalSearchFilter = "all";
+
+function normalizeSearchValue(value = "") {
+  return repairBrokenText(value)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
+function buildGlobalSearchResults(queryText) {
+  const queryValue = normalizeSearchValue(queryText);
+
+  if (!queryValue) return [];
+
+  const results = [];
+
+  songs.forEach((song) => {
+    const haystack = normalizeSearchValue(
+      `${song.title} ${song.artist} ${song.key} ${song.content}`
+    );
+
+    if (haystack.includes(queryValue)) {
+      results.push({
+        type: "songs",
+        id: song.id,
+        title: repairBrokenText(song.title || "Sem tÃ­tulo"),
+        subtitle: `${repairBrokenText(song.artist || "Artista nÃ£o informado")} â¢ Tom ${song.key || "C"}`,
+        meta: "Cifra",
+        action: "Abrir"
+      });
+    }
+  });
+
+  lists.forEach((list) => {
+    const songNames = (list.songSnapshots || [])
+      .map((song) => `${song.title || ""} ${song.artist || ""}`)
+      .join(" ");
+
+    const haystack = normalizeSearchValue(
+      `${list.name || ""} ${list.date || ""} ${songNames}`
+    );
+
+    if (haystack.includes(queryValue)) {
+      results.push({
+        type: "lists",
+        id: list.id,
+        title: repairBrokenText(list.name || "Lista sem nome"),
+        subtitle: `${list.songSnapshots?.length || list.songIds?.length || 0} mÃºsica(s)`,
+        meta: "Lista",
+        action: "Abrir"
+      });
+    }
+  });
+
+  groups.forEach((group) => {
+    const haystack = normalizeSearchValue(
+      `${group.name || ""} ${group.description || ""}`
+    );
+
+    if (haystack.includes(queryValue)) {
+      results.push({
+        type: "groups",
+        id: group.id,
+        title: repairBrokenText(group.name || "Grupo sem nome"),
+        subtitle: repairBrokenText(group.description || "Sem descriÃ§Ã£o"),
+        meta: "Grupo",
+        action: "Abrir"
+      });
+    }
+  });
+
+  return results;
+}
+
+function renderGlobalSearch() {
+  const input = $("globalSearchInput");
+  const queryValue = input?.value || "";
+  const allResults = buildGlobalSearchResults(queryValue);
+
+  const visibleResults = globalSearchFilter === "all"
+    ? allResults
+    : allResults.filter((item) => item.type === globalSearchFilter);
+
+  $("globalSearchSummary").textContent = queryValue.trim()
+    ? `${visibleResults.length} resultado(s) encontrado(s)`
+    : "Digite algo para pesquisar.";
+
+  $("globalSearchResults").innerHTML = visibleResults.length
+    ? visibleResults.map((item) => `
+        <article class="global-search-result">
+          <div class="global-search-result-icon">${item.meta[0]}</div>
+          <div class="global-search-result-content">
+            <span>${safeText(item.meta)}</span>
+            <h3>${safeText(item.title)}</h3>
+            <p>${safeText(item.subtitle)}</p>
+          </div>
+          <button
+            type="button"
+            class="secondary-button"
+            data-open-search-result="${item.type}:${item.id}"
+          >
+            ${safeText(item.action)}
+          </button>
+        </article>
+      `).join("")
+    : queryValue.trim()
+      ? '<div class="empty-state compact-empty"><h3>Nada encontrado</h3><p>Tente outro tÃ­tulo, artista ou nome de lista.</p></div>'
+      : "";
+}
+
+$("globalSearchInput")?.addEventListener("input", renderGlobalSearch);
+
+document.querySelectorAll("[data-search-filter]").forEach((button) => {
+  button.addEventListener("click", () => {
+    globalSearchFilter = button.dataset.searchFilter;
+
+    document.querySelectorAll("[data-search-filter]").forEach((item) => {
+      item.classList.toggle("active", item === button);
+    });
+
+    renderGlobalSearch();
+  });
+});
+
+document.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-open-search-result]");
+  if (!button) return;
+
+  const [type, id] = button.dataset.openSearchResult.split(":");
+
+  if (type === "songs") {
+    openSongViewer(id, false);
+  } else if (type === "lists") {
+    const list = lists.find((item) => item.id === id);
+    if (list) openListPlayer(list);
+  } else if (type === "groups") {
+    openGroupDetails(id);
+  }
+});
 
 function normalizeSongText(song = {}) {
   return {
@@ -291,6 +462,9 @@ async function loadAll() {
   });
 
   updateStats();
+  if (!$("searchView")?.classList.contains("hidden")) {
+    renderGlobalSearch();
+  }
 }
 
 async function loadSongs() {
@@ -505,9 +679,12 @@ function renderDedicatedSongViewer() {
     ? stripChordMarkup(transposedContent)
     : transposedContent;
 
-  $("viewerSongTitle").textContent = viewingSong.title || "Sem tÃ­tulo";
-  $("viewerSongArtist").textContent = viewingSong.artist || "Artista nÃ£o informado";
+  $("viewerSongTitle").textContent =
+    repairBrokenText(viewingSong.title || "Sem tÃ­tulo");
+  $("viewerSongArtist").textContent =
+    repairBrokenText(viewingSong.artist || "Artista nÃ£o informado");
   $("viewerCurrentKey").textContent = viewerKey;
+  $("viewerSongKeyMeta").textContent = `Tom ${viewerKey}`;
   $("dedicatedSongViewer").style.fontSize = `${viewerFontSize}px`;
   $("dedicatedSongViewer").innerHTML = renderChordMarkup(content);
 
