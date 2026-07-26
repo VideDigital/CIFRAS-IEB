@@ -1,9 +1,9 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
 import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail, signOut, updateProfile } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
 import { getFirestore, collection, addDoc, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
-import { firebaseConfig } from "./firebase-config.js?v=4.4.0";
-import { KEYS, transposeContent, semitoneDistance, renderChordMarkup } from "./chord-engine.js?v=4.4.0";
-import { drawChordDiagram } from "./chord-diagrams.js?v=4.4.0";
+import { firebaseConfig } from "./firebase-config.js?v=4.5.0";
+import { KEYS, transposeContent, semitoneDistance, renderChordMarkup } from "./chord-engine.js?v=4.5.0";
+import { drawChordDiagram } from "./chord-diagrams.js?v=4.5.0";
 
 const firebaseApp = initializeApp(firebaseConfig);
 const auth = getAuth(firebaseApp);
@@ -74,6 +74,49 @@ function safeText(value = "") {
   return String(value).replace(/[&<>"']/g, (character) => ({
     "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
   })[character]);
+}
+
+function repairBrokenText(value = "") {
+  let text = String(value ?? "");
+
+  const replacements = new Map([
+    ["ÃÂ¡", "Ã¡"], ["Ã ", "Ã "], ["ÃÂ¢", "Ã¢"], ["ÃÂ£", "Ã£"], ["ÃÂ¤", "Ã¤"],
+    ["ÃÂ©", "Ã©"], ["ÃÂª", "Ãª"], ["ÃÂ¨", "Ã¨"], ["ÃÂ«", "Ã«"],
+    ["ÃÂ­", "Ã­"], ["ÃÂ¬", "Ã¬"], ["ÃÂ®", "Ã®"], ["ÃÂ¯", "Ã¯"],
+    ["ÃÂ³", "Ã³"], ["ÃÂ´", "Ã´"], ["ÃÂµ", "Ãµ"], ["ÃÂ²", "Ã²"], ["ÃÂ¶", "Ã¶"],
+    ["ÃÂº", "Ãº"], ["ÃÂ¹", "Ã¹"], ["ÃÂ»", "Ã»"], ["ÃÂ¼", "Ã¼"],
+    ["ÃÂ§", "Ã§"], ["ÃÂ", "Ã"],
+    ["ÃÂ", "Ã"], ["ÃÂ", "Ã"], ["ÃÂ", "Ã"], ["ÃÂ", "Ã"],
+    ["ÃÂ", "Ã"], ["ÃÂ", "Ã"], ["ÃÂ", "Ã"],
+    ["ÃÂ", "Ã"], ["ÃÂ", "Ã"], ["ÃÂ", "Ã"], ["ÃÂ", "Ã"],
+    ["ÃÂº", "Âº"], ["ÃÂª", "Âª"], ["ÃÂ·", "Â·"], ["Ã", ""],
+    ["Ã¢ÂÂ", "â"], ["Ã¢ÂÂ", "â"], ["Ã¢ÂÂ", "â"], ["Ã¢ÂÂ", "â"],
+    ["Ã¢ÂÂ", "â"], ["Ã¢ÂÂ¦", "â¦"], ["Ã¢ÂÂ", "â"], ["Ã¢ÂÂ", "â"],
+    ["Ã¢ÂÂ¶", ""], ["Ã¢ÂÂ¸", ""], ["Ã°ÂÂÂµ", ""]
+  ]);
+
+  for (let pass = 0; pass < 3; pass += 1) {
+    const before = text;
+
+    replacements.forEach((replacement, broken) => {
+      text = text.split(broken).join(replacement);
+    });
+
+    if (text === before) break;
+  }
+
+  return text
+    .replace(/\uFFFD/g, "")
+    .replace(/[ \t]+\n/g, "\n");
+}
+
+function normalizeSongText(song = {}) {
+  return {
+    ...song,
+    title: repairBrokenText(song.title || ""),
+    artist: repairBrokenText(song.artist || ""),
+    content: repairBrokenText(song.content || "")
+  };
 }
 
 function initials(name = "Usu\u00E1rio") {
@@ -257,7 +300,7 @@ async function loadSongs() {
     );
 
     songs = snapshot.docs
-      .map((item) => ({ id: item.id, ...item.data() }))
+      .map((item) => normalizeSongText({ id: item.id, ...item.data() }))
       .sort((a, b) => {
         const aTime = a.updatedAt?.toMillis?.() || a.createdAt?.toMillis?.() || 0;
         const bTime = b.updatedAt?.toMillis?.() || b.createdAt?.toMillis?.() || 0;
@@ -305,7 +348,9 @@ async function loadShared() {
 
     sharedSongs = (await Promise.all(songIds.map(async (songId) => {
       const result = await getDoc(doc(db, "songs", songId));
-      return result.exists() ? { id: result.id, ...result.data(), readOnly: true } : null;
+      return result.exists()
+        ? normalizeSongText({ id: result.id, ...result.data(), readOnly: true })
+        : null;
     }))).filter(Boolean);
 
     renderShared();
@@ -534,26 +579,50 @@ $("viewerStageBtn").onclick = () => {
   toggleStageMode($("dedicatedSongViewer").closest(".song-reader-shell"));
 };
 
+function getViewerScrollTarget() {
+  const shell = $("dedicatedSongViewer")?.closest(".song-reader-shell");
+  const viewer = $("dedicatedSongViewer");
+
+  if (shell?.classList.contains("stage-mode")) {
+    return {
+      get position() { return viewer.scrollTop; },
+      get maximum() { return Math.max(0, viewer.scrollHeight - viewer.clientHeight); },
+      scrollBy(amount) { viewer.scrollTop += amount; }
+    };
+  }
+
+  return {
+    get position() { return window.scrollY; },
+    get maximum() {
+      return Math.max(
+        0,
+        document.documentElement.scrollHeight - window.innerHeight
+      );
+    },
+    scrollBy(amount) { window.scrollBy(0, amount); }
+  };
+}
+
 $("viewerAutoScrollBtn").onclick = () => {
   if (viewerScrollFrame) {
     stopViewerAutoScroll();
     return;
   }
 
-  const viewer = $("dedicatedSongViewer");
-  $("viewerAutoScrollBtn").textContent = "â¸ Pausar";
+  const speed = Number($("viewerScrollSpeed").value) || 0.75;
+  $("viewerAutoScrollBtn").textContent = "Pausar";
+  $("viewerAutoScrollBtn").classList.add("is-scrolling");
+
   let previousTime = performance.now();
 
   const step = (currentTime) => {
-    const difference = (currentTime - previousTime) / 16.67;
+    const elapsed = Math.min(50, currentTime - previousTime);
     previousTime = currentTime;
 
-    viewer.scrollTop += Number($("viewerScrollSpeed").value) * difference;
+    const target = getViewerScrollTarget();
+    target.scrollBy(speed * elapsed * 0.055);
 
-    if (
-      viewer.scrollTop + viewer.clientHeight >=
-      viewer.scrollHeight - 2
-    ) {
+    if (target.position >= target.maximum - 2) {
       stopViewerAutoScroll();
       return;
     }
@@ -569,7 +638,8 @@ function stopViewerAutoScroll() {
   viewerScrollFrame = null;
 
   if ($("viewerAutoScrollBtn")) {
-    $("viewerAutoScrollBtn").textContent = "â¶ Iniciar";
+    $("viewerAutoScrollBtn").textContent = "Iniciar";
+    $("viewerAutoScrollBtn").classList.remove("is-scrolling");
   }
 }
 
@@ -1114,11 +1184,11 @@ async function saveSong() {
   try {
     const data = {
       ownerId: currentUser.uid,
-      title,
-      artist: $("songArtist").value.trim(),
+      title: repairBrokenText(title),
+      artist: repairBrokenText($("songArtist").value.trim()),
       key: $("songKey").value,
       capo: Number($("songCapo").value) || 0,
-      content: $("songContent").value,
+      content: repairBrokenText($("songContent").value),
       updatedAt: serverTimestamp()
     };
 
@@ -1248,7 +1318,7 @@ $("autoScrollBtn").onclick = () => {
     return;
   }
 
-  $("autoScrollBtn").textContent = "\u23F8 Pausar";
+  $("autoScrollBtn").textContent = "Pausar";
   let previousTime = performance.now();
 
   const step = (currentTime) => {
@@ -1270,7 +1340,7 @@ $("autoScrollBtn").onclick = () => {
 function stopAutoScroll() {
   if (scrollFrame) cancelAnimationFrame(scrollFrame);
   scrollFrame = null;
-  if ($("autoScrollBtn")) $("autoScrollBtn").textContent = "\u25B6 Iniciar";
+  if ($("autoScrollBtn")) $("autoScrollBtn").textContent = "Iniciar";
 }
 
 function switchEditorTab(tab) {
@@ -2161,7 +2231,10 @@ $("bulkImportFiles").addEventListener("change", async (event) => {
 
     try {
       const rawText = await readImportedFile(file);
-      const inferredSongs = inferSongFromFile(file.name, rawText);
+      const inferredSongs = inferSongFromFile(
+        repairBrokenText(file.name),
+        repairBrokenText(rawText)
+      ).map(normalizeSongText);
 
       if (!inferredSongs.length) {
         failures.push({
@@ -2316,28 +2389,50 @@ function changePlayerKey(delta) {
 $("playerTransposeDown").onclick = () => changePlayerKey(-1);
 $("playerTransposeUp").onclick = () => changePlayerKey(1);
 
+function getListScrollTarget() {
+  const shell = $("listPlayerShell");
+  const viewer = $("listPlayerSong");
+
+  if (shell?.classList.contains("stage-mode")) {
+    return {
+      get position() { return viewer.scrollTop; },
+      get maximum() { return Math.max(0, viewer.scrollHeight - viewer.clientHeight); },
+      scrollBy(amount) { viewer.scrollTop += amount; }
+    };
+  }
+
+  return {
+    get position() { return window.scrollY; },
+    get maximum() {
+      return Math.max(
+        0,
+        document.documentElement.scrollHeight - window.innerHeight
+      );
+    },
+    scrollBy(amount) { window.scrollBy(0, amount); }
+  };
+}
+
 $("playerAutoScrollBtn").onclick = () => {
   if (playerScrollFrame) {
     stopPlayerAutoScroll();
     return;
   }
 
-  const viewer = $("listPlayerSong");
-  $("playerAutoScrollBtn").textContent = "â¸ Pausar";
+  const speed = Number($("playerScrollSpeed").value) || 0.75;
+  $("playerAutoScrollBtn").textContent = "Pausar";
+  $("playerAutoScrollBtn").classList.add("is-scrolling");
 
   let previousTime = performance.now();
 
   const step = (currentTime) => {
-    const difference = (currentTime - previousTime) / 16.67;
+    const elapsed = Math.min(50, currentTime - previousTime);
     previousTime = currentTime;
 
-    viewer.scrollTop +=
-      Number($("playerScrollSpeed").value) * difference;
+    const target = getListScrollTarget();
+    target.scrollBy(speed * elapsed * 0.055);
 
-    if (
-      viewer.scrollTop + viewer.clientHeight >=
-      viewer.scrollHeight - 2
-    ) {
+    if (target.position >= target.maximum - 2) {
       stopPlayerAutoScroll();
       return;
     }
@@ -2349,14 +2444,12 @@ $("playerAutoScrollBtn").onclick = () => {
 };
 
 function stopPlayerAutoScroll() {
-  if (playerScrollFrame) {
-    cancelAnimationFrame(playerScrollFrame);
-  }
-
+  if (playerScrollFrame) cancelAnimationFrame(playerScrollFrame);
   playerScrollFrame = null;
 
   if ($("playerAutoScrollBtn")) {
-    $("playerAutoScrollBtn").textContent = "â¶ Iniciar";
+    $("playerAutoScrollBtn").textContent = "Iniciar";
+    $("playerAutoScrollBtn").classList.remove("is-scrolling");
   }
 }
 
