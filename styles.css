@@ -1688,3 +1688,274 @@ body{background:radial-gradient(circle at 100% 0,rgba(249,115,22,.10),transparen
     padding-right:8px;
   }
 }
+
+
+/* V4.7 â EXPERIÃNCIA PROFISSIONAL */
+:root{
+  --app-bg:#070b12;
+  --app-panel:#0d1522;
+  --app-border:#24344d;
+  --app-muted:#8e9bb0;
+  --app-orange:#ff7a1a;
+}
+
+body{
+  background:radial-gradient(circle at 80% 0%,rgba(255,122,26,.07),transparent 28%),var(--app-bg);
+}
+
+.main{padding-bottom:96px}
+.card-grid{display:grid;gap:10px}
+
+.song-row-card,.repertoire-row-card{
+  overflow:hidden;
+  border:1px solid var(--app-border);
+  border-radius:18px;
+  background:linear-gradient(145deg,#0c1523,#0a111d);
+}
+
+.song-row-open,.repertoire-row-main{
+  display:grid;
+  width:100%;
+  grid-template-columns:auto minmax(0,1fr) auto;
+  align-items:center;
+  gap:14px;
+  padding:16px;
+  border:0;
+  background:transparent;
+  color:#f8fafc;
+  text-align:left;
+}
+
+.song-row-key,.repertoire-row-icon{
+  display:grid;
+  width:48px;
+  height:48px;
+  place-items:center;
+  border:1px solid rgba(255,122,26,.28);
+  border-radius:14px;
+  background:rgba(255,122,26,.1);
+  color:var(--app-orange);
+  font-size:17px;
+  font-weight:900;
+}
+
+.song-row-copy,.repertoire-row-copy{display:block;min-width:0}
+
+.song-row-copy strong,.repertoire-row-copy strong{
+  display:block;
+  overflow:hidden;
+  color:#f8fafc;
+  font-size:17px;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.song-row-copy small,.song-row-copy em,.repertoire-row-copy small{
+  display:block;
+  margin-top:4px;
+  overflow:hidden;
+  color:var(--app-muted);
+  font-size:12px;
+  font-style:normal;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.song-row-copy em{font-size:10px}
+.song-row-arrow{color:#75839a;font-size:32px;font-weight:300}
+
+.repertoire-row-actions{
+  display:flex;
+  gap:18px;
+  padding:0 16px 13px 78px;
+}
+
+.repertoire-row-actions button{
+  border:0;
+  background:transparent;
+  color:#aeb9c9;
+  font:inherit;
+  font-size:12px;
+  font-weight:700;
+}
+
+.repertoire-row-actions .danger-text{color:#fda4af}
+
+.song-reader-shell,.list-player-shell{
+  border:0;
+  background:#080d15;
+}
+
+.song-reader-heading{
+  padding:4px 0 18px;
+  border:0;
+}
+
+.song-reader-heading .eyebrow{color:var(--app-orange)}
+
+.song-reader-heading h1{
+  margin:7px 0 8px;
+  font-size:clamp(32px,8vw,54px);
+  line-height:1.02;
+}
+
+.viewer-meta-row{color:var(--app-muted)}
+
+.dedicated-viewer-toolbar,.list-player-toolbar{
+  border-color:#1e2a3d;
+  background:#0c1420;
+}
+
+.dedicated-song-viewer,.list-player-song{
+  padding-top:18px;
+  color:#f4f7fb;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;
+  line-height:1.72;
+}
+
+.song-section-marker{
+  margin:28px 0 20px;
+  border:0;
+  border-left:4px solid var(--app-orange);
+  border-radius:4px;
+  background:#172234;
+  box-shadow:none;
+  text-align:left;
+}
+
+.song-section-marker span{text-align:left}
+
+.mobile-bottom-nav,.reader-mobile-dock{display:none}
+
+.reader-quick-panel{
+  position:fixed;
+  right:12px;
+  bottom:86px;
+  left:12px;
+  z-index:10020;
+  grid-template-columns:repeat(5,1fr);
+  gap:7px;
+  padding:10px;
+  border:1px solid #2a3850;
+  border-radius:18px;
+  background:rgba(12,18,29,.98);
+  backdrop-filter:blur(18px);
+}
+
+.reader-quick-panel:not(.hidden){display:grid}
+
+.reader-quick-panel button{
+  min-height:46px;
+  padding:7px;
+  border:1px solid #2d3b53;
+  border-radius:12px;
+  background:#131d2d;
+  color:#f8fafc;
+  font:inherit;
+  font-size:11px;
+  font-weight:700;
+}
+
+@media(max-width:760px){
+  .topbar{min-height:72px}
+  .brand.compact>div,.profile-button{display:none}
+  .main{padding:16px 14px 112px}
+  .welcome-panel{padding:24px 20px;border-radius:22px}
+  .stats-grid{gap:8px}
+  .stat-card{min-height:120px;padding:14px 8px}
+  .section-head{align-items:stretch;flex-direction:column}
+  .library-tools,.library-tools>*{width:100%}
+
+  .mobile-bottom-nav{
+    position:fixed;
+    right:0;
+    bottom:0;
+    left:0;
+    z-index:9000;
+    display:grid;
+    grid-template-columns:repeat(5,1fr);
+    padding:8px 8px calc(8px + env(safe-area-inset-bottom));
+    border-top:1px solid #202a3a;
+    background:rgba(7,11,18,.97);
+    backdrop-filter:blur(18px);
+  }
+
+  .mobile-bottom-nav button{
+    display:flex;
+    min-width:0;
+    min-height:52px;
+    align-items:center;
+    justify-content:center;
+    flex-direction:column;
+    gap:3px;
+    border:0;
+    background:transparent;
+    color:#7f8a9d;
+    font:inherit;
+  }
+
+  .mobile-bottom-nav button span{font-size:21px}
+  .mobile-bottom-nav button small{font-size:10px;font-weight:700}
+  .mobile-bottom-nav button.active{color:var(--app-orange)}
+
+  #songViewerView .song-viewer-top,
+  #songViewerView .dedicated-viewer-toolbar,
+  #listPlayerView .list-player-header,
+  #listPlayerView .list-player-toolbar,
+  #listPlayerView .list-player-nav{display:none}
+
+  #songViewerView,#listPlayerView{margin:-8px -6px 0}
+
+  .song-reader-shell,.list-player-shell{
+    min-height:calc(100dvh - 96px);
+    padding:16px 12px 108px;
+    border-radius:0;
+  }
+
+  .dedicated-song-viewer,.list-player-song{
+    height:auto;
+    min-height:calc(100dvh - 260px);
+    overflow:visible;
+    padding:12px 4px 46vh;
+  }
+
+  .reader-mobile-dock{
+    position:fixed;
+    right:10px;
+    bottom:calc(10px + env(safe-area-inset-bottom));
+    left:10px;
+    z-index:10010;
+    display:grid;
+    grid-template-columns:repeat(5,1fr);
+    padding:8px;
+    border:1px solid #2a374c;
+    border-radius:22px;
+    background:rgba(13,19,29,.97);
+    box-shadow:0 14px 40px rgba(0,0,0,.42);
+    backdrop-filter:blur(18px);
+  }
+
+  .reader-mobile-dock button{
+    display:flex;
+    min-width:0;
+    min-height:50px;
+    align-items:center;
+    justify-content:center;
+    flex-direction:column;
+    gap:2px;
+    border:0;
+    border-radius:13px;
+    background:transparent;
+    color:#d9e0ea;
+    font:inherit;
+  }
+
+  .reader-mobile-dock button:active{background:#1b2638}
+  .reader-mobile-dock span{color:var(--app-orange);font-size:19px;font-weight:800}
+  .reader-mobile-dock small{font-size:9px;font-weight:700}
+  .song-reader-heading h1{font-size:38px}
+  .song-row-open,.repertoire-row-main{padding:14px}
+  .song-row-key,.repertoire-row-icon{width:44px;height:44px}
+  .reader-quick-panel{grid-template-columns:repeat(2,1fr)}
+  .reader-quick-panel button:last-child{grid-column:1/-1}
+}
