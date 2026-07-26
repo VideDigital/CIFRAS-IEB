@@ -1,4 +1,4 @@
-// Casas da 6ª para a 1ª corda. x = não tocar, 0 = corda solta.
+// Casas da 6\u00AA para a 1\u00AA corda. x = n\u00E3o tocar, 0 = corda solta.
 const SHAPES = {
   C:["x",3,2,0,1,0], D:["x","x",0,2,3,2], E:[0,2,2,1,0,0],
   F:[1,3,3,2,1,1], G:[3,2,0,0,0,3], A:["x",0,2,2,2,0],
@@ -16,7 +16,7 @@ const SHAPES = {
 
 function normalize(chord) {
   return chord.split("/")[0]
-    .replace("♯","#").replace("♭","b")
+    .replace("\u266F","#").replace("\u266D","b")
     .replace(/sus\d?|add\d+|dim|aug|\([^)]*\)/g,"");
 }
 
@@ -27,7 +27,7 @@ export function getChordShape(chord) {
 
 export function drawChordDiagram(chord) {
   const shape = getChordShape(chord);
-  if (!shape) return `<div class="empty">Diagrama ainda não cadastrado para <strong>${chord}</strong>.<br>O acorde continua funcionando na transposição.</div>`;
+  if (!shape) return `<div class="empty">Diagrama ainda n\u00E3o cadastrado para <strong>${chord}</strong>.<br>O acorde continua funcionando na transposi\u00E7\u00E3o.</div>`;
   const strings = 6, frets = 5, w=260, h=210, left=35, top=45, gapX=36, gapY=29;
   let svg = `<svg viewBox="0 0 ${w} ${h}" width="100%" role="img" aria-label="Diagrama do acorde ${chord}">`;
   for(let i=0;i<strings;i++){
@@ -40,7 +40,7 @@ export function drawChordDiagram(chord) {
   }
   shape.forEach((fret,i)=>{
     const x=left+i*gapX;
-    if(fret==="x") svg += `<text x="${x}" y="26" fill="#fca5a5" text-anchor="middle" font-size="18">×</text>`;
+    if(fret==="x") svg += `<text x="${x}" y="26" fill="#fca5a5" text-anchor="middle" font-size="18">\u00D7</text>`;
     else if(fret===0) svg += `<circle cx="${x}" cy="20" r="7" fill="none" stroke="#c4b5fd" stroke-width="2"/>`;
     else svg += `<circle cx="${x}" cy="${top+(fret-.5)*gapY}" r="10" fill="#8b5cf6"/>`;
   });
