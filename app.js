@@ -1,9 +1,9 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
 import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail, signOut, updateProfile } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
 import { getFirestore, collection, addDoc, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
-import { firebaseConfig } from "./firebase-config.js?v=4.3.0";
-import { KEYS, transposeContent, semitoneDistance, renderChordMarkup } from "./chord-engine.js?v=4.3.0";
-import { drawChordDiagram } from "./chord-diagrams.js?v=4.3.0";
+import { firebaseConfig } from "./firebase-config.js?v=4.4.0";
+import { KEYS, transposeContent, semitoneDistance, renderChordMarkup } from "./chord-engine.js?v=4.4.0";
+import { drawChordDiagram } from "./chord-diagrams.js?v=4.4.0";
 
 const firebaseApp = initializeApp(firebaseConfig);
 const auth = getAuth(firebaseApp);
@@ -28,6 +28,9 @@ let previewKey = "C";
 let fontSize = 18;
 let scrollFrame = null;
 let listPlayer = { songs: [], index: 0 };
+let playerFontSize = 20;
+let playerKey = "C";
+let playerScrollFrame = null;
 let authMode = "login";
 let touchStartX = 0;
 let isDirty = false;
@@ -47,6 +50,7 @@ function showView(name) {
   });
   stopAutoScroll();
   stopViewerAutoScroll();
+  stopPlayerAutoScroll();
   closeSidebar();
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
@@ -1312,7 +1316,7 @@ function toggleStageMode(panel) {
 }
 
 $("stageModeBtn").onclick = () => toggleStageMode($("previewPanel"));
-$("playerStageMode").onclick = () => toggleStageMode($("listPlayerSong"));
+
 
 function openListDialog(list = null) {
   editingList = list;
@@ -1386,6 +1390,11 @@ function startList(id) {
 
   listPlayer.songs = list.songIds.map((songId) => songs.find((song) => song.id === songId)).filter(Boolean);
   listPlayer.index = 0;
+  playerFontSize = 20;
+  playerTextOnlyMode = false;
+  playerKey = listPlayer.songs[0]?.key || "C";
+  $("playerTextOnlyBtn").textContent = "Somente texto";
+  $("playerTextOnlyBtn").classList.remove("active-mode");
 
   if (!listPlayer.songs.length) {
     toast("Esta lista est\u00E1 vazia.");
@@ -1398,28 +1407,74 @@ function startList(id) {
 
 function renderListSong() {
   const song = listPlayer.songs[listPlayer.index];
-  $("listProgress").textContent = `${listPlayer.index + 1} de ${listPlayer.songs.length} \u2022 ${song.title}`;
+  if (!song) return;
+
+  const originalKey = song.key || "C";
+
+  if (!playerKey) {
+    playerKey = originalKey;
+  }
+
+  const semitones = semitoneDistance(originalKey, playerKey);
+  const preferFlats = /b/.test(playerKey);
+  const transposedContent = transposeContent(
+    song.content || "",
+    semitones,
+    preferFlats
+  );
+
+  const content = playerTextOnlyMode
+    ? stripChordMarkup(transposedContent)
+    : transposedContent;
+
+  $("listProgress").textContent =
+    `${listPlayer.index + 1} de ${listPlayer.songs.length} â¢ ${song.title}`;
+
+  $("playerCurrentKey").textContent = playerKey;
+  $("listPlayerSong").style.fontSize = `${playerFontSize}px`;
+
   $("listPlayerSong").innerHTML = `
     <h1>${safeText(song.title)}</h1>
-    <p class="muted">${safeText(song.artist || "")} \u2022 Tom ${safeText(song.key || "C")}</p>
-    ${playerTextOnlyMode ? safeText(stripChordMarkup(song.content)) : renderChordMarkup(song.content)}
+    <p class="muted">
+      ${safeText(song.artist || "Artista nÃ£o informado")}
+      â¢ Tom ${safeText(playerKey)}
+      ${Number(song.capo) > 0 ? ` â¢ Capotraste ${Number(song.capo)}` : ""}
+    </p>
+    ${renderChordMarkup(content)}
   `;
 
   $("prevListSong").disabled = listPlayer.index === 0;
-  $("nextListSong").disabled = listPlayer.index === listPlayer.songs.length - 1;
+  $("nextListSong").disabled =
+    listPlayer.index === listPlayer.songs.length - 1;
+
   $("listPlayerSong").scrollTop = 0;
+  stopPlayerAutoScroll();
 }
 
 function moveList(direction) {
   const nextIndex = listPlayer.index + direction;
-  if (nextIndex < 0 || nextIndex >= listPlayer.songs.length) return;
+
+  if (nextIndex < 0 || nextIndex >= listPlayer.songs.length) {
+    return;
+  }
+
   listPlayer.index = nextIndex;
+  playerKey = listPlayer.songs[nextIndex]?.key || "C";
   renderListSong();
 }
 
 $("prevListSong").onclick = () => moveList(-1);
 $("nextListSong").onclick = () => moveList(1);
-$("exitListPlayer").onclick = () => showView("lists");
+$("exitListPlayer").onclick = () => {
+  stopPlayerAutoScroll();
+
+  const shell = $("listPlayerShell");
+  shell.classList.remove("stage-mode");
+  document.body.style.overflow = "";
+  $("playerStageMode").textContent = "Tela cheia";
+
+  showView("lists");
+};
 
 $("listPlayerSong").addEventListener("touchstart", (event) => {
   touchStartX = event.changedTouches[0].screenX;
@@ -2219,7 +2274,103 @@ $("confirmBulkImportBtn").onclick = async () => {
 };
 
 $("textOnlyBtn").onclick=()=>{textOnlyMode=!textOnlyMode;$("textOnlyBtn").textContent=textOnlyMode?"Mostrar acordes":"Somente texto";$("textOnlyBtn").classList.toggle("active-mode",textOnlyMode);updatePreview();};
-$("playerTextOnlyBtn").onclick=()=>{playerTextOnlyMode=!playerTextOnlyMode;$("playerTextOnlyBtn").textContent=playerTextOnlyMode?"Mostrar acordes":"Somente texto";$("playerTextOnlyBtn").classList.toggle("active-mode",playerTextOnlyMode);renderListSong();};
+
+
+$("playerTextOnlyBtn").onclick = () => {
+  playerTextOnlyMode = !playerTextOnlyMode;
+
+  $("playerTextOnlyBtn").textContent =
+    playerTextOnlyMode ? "Mostrar acordes" : "Somente texto";
+
+  $("playerTextOnlyBtn").classList.toggle(
+    "active-mode",
+    playerTextOnlyMode
+  );
+
+  renderListSong();
+};
+
+$("playerFontUp").onclick = () => {
+  playerFontSize = Math.min(40, playerFontSize + 2);
+  renderListSong();
+};
+
+$("playerFontDown").onclick = () => {
+  playerFontSize = Math.max(12, playerFontSize - 2);
+  renderListSong();
+};
+
+function changePlayerKey(delta) {
+  const scale = [
+    "C", "C#", "D", "D#", "E", "F",
+    "F#", "G", "G#", "A", "A#", "B"
+  ];
+
+  let index = scale.indexOf(playerKey);
+  if (index < 0) index = 0;
+
+  playerKey = scale[(index + delta + 12) % 12];
+  renderListSong();
+}
+
+$("playerTransposeDown").onclick = () => changePlayerKey(-1);
+$("playerTransposeUp").onclick = () => changePlayerKey(1);
+
+$("playerAutoScrollBtn").onclick = () => {
+  if (playerScrollFrame) {
+    stopPlayerAutoScroll();
+    return;
+  }
+
+  const viewer = $("listPlayerSong");
+  $("playerAutoScrollBtn").textContent = "â¸ Pausar";
+
+  let previousTime = performance.now();
+
+  const step = (currentTime) => {
+    const difference = (currentTime - previousTime) / 16.67;
+    previousTime = currentTime;
+
+    viewer.scrollTop +=
+      Number($("playerScrollSpeed").value) * difference;
+
+    if (
+      viewer.scrollTop + viewer.clientHeight >=
+      viewer.scrollHeight - 2
+    ) {
+      stopPlayerAutoScroll();
+      return;
+    }
+
+    playerScrollFrame = requestAnimationFrame(step);
+  };
+
+  playerScrollFrame = requestAnimationFrame(step);
+};
+
+function stopPlayerAutoScroll() {
+  if (playerScrollFrame) {
+    cancelAnimationFrame(playerScrollFrame);
+  }
+
+  playerScrollFrame = null;
+
+  if ($("playerAutoScrollBtn")) {
+    $("playerAutoScrollBtn").textContent = "â¶ Iniciar";
+  }
+}
+
+$("playerStageMode").onclick = () => {
+  const shell = $("listPlayerShell");
+  const entering = !shell.classList.contains("stage-mode");
+
+  shell.classList.toggle("stage-mode", entering);
+  document.body.style.overflow = entering ? "hidden" : "";
+
+  $("playerStageMode").textContent =
+    entering ? "Sair da tela cheia" : "Tela cheia";
+};
+
 async function loadGroupRepertoires(groupId){try{const snap=await getDocs(query(collection(db,"groupRepertoires"),where("groupId","==",groupId)));groupRepertoires=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>String(a.date||"").localeCompare(String(b.date||"")));renderGroupRepertoires();}catch(e){console.error(e);$("groupRepertoireList").innerHTML='<p class="muted">N\u00E3o foi poss\u00EDvel carregar os repert\u00F3rios.</p>';}}
 function formatRepertoireDate(v){if(!v)return"Data n\u00E3o informada";const[y,m,d]=v.split("-");return`${d}/${m}/${y}`;}
 function renderGroupRepertoires(){$("groupRepertoireList").innerHTML=groupRepertoires.length?groupRepertoires.map(r=>`<button class="repertoire-card" data-open-repertoire="${r.id}"><span class="repertoire-date">${safeText(formatRepertoireDate(r.date))}</span><strong>${safeText(r.name||"Repert\u00F3rio")}</strong><small>${r.songSnapshots?.length||r.songIds?.length||0} m\u00FAsica(s)</small></button>`).join(""):'<div class="empty-mini">Nenhum repert\u00F3rio criado neste grupo.</div>';}
