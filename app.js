@@ -255,10 +255,11 @@ function renderLists() {
       <div>
         <span class="song-card-key">${list.songIds?.length || 0}</span>
         <h3>${safeText(list.name)}</h3>
-        <p>${list.songIds?.length || 0} m\u00FAsica(s) nesta lista</p>
+        <p>${list.date ? `Repert\u00F3rio de ${formatRepertoireDate(list.date)}` : "Repert\u00F3rio sem data definida"}</p>
+        <p>${list.songIds?.length || 0} m\u00FAsica(s) neste repert\u00F3rio</p>
       </div>
       <div>
-        <span class="meta">Atualizada em ${formatDate(list.updatedAt)}</span>
+        <span class="meta">Atualizado em ${formatDate(list.updatedAt)}</span>
         <div class="card-actions">
           <button class="primary" data-play-list="${list.id}">Abrir lista</button>
           <button class="secondary-button" data-edit-list="${list.id}">Editar</button>
@@ -653,8 +654,9 @@ $("playerStageMode").onclick = () => toggleStageMode($("listPlayerSong"));
 
 function openListDialog(list = null) {
   editingList = list;
-  $("listDialogTitle").textContent = list ? "Editar lista" : "Nova lista";
+  $("listDialogTitle").textContent = list ? "Editar repert\u00F3rio" : "Novo repert\u00F3rio";
   $("listName").value = list?.name || "";
+  $("listDate").value = list?.date || new Date().toISOString().slice(0, 10);
 
   if (!songs.length) {
     $("listSongOptions").innerHTML = `
@@ -675,8 +677,15 @@ function openListDialog(list = null) {
 
 $("saveListBtn").onclick = async () => {
   const name = $("listName").value.trim();
+  const date = $("listDate").value;
+
   if (!name) {
-    toast("Informe o nome da lista.");
+    toast("Informe o nome do repert\u00F3rio.");
+    return;
+  }
+
+  if (!date) {
+    toast("Selecione a data do repert\u00F3rio.");
     return;
   }
 
@@ -691,6 +700,7 @@ $("saveListBtn").onclick = async () => {
   const data = {
     ownerId: currentUser.uid,
     name,
+    date,
     songIds,
     updatedAt: serverTimestamp()
   };
@@ -703,7 +713,7 @@ $("saveListBtn").onclick = async () => {
   }
 
   $("listDialog").close();
-  toast("Lista salva.");
+  toast("Repert\u00F3rio pessoal salvo.");
   await loadLists();
   updateStats();
 };
@@ -1110,12 +1120,194 @@ $("textOnlyBtn").onclick=()=>{textOnlyMode=!textOnlyMode;$("textOnlyBtn").textCo
 $("playerTextOnlyBtn").onclick=()=>{playerTextOnlyMode=!playerTextOnlyMode;$("playerTextOnlyBtn").textContent=playerTextOnlyMode?"Mostrar acordes":"Somente texto";$("playerTextOnlyBtn").classList.toggle("active-mode",playerTextOnlyMode);renderListSong();};
 async function loadGroupRepertoires(groupId){try{const snap=await getDocs(query(collection(db,"groupRepertoires"),where("groupId","==",groupId)));groupRepertoires=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>String(a.date||"").localeCompare(String(b.date||"")));renderGroupRepertoires();}catch(e){console.error(e);$("groupRepertoireList").innerHTML='<p class="muted">NÃ£o foi possÃ­vel carregar os repertÃ³rios.</p>';}}
 function formatRepertoireDate(v){if(!v)return"Data nÃ£o informada";const[y,m,d]=v.split("-");return`${d}/${m}/${y}`;}
-function renderGroupRepertoires(){$("groupRepertoireList").innerHTML=groupRepertoires.length?groupRepertoires.map(r=>`<button class="repertoire-card" data-open-repertoire="${r.id}"><span class="repertoire-date">${safeText(formatRepertoireDate(r.date))}</span><strong>${safeText(r.name||"RepertÃ³rio")}</strong><small>${r.songIds?.length||0} mÃºsica(s)</small></button>`).join(""):'<div class="empty-mini">Nenhum repertÃ³rio criado neste grupo.</div>';}
+function renderGroupRepertoires(){$("groupRepertoireList").innerHTML=groupRepertoires.length?groupRepertoires.map(r=>`<button class="repertoire-card" data-open-repertoire="${r.id}"><span class="repertoire-date">${safeText(formatRepertoireDate(r.date))}</span><strong>${safeText(r.name||"RepertÃ³rio")}</strong><small>${r.songSnapshots?.length||r.songIds?.length||0} mÃºsica(s)</small></button>`).join(""):'<div class="empty-mini">Nenhum repertÃ³rio criado neste grupo.</div>';}
 $("newGroupRepertoireBtn").onclick=()=>{if(!currentGroup)return;$("repertoireNameInput").value="";$("repertoireDateInput").value=new Date().toISOString().slice(0,10);$("repertoireSongOptions").innerHTML=songs.length?songs.map(s=>`<label class="check-row"><input type="checkbox" value="${s.id}"><span>${safeText(s.title)} â ${safeText(s.artist||"Sem artista")}</span></label>`).join(""):'<div class="empty-mini">VocÃª ainda nÃ£o possui cifras.</div>';$("repertoireDialog").showModal();};
-$("saveRepertoireBtn").onclick=async()=>{if(!currentGroup)return;const name=$("repertoireNameInput").value.trim(),date=$("repertoireDateInput").value,songIds=[...$("repertoireSongOptions").querySelectorAll("input:checked")].map(i=>i.value);if(!name){toast("Informe o nome do repertÃ³rio.");return}if(!date){toast("Selecione a data.");return}if(!songIds.length){toast("Selecione pelo menos uma cifra.");return}await addDoc(collection(db,"groupRepertoires"),{groupId:currentGroup.id,name,date,songIds,createdBy:currentUser.uid,createdAt:serverTimestamp(),updatedAt:serverTimestamp()});$("repertoireDialog").close();toast("RepertÃ³rio criado!");await loadGroupRepertoires(currentGroup.id);};
-document.addEventListener("click",e=>{const b=e.target.closest("[data-open-repertoire]");if(!b)return;currentRepertoire=groupRepertoires.find(r=>r.id===b.dataset.openRepertoire);if(!currentRepertoire)return;$("repertoireDetailsName").textContent=currentRepertoire.name||"RepertÃ³rio";$("repertoireDetailsDate").textContent=formatRepertoireDate(currentRepertoire.date);const rs=currentRepertoire.songIds.map(id=>songs.find(s=>s.id===id)).filter(Boolean);$("repertoireDetailsSongs").innerHTML=rs.length?rs.map((s,i)=>`<button class="repertoire-song-row" data-open-repertoire-song="${s.id}"><span>${i+1}</span><div><strong>${safeText(s.title)}</strong><small>${safeText(s.artist||"Sem artista")} â¢ Tom ${safeText(s.key||"C")}</small></div></button>`).join(""):'<div class="empty-mini">Cifras indisponÃ­veis nesta conta.</div>';$("repertoireDetailsDialog").showModal();});
-document.addEventListener("click",e=>{const b=e.target.closest("[data-open-repertoire-song]");if(!b)return;$("repertoireDetailsDialog").close();openSong(b.dataset.openRepertoireSong,false);});
-$("playGroupRepertoireBtn").onclick=()=>{if(!currentRepertoire)return;const rs=currentRepertoire.songIds.map(id=>songs.find(s=>s.id===id)).filter(Boolean);if(!rs.length){toast("Nenhuma cifra disponÃ­vel.");return}listPlayer.songs=rs;listPlayer.index=0;playerTextOnlyMode=false;$("playerTextOnlyBtn").textContent="Somente texto";$("repertoireDetailsDialog").close();$("groupDetailsDialog").close();renderListSong();showView("listPlayer");};
+$("saveRepertoireBtn").onclick=async()=>{
+  if(!currentGroup)return;
+
+  const name=$("repertoireNameInput").value.trim();
+  const date=$("repertoireDateInput").value;
+  const songIds=[...$("repertoireSongOptions").querySelectorAll("input:checked")].map(i=>i.value);
+
+  if(!name){toast("Informe o nome do repertÃ³rio.");return}
+  if(!date){toast("Selecione a data.");return}
+  if(!songIds.length){toast("Selecione pelo menos uma cifra.");return}
+
+  const songSnapshots=songIds
+    .map(id=>songs.find(song=>song.id===id))
+    .filter(Boolean)
+    .map(song=>({
+      sourceSongId:song.id,
+      sourceOwnerId:song.ownerId||currentUser.uid,
+      title:song.title||"Sem tÃ­tulo",
+      artist:song.artist||"",
+      key:song.key||"C",
+      capo:Number(song.capo)||0,
+      content:song.content||""
+    }));
+
+  await addDoc(collection(db,"groupRepertoires"),{
+    groupId:currentGroup.id,
+    name,
+    date,
+    songIds,
+    songSnapshots,
+    createdBy:currentUser.uid,
+    createdAt:serverTimestamp(),
+    updatedAt:serverTimestamp()
+  });
+
+  $("repertoireDialog").close();
+  toast("RepertÃ³rio criado!");
+  await loadGroupRepertoires(currentGroup.id);
+};
+
+function getCurrentRepertoireSongs() {
+  if (!currentRepertoire) return [];
+
+  if (Array.isArray(currentRepertoire.songSnapshots) && currentRepertoire.songSnapshots.length) {
+    return currentRepertoire.songSnapshots.map((song, index) => ({
+      id: song.sourceSongId || `group-${currentRepertoire.id}-${index}`,
+      sourceSongId: song.sourceSongId || "",
+      sourceOwnerId: song.sourceOwnerId || "",
+      title: song.title || "Sem tÃ­tulo",
+      artist: song.artist || "",
+      key: song.key || "C",
+      capo: Number(song.capo) || 0,
+      content: song.content || "",
+      fromGroupRepertoire: true
+    }));
+  }
+
+  return (currentRepertoire.songIds || [])
+    .map((songId) => songs.find((song) => song.id === songId))
+    .filter(Boolean);
+}
+
+function groupSongAlreadyInLibrary(groupSong) {
+  return songs.some((song) =>
+    (groupSong.sourceSongId && song.importedFromGroupSongId === groupSong.sourceSongId) ||
+    (
+      song.title === groupSong.title &&
+      song.artist === groupSong.artist &&
+      song.content === groupSong.content
+    )
+  );
+}
+
+function openGroupRepertoireAt(index) {
+  const repertoireSongs = getCurrentRepertoireSongs();
+
+  if (!repertoireSongs.length) {
+    toast("Nenhuma cifra disponÃ­vel neste repertÃ³rio.");
+    return;
+  }
+
+  listPlayer.songs = repertoireSongs;
+  listPlayer.index = Math.max(0, Math.min(index, repertoireSongs.length - 1));
+  playerTextOnlyMode = false;
+  $("playerTextOnlyBtn").textContent = "Somente texto";
+  $("repertoireDetailsDialog").close();
+  $("groupDetailsDialog").close();
+  renderListSong();
+  showView("listPlayer");
+}
+
+document.addEventListener("click",(event)=>{
+  const button=event.target.closest("[data-open-repertoire]");
+  if(!button)return;
+
+  currentRepertoire=groupRepertoires.find((item)=>item.id===button.dataset.openRepertoire);
+  if(!currentRepertoire)return;
+
+  $("repertoireDetailsName").textContent=currentRepertoire.name||"RepertÃ³rio";
+  $("repertoireDetailsDate").textContent=formatRepertoireDate(currentRepertoire.date);
+
+  const repertoireSongs=getCurrentRepertoireSongs();
+
+  $("repertoireDetailsSongs").innerHTML=repertoireSongs.length
+    ? repertoireSongs.map((song,index)=>{
+        const isOwnSong=song.sourceOwnerId===currentUser.uid || songs.some((item)=>item.id===song.sourceSongId);
+        const alreadyAdded=groupSongAlreadyInLibrary(song);
+
+        return `
+          <div class="group-repertoire-song-card">
+            <button class="repertoire-song-row" data-open-repertoire-index="${index}">
+              <span>${index+1}</span>
+              <div>
+                <strong>${safeText(song.title)}</strong>
+                <small>${safeText(song.artist||"Sem artista")} â¢ Tom ${safeText(song.key||"C")}</small>
+              </div>
+            </button>
+            ${isOwnSong
+              ? '<span class="library-status">JÃ¡ Ã© sua</span>'
+              : alreadyAdded
+                ? '<span class="library-status added">Adicionada</span>'
+                : `<button class="add-to-library-button" data-add-group-song="${index}">Adicionar Ã  minha biblioteca</button>`
+            }
+          </div>
+        `;
+      }).join("")
+    : '<div class="empty-mini">Nenhuma cifra foi encontrada neste repertÃ³rio.</div>';
+
+  $("repertoireDetailsDialog").showModal();
+});
+document.addEventListener("click",(event)=>{
+  const button=event.target.closest("[data-open-repertoire-index]");
+  if(!button)return;
+  openGroupRepertoireAt(Number(button.dataset.openRepertoireIndex)||0);
+});
+$("playGroupRepertoireBtn").onclick=()=>openGroupRepertoireAt(0);
+
+document.addEventListener("click", async (event) => {
+  const button = event.target.closest("[data-add-group-song]");
+  if (!button || !currentRepertoire) return;
+
+  const repertoireSongs = getCurrentRepertoireSongs();
+  const groupSong = repertoireSongs[Number(button.dataset.addGroupSong)];
+
+  if (!groupSong) {
+    toast("NÃ£o foi possÃ­vel localizar essa cifra.");
+    return;
+  }
+
+  if (groupSongAlreadyInLibrary(groupSong)) {
+    toast("Essa cifra jÃ¡ estÃ¡ na sua biblioteca.");
+    return;
+  }
+
+  button.disabled = true;
+  button.textContent = "Adicionando...";
+
+  try {
+    await addDoc(collection(db, "songs"), {
+      ownerId: currentUser.uid,
+      title: groupSong.title,
+      artist: groupSong.artist || "",
+      key: groupSong.key || "C",
+      capo: Number(groupSong.capo) || 0,
+      content: groupSong.content || "",
+      importedFromGroupId: currentGroup?.id || "",
+      importedFromGroupRepertoireId: currentRepertoire.id,
+      importedFromGroupSongId: groupSong.sourceSongId || "",
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    });
+
+    await loadSongs();
+    updateStats();
+
+    button.textContent = "Adicionada";
+    button.classList.add("added");
+    toast("Cifra adicionada Ã  sua biblioteca! Agora vocÃª pode editÃ¡-la.");
+  } catch (error) {
+    console.error("Erro ao adicionar cifra do grupo:", error);
+    button.disabled = false;
+    button.textContent = "Adicionar Ã  minha biblioteca";
+    toast("NÃ£o foi possÃ­vel adicionar a cifra.");
+  }
+});
+
 $("deleteRepertoireBtn").onclick=async()=>{if(!currentRepertoire||!confirm("Excluir este repertÃ³rio?"))return;await deleteDoc(doc(db,"groupRepertoires",currentRepertoire.id));$("repertoireDetailsDialog").close();toast("RepertÃ³rio excluÃ­do.");await loadGroupRepertoires(currentGroup.id);};
 
 window.addEventListener("beforeunload", (event) => {
