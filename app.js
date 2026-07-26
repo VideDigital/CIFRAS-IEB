@@ -454,19 +454,26 @@ async function saveSong() {
       editingSong = { id: reference.id, ...data };
     }
 
-    toast("Cifra salva com sucesso.");
     setDirty(false);
     await loadSongs();
     updateStats();
 
-    const refreshed = songs.find((song) => song.id === editingSong.id);
-    if (refreshed) editingSong = refreshed;
+    toast("Cifra salva com sucesso!");
 
-    $("deleteSongBtn").classList.remove("hidden");
-    $("shareBtn").classList.remove("hidden");
+    window.setTimeout(() => {
+      showView("library");
+      editingSong = null;
+    }, 650);
   } catch (error) {
-    console.error(error);
-    toast("NÃ£o foi possÃ­vel salvar a cifra.");
+    console.error("Erro ao salvar a cifra:", error);
+
+    if (error?.code === "permission-denied") {
+      toast("O Firebase bloqueou o salvamento. Verifique as regras.");
+    } else if (error?.code === "failed-precondition") {
+      toast("O Firestore precisa de um Ã­ndice para concluir esta aÃ§Ã£o.");
+    } else {
+      toast("NÃ£o foi possÃ­vel salvar a cifra. Tente novamente.");
+    }
   } finally {
     saveButton.disabled = false;
     saveButton.textContent = "Salvar cifra";
@@ -591,16 +598,40 @@ function stopAutoScroll() {
 }
 
 function switchEditorTab(tab) {
+  const isPreview = tab === "preview";
+
   document.querySelectorAll(".editor-tab").forEach((button) => {
     button.classList.toggle("active", button.dataset.editorTab === tab);
   });
-  $("editorPanel").classList.toggle("mobile-hidden", tab === "preview");
-  $("previewPanel").classList.toggle("mobile-active", tab === "preview");
-  if (tab === "preview") updatePreview();
+
+  if (window.innerWidth <= 980) {
+    $("editorPanel").style.display = isPreview ? "none" : "block";
+    $("previewPanel").style.display = isPreview ? "block" : "none";
+  } else {
+    $("editorPanel").style.display = "";
+    $("previewPanel").style.display = "";
+  }
+
+  if (isPreview) {
+    updatePreview();
+    $("songPreview").scrollTop = 0;
+  }
 }
 
 document.querySelectorAll(".editor-tab").forEach((button) => {
-  button.onclick = () => switchEditorTab(button.dataset.editorTab);
+  button.addEventListener("click", () => {
+    switchEditorTab(button.dataset.editorTab);
+  });
+});
+
+window.addEventListener("resize", () => {
+  if (window.innerWidth > 980) {
+    $("editorPanel").style.display = "";
+    $("previewPanel").style.display = "";
+  } else {
+    const activeTab = document.querySelector(".editor-tab.active")?.dataset.editorTab || "edit";
+    switchEditorTab(activeTab);
+  }
 });
 
 function toggleStageMode(panel) {
