@@ -282,3 +282,4 @@ export function renderChordMarkup(content) {
 
   return rendered.join("");
 }
+ 
