@@ -7,10 +7,21 @@
   <meta name="theme-color" content="#090f1d">
   <meta name="description" content="Cifras IEB — repertório, listas e cifras para louvor.">
   <title>Cifras IEB</title>
-  <link rel="stylesheet" href="styles.css?v=4.8.0">
+  <link rel="stylesheet" href="styles.css?v=5.0.0">
+  <link rel="manifest" href="manifest.webmanifest?v=5.0.0">
+  <link rel="apple-touch-icon" href="icons/icon-180.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Cifras IEB">
+  <meta name="mobile-web-app-capable" content="yes">
 </head>
 <body>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <div id="connectivityBanner" class="connectivity-banner hidden" role="status">
+    <strong>Você está offline</strong>
+    <span>Exibindo cifras e repertórios sincronizados neste aparelho.</span>
+  </div>
 
   <section id="authScreen" class="auth-screen">
     <div class="auth-glow"></div>
@@ -119,11 +130,22 @@
       </nav>
 
       <div class="sidebar-footer">
+        <button id="installAppBtn" class="install-app-button" type="button">
+          <span>↓</span>
+          <span>Instalar aplicativo</span>
+        </button>
+        <div class="sync-status-card">
+          <span id="connectionStatusDot"></span>
+          <div>
+            <strong id="connectionStatusText">Online</strong>
+            <small id="lastSyncText">Ainda não sincronizado</small>
+          </div>
+        </div>
         <button id="logoutBtn" class="logout-button">
           <span>↪</span>
           <span>Sair da conta</span>
         </button>
-        <small>Cifras IEB • Versão 4.8</small>
+        <small>Cifras IEB • Versão 5.0</small>
       </div>
     </aside>
     <div id="sidebarBackdrop" class="backdrop hidden"></div>
@@ -597,6 +619,31 @@ Poderoso</code></pre>
   </div>
 
 
+  <dialog id="installAppDialog" class="install-app-dialog">
+    <button class="dialog-close" data-close-dialog aria-label="Fechar">×</button>
+    <span class="eyebrow">APLICATIVO CIFRAS IEB</span>
+    <h3>Instale na tela inicial</h3>
+
+    <div id="androidInstallInstructions" class="install-instructions hidden">
+      <p>Toque em <strong>Instalar aplicativo</strong> para adicionar o Cifras IEB ao aparelho.</p>
+      <button id="confirmInstallBtn" class="primary full" type="button">Instalar aplicativo</button>
+    </div>
+
+    <div id="iosInstallInstructions" class="install-instructions hidden">
+      <ol>
+        <li>Abra este site no Safari.</li>
+        <li>Toque no botão <strong>Compartilhar</strong>.</li>
+        <li>Escolha <strong>Adicionar à Tela de Início</strong>.</li>
+        <li>Confirme em <strong>Adicionar</strong>.</li>
+      </ol>
+      <p class="muted">Depois, abra o Cifras IEB pelo ícone criado na tela inicial.</p>
+    </div>
+
+    <div id="installedAppMessage" class="install-instructions hidden">
+      <p>O Cifras IEB já está aberto como aplicativo neste aparelho.</p>
+    </div>
+  </dialog>
+
   <dialog id="chordLibraryDialog" class="chord-library-dialog">
     <button class="dialog-close" data-close-dialog aria-label="Fechar">×</button>
 
@@ -846,6 +893,6 @@ Poderoso</code></pre>
     <button id="playGroupRepertoireBtn" class="primary full">Abrir modo de leitura</button>
     <button id="deleteRepertoireBtn" class="danger-button full">Excluir repertório</button>
   </dialog>
-  <script type="module" src="app.js?v=4.8.0"></script>
+  <script type="module" src="app.js?v=5.0.0"></script>
 </body>
 </html>
