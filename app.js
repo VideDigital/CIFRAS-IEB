@@ -766,6 +766,178 @@ function closeSidebar() {
   $("sidebarBackdrop").classList.add("hidden");
 }
 
+
+function normalizeImportedKey(value = "C") {
+  const clean = value.trim().replace(/\s+/g, "");
+  return KEYS.includes(clean) ? clean : "C";
+}
+
+function parseBulkSongs(rawText) {
+  const text = rawText.replace(/\r\n/g, "\n").trim();
+  if (!text) return [];
+
+  // Tamb\u00e9m aceita um array JSON com title, artist, key, capo e content.
+  if (text.startsWith("[")) {
+    try {
+      const json = JSON.parse(text);
+      if (Array.isArray(json)) {
+        return json.map((item) => ({
+          title: String(item.title || item.titulo || "").trim(),
+          artist: String(item.artist || item.artista || "").trim(),
+          key: normalizeImportedKey(String(item.key || item.tom || "C")),
+          capo: Number(item.capo || item.capotraste || 0) || 0,
+          content: String(item.content || item.cifra || "").trim()
+        })).filter((song) => song.title && song.content);
+      }
+    } catch (error) {
+      console.warn("JSON de importa\u00e7\u00e3o inv\u00e1lido:", error);
+    }
+  }
+
+  const blocks = text
+    .split(/\n\s*(?:---+|===+)\s*\n/g)
+    .map((block) => block.trim())
+    .filter(Boolean);
+
+  return blocks.map((block) => {
+    const lines = block.split("\n");
+    let title = "";
+    let artist = "";
+    let key = "C";
+    let capo = 0;
+    let contentStart = -1;
+
+    lines.forEach((line, index) => {
+      const trimmed = line.trim();
+
+      if (/^t[i\u00ed]tulo\s*:/i.test(trimmed)) {
+        title = trimmed.replace(/^t[i\u00ed]tulo\s*:/i, "").trim();
+      } else if (/^(artista|minist[e\u00e9]rio)\s*:/i.test(trimmed)) {
+        artist = trimmed.replace(/^(artista|minist[e\u00e9]rio)\s*:/i, "").trim();
+      } else if (/^tom\s*:/i.test(trimmed)) {
+        key = normalizeImportedKey(trimmed.replace(/^tom\s*:/i, "").trim());
+      } else if (/^capotraste\s*:/i.test(trimmed)) {
+        capo = Number(trimmed.replace(/^capotraste\s*:/i, "").trim()) || 0;
+      } else if (/^cifra\s*:/i.test(trimmed)) {
+        contentStart = index + 1;
+      }
+    });
+
+    let content = "";
+    if (contentStart >= 0) {
+      content = lines.slice(contentStart).join("\n").trim();
+    } else {
+      const metadataPattern = /^(t[i\u00ed]tulo|artista|minist[e\u00e9]rio|tom|capotraste)\s*:/i;
+      content = lines.filter((line) => !metadataPattern.test(line.trim())).join("\n").trim();
+    }
+
+    if (!title) {
+      const firstMeaningfulLine = content.split("\n").find((line) => line.trim());
+      title = firstMeaningfulLine
+        ? firstMeaningfulLine.replace(/\[[^\]]+\]/g, "").trim().slice(0, 70)
+        : "";
+    }
+
+    return { title, artist, key, capo, content };
+  }).filter((song) => song.title && song.content);
+}
+
+function renderBulkImportSummary(songsToImport) {
+  const summary = $("bulkImportSummary");
+
+  if (!songsToImport.length) {
+    summary.classList.remove("hidden");
+    summary.innerHTML = "<strong>Nenhuma cifra v\u00e1lida encontrada.</strong><p>Confira o modelo e separe cada cifra usando uma linha com trÃªs tra\u00e7os: ---</p>";
+    return;
+  }
+
+  summary.classList.remove("hidden");
+  summary.innerHTML = `
+    <strong>${songsToImport.length} cifra(s) pronta(s) para importar</strong>
+    <div class="bulk-song-list">
+      ${songsToImport.map((song, index) => `
+        <div class="bulk-song-item">
+          <span>${index + 1}</span>
+          <div>
+            <strong>${safeText(song.title)}</strong>
+            <small>${safeText(song.artist || "Artista n\u00e3o informado")} \u2022 Tom ${safeText(song.key)}</small>
+          </div>
+        </div>
+      `).join("")}
+    </div>
+  `;
+}
+
+$("bulkImportBtn").onclick = () => {
+  $("bulkImportText").value = "";
+  $("bulkImportSummary").classList.add("hidden");
+  $("bulkImportSummary").innerHTML = "";
+  $("bulkImportDialog").showModal();
+};
+
+$("previewBulkImportBtn").onclick = () => {
+  const songsToImport = parseBulkSongs($("bulkImportText").value);
+  renderBulkImportSummary(songsToImport);
+};
+
+$("confirmBulkImportBtn").onclick = async () => {
+  const songsToImport = parseBulkSongs($("bulkImportText").value);
+
+  if (!songsToImport.length) {
+    renderBulkImportSummary([]);
+    toast("Nenhuma cifra v\u00e1lida foi encontrada.");
+    return;
+  }
+
+  const confirmButton = $("confirmBulkImportBtn");
+  confirmButton.disabled = true;
+  confirmButton.textContent = `Importando 0 de ${songsToImport.length}...`;
+
+  let importedCount = 0;
+  let failedCount = 0;
+
+  for (let index = 0; index < songsToImport.length; index += 1) {
+    const song = songsToImport[index];
+    confirmButton.textContent = `Importando ${index + 1} de ${songsToImport.length}...`;
+
+    try {
+      await addDoc(collection(db, "songs"), {
+        ownerId: currentUser.uid,
+        title: song.title,
+        artist: song.artist,
+        key: song.key,
+        capo: Math.max(0, Math.min(12, song.capo)),
+        content: song.content,
+        importedInBulk: true,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      });
+      importedCount += 1;
+    } catch (error) {
+      console.error("Erro ao importar cifra:", song.title, error);
+      failedCount += 1;
+    }
+  }
+
+  confirmButton.disabled = false;
+  confirmButton.textContent = "Importar todas";
+
+  await loadSongs();
+  updateStats();
+
+  if (importedCount > 0) {
+    $("bulkImportDialog").close();
+    showView("library");
+    toast(
+      failedCount
+        ? `${importedCount} cifra(s) importada(s) e ${failedCount} com erro.`
+        : `${importedCount} cifra(s) importada(s) com sucesso!`
+    );
+  } else {
+    toast("N\u00e3o foi poss\u00edvel importar as cifras.");
+  }
+};
+
 window.addEventListener("beforeunload", (event) => {
   if (!isDirty) return;
   event.preventDefault();
