@@ -57,27 +57,27 @@ function safeText(value = "") {
   })[character]);
 }
 
-function initials(name = "UsuÃ¡rio") {
+function initials(name = "Usu\u00E1rio") {
   const pieces = name.trim().split(/\s+/).filter(Boolean);
   return (pieces[0]?.[0] || "U").toUpperCase();
 }
 
 function setDirty(value) {
   isDirty = value;
-  $("saveStateText").textContent = value ? "AlteraÃ§Ãµes nÃ£o salvas" : "Tudo salvo";
+  $("saveStateText").textContent = value ? "Altera\u00E7\u00F5es n\u00E3o salvas" : "Tudo salvo";
   $("saveStateDot").parentElement.classList.toggle("saved", !value);
 }
 
 function firebaseMessage(code) {
   const messages = {
-    "auth/invalid-credential": "E-mail ou senha invÃ¡lidos.",
-    "auth/email-already-in-use": "Este e-mail jÃ¡ estÃ¡ cadastrado.",
+    "auth/invalid-credential": "E-mail ou senha inv\u00E1lidos.",
+    "auth/email-already-in-use": "Este e-mail j\u00E1 est\u00E1 cadastrado.",
     "auth/weak-password": "Use uma senha com pelo menos 6 caracteres.",
-    "auth/invalid-email": "Informe um e-mail vÃ¡lido.",
+    "auth/invalid-email": "Informe um e-mail v\u00E1lido.",
     "auth/too-many-requests": "Muitas tentativas. Aguarde um pouco e tente novamente.",
-    "permission-denied": "VocÃª nÃ£o tem permissÃ£o para realizar esta aÃ§Ã£o."
+    "permission-denied": "Voc\u00EA n\u00E3o tem permiss\u00E3o para realizar esta a\u00E7\u00E3o."
   };
-  return messages[code] || "NÃ£o foi possÃ­vel concluir. Tente novamente.";
+  return messages[code] || "N\u00E3o foi poss\u00EDvel concluir. Tente novamente.";
 }
 
 KEYS.forEach((key) => {
@@ -97,10 +97,10 @@ $("toggleAuthMode").onclick = () => {
   $("authSubmitBtn").textContent = authMode === "login" ? "Entrar" : "Criar minha conta";
   $("toggleAuthMode").textContent = authMode === "login"
     ? "Criar uma conta gratuita"
-    : "JÃ¡ tenho uma conta";
+    : "J\u00E1 tenho uma conta";
   $("authHint").textContent = authMode === "login"
     ? "Entre usando seu e-mail e sua senha."
-    : "Seu repertÃ³rio ficarÃ¡ salvo somente na sua conta.";
+    : "Seu repert\u00F3rio ficar\u00E1 salvo somente na sua conta.";
 };
 
 $("authForm").onsubmit = async (event) => {
@@ -115,7 +115,7 @@ $("authForm").onsubmit = async (event) => {
 
     if (authMode === "register") {
       const credential = await createUserWithEmailAndPassword(auth, email, password);
-      const name = $("nameInput").value.trim() || "UsuÃ¡rio";
+      const name = $("nameInput").value.trim() || "Usu\u00E1rio";
       await updateProfile(credential.user, { displayName: name });
       await setDoc(doc(db, "users", credential.user.uid), {
         name,
@@ -142,13 +142,13 @@ onAuthStateChanged(auth, async (user) => {
 
   if (!user) return;
 
-  const name = user.displayName || "UsuÃ¡rio";
+  const name = user.displayName || "Usu\u00E1rio";
   const firstName = name.split(/\s+/)[0];
   $("userName").textContent = name;
   $("userEmail").textContent = user.email || "";
   $("profileInitial").textContent = initials(name);
   $("sidebarInitial").textContent = initials(name);
-  $("welcomeTitle").textContent = `OlÃ¡, ${firstName}! O que vamos tocar hoje?`;
+  $("welcomeTitle").textContent = `Ol\u00E1, ${firstName}! O que vamos tocar hoje?`;
 
   await handleSharedLink();
   await loadAll();
@@ -168,7 +168,7 @@ async function loadSongs() {
     renderSongs();
   } catch (error) {
     console.error(error);
-    toast("NÃ£o foi possÃ­vel carregar as cifras. Talvez seja necessÃ¡rio criar um Ã­ndice no Firestore.");
+    toast("N\u00E3o foi poss\u00EDvel carregar as cifras. Talvez seja necess\u00E1rio criar um \u00EDndice no Firestore.");
   }
 }
 
@@ -212,8 +212,8 @@ function songCard(song, shared = false) {
   return `<article class="card">
     <div>
       <span class="song-card-key">${safeText(song.key || "C")}</span>
-      <h3>${safeText(song.title || "Sem tÃ­tulo")}</h3>
-      <p>${safeText(song.artist || "Artista nÃ£o informado")}</p>
+      <h3>${safeText(song.title || "Sem t\u00EDtulo")}</h3>
+      <p>${safeText(song.artist || "Artista n\u00E3o informado")}</p>
     </div>
     <div>
       <span class="meta">Atualizada em ${formatDate(song.updatedAt)}</span>
@@ -247,7 +247,7 @@ function renderLists() {
       <div>
         <span class="song-card-key">${list.songIds?.length || 0}</span>
         <h3>${safeText(list.name)}</h3>
-        <p>${list.songIds?.length || 0} mÃºsica(s) nesta lista</p>
+        <p>${list.songIds?.length || 0} m\u00FAsica(s) nesta lista</p>
       </div>
       <div>
         <span class="meta">Atualizada em ${formatDate(list.updatedAt)}</span>
@@ -288,7 +288,7 @@ document.addEventListener("click", async (event) => {
   if (deleteListButton) {
     if (confirm("Deseja excluir esta lista?")) {
       await deleteDoc(doc(db, "lists", deleteListButton.dataset.deleteList));
-      toast("Lista excluÃ­da.");
+      toast("Lista exclu\u00EDda.");
       await loadLists();
       updateStats();
     }
@@ -313,7 +313,7 @@ document.addEventListener("click", async (event) => {
 $("newSongBtn").onclick = () => openSong();
 $("newListBtn").onclick = () => openListDialog();
 $("backToLibrary").onclick = () => {
-  if (isDirty && !confirm("Existem alteraÃ§Ãµes nÃ£o salvas. Deseja sair mesmo assim?")) return;
+  if (isDirty && !confirm("Existem altera\u00E7\u00F5es n\u00E3o salvas. Deseja sair mesmo assim?")) return;
   showView("library");
 };
 $("saveSongBtn").onclick = saveSong;
@@ -321,7 +321,7 @@ $("saveSongBtn").onclick = saveSong;
 $("deleteSongBtn").onclick = async () => {
   if (!editingSong?.id || !confirm("Deseja excluir esta cifra permanentemente?")) return;
   await deleteDoc(doc(db, "songs", editingSong.id));
-  toast("Cifra excluÃ­da.");
+  toast("Cifra exclu\u00EDda.");
   await loadSongs();
   updateStats();
   showView("library");
@@ -368,15 +368,15 @@ function updatePreview() {
   const artist = $("songArtist").value.trim();
 
   $("currentKeyLabel").textContent = previewKey;
-  $("previewSongTitle").textContent = title || "PrÃ©via da cifra";
-  $("previewSongArtist").textContent = artist || "A visualizaÃ§Ã£o aparece enquanto vocÃª digita.";
+  $("previewSongTitle").textContent = title || "Pr\u00E9via da cifra";
+  $("previewSongArtist").textContent = artist || "A visualiza\u00E7\u00E3o ser\u00E1 atualizada enquanto voc\u00EA digita.";
   $("songPreview").style.fontSize = `${fontSize}px`;
 
   if (!content.trim()) {
     $("songPreview").innerHTML = `
       <div class="preview-empty">
         <div>
-          <strong>Sua cifra aparecerÃ¡ aqui</strong>
+          <strong>Sua cifra aparecer\u00E1 aqui</strong>
           <span>Digite a letra e os acordes no editor.</span>
         </div>
       </div>`;
@@ -420,13 +420,13 @@ async function saveSong() {
   const content = $("songContent").value.trim();
 
   if (!title) {
-    toast("Informe o tÃ­tulo da mÃºsica.");
+    toast("Informe o t\u00EDtulo da m\u00FAsica.");
     $("songTitle").focus();
     return;
   }
 
   if (!content) {
-    toast("Digite ou importe o conteÃºdo da cifra.");
+    toast("Digite ou importe o conte\u00FAdo da cifra.");
     $("songContent").focus();
     return;
   }
@@ -470,9 +470,9 @@ async function saveSong() {
     if (error?.code === "permission-denied") {
       toast("O Firebase bloqueou o salvamento. Verifique as regras.");
     } else if (error?.code === "failed-precondition") {
-      toast("O Firestore precisa de um Ã­ndice para concluir esta aÃ§Ã£o.");
+      toast("O Firestore precisa de um \u00EDndice para concluir esta a\u00E7\u00E3o.");
     } else {
-      toast("NÃ£o foi possÃ­vel salvar a cifra. Tente novamente.");
+      toast("N\u00E3o foi poss\u00EDvel salvar a cifra. Tente novamente.");
     }
   } finally {
     saveButton.disabled = false;
@@ -514,7 +514,7 @@ $("shareBtn").onclick = async () => {
     $("shareDialog").showModal();
   } catch (error) {
     console.error(error);
-    toast("NÃ£o foi possÃ­vel gerar o link.");
+    toast("N\u00E3o foi poss\u00EDvel gerar o link.");
   }
 };
 
@@ -537,7 +537,7 @@ async function handleSharedLink() {
     const share = await getDoc(doc(db, "publicShares", token));
 
     if (!share.exists() || !share.data().active) {
-      toast("Este link nÃ£o estÃ¡ mais disponÃ­vel.");
+      toast("Este link n\u00E3o est\u00E1 mais dispon\u00EDvel.");
       return;
     }
 
@@ -549,20 +549,20 @@ async function handleSharedLink() {
         viewerIds: arrayUnion(currentUser.uid),
         createdAt: serverTimestamp()
       }, { merge: true });
-      toast("Cifra adicionada Ã s compartilhadas.");
+      toast("Cifra adicionada \u00E0s compartilhadas.");
     }
 
     history.replaceState({}, document.title, location.pathname);
   } catch (error) {
     console.error(error);
-    toast("NÃ£o foi possÃ­vel abrir o compartilhamento.");
+    toast("N\u00E3o foi poss\u00EDvel abrir o compartilhamento.");
   }
 }
 
 function showChord(chord) {
   $("chordName").textContent = chord;
   $("chordDiagram").innerHTML = drawChordDiagram(chord);
-  $("chordHelp").textContent = "Ã indica uma corda que nÃ£o deve ser tocada. â indica corda solta.";
+  $("chordHelp").textContent = "\u00D7 indica uma corda que n\u00E3o deve ser tocada. \u25CB indica corda solta.";
   $("chordDialog").showModal();
 }
 
@@ -572,7 +572,7 @@ $("autoScrollBtn").onclick = () => {
     return;
   }
 
-  $("autoScrollBtn").textContent = "â¸ Pausar";
+  $("autoScrollBtn").textContent = "\u23F8 Pausar";
   let previousTime = performance.now();
 
   const step = (currentTime) => {
@@ -594,7 +594,7 @@ $("autoScrollBtn").onclick = () => {
 function stopAutoScroll() {
   if (scrollFrame) cancelAnimationFrame(scrollFrame);
   scrollFrame = null;
-  if ($("autoScrollBtn")) $("autoScrollBtn").textContent = "â¶ Iniciar";
+  if ($("autoScrollBtn")) $("autoScrollBtn").textContent = "\u25B6 Iniciar";
 }
 
 function switchEditorTab(tab) {
@@ -656,7 +656,7 @@ function openListDialog(list = null) {
     $("listSongOptions").innerHTML = songs.map((song) => `
       <label class="check-row">
         <input type="checkbox" value="${song.id}" ${list?.songIds?.includes(song.id) ? "checked" : ""}>
-        <span>${safeText(song.title)} â ${safeText(song.artist || "Sem artista")}</span>
+        <span>${safeText(song.title)} \u2014 ${safeText(song.artist || "Sem artista")}</span>
       </label>
     `).join("");
   }
@@ -675,7 +675,7 @@ $("saveListBtn").onclick = async () => {
     .map((input) => input.value);
 
   if (!songIds.length) {
-    toast("Selecione pelo menos uma mÃºsica.");
+    toast("Selecione pelo menos uma m\u00FAsica.");
     return;
   }
 
@@ -707,7 +707,7 @@ function startList(id) {
   listPlayer.index = 0;
 
   if (!listPlayer.songs.length) {
-    toast("Esta lista estÃ¡ vazia.");
+    toast("Esta lista est\u00E1 vazia.");
     return;
   }
 
@@ -717,10 +717,10 @@ function startList(id) {
 
 function renderListSong() {
   const song = listPlayer.songs[listPlayer.index];
-  $("listProgress").textContent = `${listPlayer.index + 1} de ${listPlayer.songs.length} â¢ ${song.title}`;
+  $("listProgress").textContent = `${listPlayer.index + 1} de ${listPlayer.songs.length} \u2022 ${song.title}`;
   $("listPlayerSong").innerHTML = `
     <h1>${safeText(song.title)}</h1>
-    <p class="muted">${safeText(song.artist || "")} â¢ Tom ${safeText(song.key || "C")}</p>
+    <p class="muted">${safeText(song.artist || "")} \u2022 Tom ${safeText(song.key || "C")}</p>
     ${renderChordMarkup(song.content)}
   `;
 
