@@ -1,9 +1,9 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
 import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, updateProfile } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
 import { getFirestore, collection, addDoc, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
-import { firebaseConfig } from "./firebase-config.js?v=3.3.0";
-import { KEYS, transposeContent, semitoneDistance, renderChordMarkup } from "./chord-engine.js?v=3.3.0";
-import { drawChordDiagram } from "./chord-diagrams.js?v=3.3.0";
+import { firebaseConfig } from "./firebase-config.js?v=4.0.0";
+import { KEYS, transposeContent, semitoneDistance, renderChordMarkup } from "./chord-engine.js?v=4.0.0";
+import { drawChordDiagram } from "./chord-diagrams.js?v=4.0.0";
 
 const firebaseApp = initializeApp(firebaseConfig);
 const auth = getAuth(firebaseApp);
@@ -420,6 +420,34 @@ function updatePreview() {
 
   $("songPreview").innerHTML = renderChordMarkup(content);
 }
+
+
+function insertTextAtCursor(textarea, text) {
+  const start = textarea.selectionStart ?? textarea.value.length;
+  const end = textarea.selectionEnd ?? start;
+  const before = textarea.value.slice(0, start);
+  const after = textarea.value.slice(end);
+
+  const needsLeadingBreak = before.length > 0 && !before.endsWith("\n");
+  const needsTrailingBreak = after.length > 0 && !after.startsWith("\n");
+
+  const insertion =
+    `${needsLeadingBreak ? "\n" : ""}${text}${needsTrailingBreak ? "\n" : ""}`;
+
+  textarea.value = before + insertion + after;
+
+  const cursorPosition = before.length + insertion.length;
+  textarea.focus();
+  textarea.setSelectionRange(cursorPosition, cursorPosition);
+  textarea.dispatchEvent(new Event("input", { bubbles: true }));
+}
+
+document.querySelectorAll("[data-insert-section]").forEach((button) => {
+  button.addEventListener("click", () => {
+    const label = button.dataset.insertSection;
+    insertTextAtCursor($("songContent"), `\n::${label}::\n\n`);
+  });
+});
 
 ["songContent", "songKey", "songTitle", "songArtist", "songCapo"].forEach((elementId) => {
   $(elementId).addEventListener("input", () => {
