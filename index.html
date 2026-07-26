@@ -145,9 +145,12 @@
             <h2>Minha biblioteca</h2>
             <p>Suas cifras pessoais e edit&#225;veis.</p>
           </div>
-          <div class="search-wrap">
-            <span>&#8981;</span>
-            <input id="songSearch" class="search" placeholder="Buscar m&#250;sica ou artista">
+          <div class="library-tools">
+            <button id="bulkImportBtn" class="secondary-button">Importar em massa</button>
+            <div class="search-wrap">
+              <span>&#8981;</span>
+              <input id="songSearch" class="search" placeholder="Buscar m&#250;sica ou artista">
+            </div>
           </div>
         </div>
 
@@ -357,6 +360,45 @@ Insira os acordes entre colchetes."></textarea>
     <p class="field-title">Selecione as m&#250;sicas</p>
     <div id="listSongOptions" class="check-list"></div>
     <button id="saveListBtn" class="primary full">Salvar lista</button>
+  </dialog>
+
+
+  <dialog id="bulkImportDialog">
+    <button class="dialog-close" data-close-dialog aria-label="Fechar">&times;</button>
+    <span class="eyebrow">IMPORTA&#199;&#195;O EM MASSA</span>
+    <h3>Importar v&#225;rias cifras</h3>
+    <p class="muted">Cole diversas cifras usando o modelo abaixo. Cada bloco ser&#225; salvo como uma cifra separada e poder&#225; ser editado normalmente.</p>
+
+    <div class="bulk-format-help">
+      <strong>Modelo:</strong>
+      <pre>T&#237;tulo: Bondade de Deus
+Artista: Isaias Saad
+Tom: G
+Capotraste: 0
+Cifra:
+[G]Te amo, Deus...
+[C]Tua gra&#231;a nunca falha...
+
+---
+
+T&#237;tulo: Santo Pra Sempre
+Artista: Gabriel Guedes
+Tom: A
+Cifra:
+[A]Mil gera&#231;&#245;es...</pre>
+    </div>
+
+    <label>
+      Cifras para importar
+      <textarea id="bulkImportText" rows="18" placeholder="Cole aqui todas as cifras..."></textarea>
+    </label>
+
+    <div id="bulkImportSummary" class="bulk-summary hidden"></div>
+
+    <div class="bulk-actions">
+      <button id="previewBulkImportBtn" class="secondary-button">Conferir cifras</button>
+      <button id="confirmBulkImportBtn" class="primary">Importar todas</button>
+    </div>
   </dialog>
 
   <script type="module" src="app.js"></script>
