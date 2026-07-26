@@ -1,9 +1,9 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
 import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail, signOut, updateProfile } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
 import { getFirestore, collection, addDoc, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
-import { firebaseConfig } from "./firebase-config.js?v=4.2.0";
-import { KEYS, transposeContent, semitoneDistance, renderChordMarkup } from "./chord-engine.js?v=4.2.0";
-import { drawChordDiagram } from "./chord-diagrams.js?v=4.2.0";
+import { firebaseConfig } from "./firebase-config.js?v=4.3.0";
+import { KEYS, transposeContent, semitoneDistance, renderChordMarkup } from "./chord-engine.js?v=4.3.0";
+import { drawChordDiagram } from "./chord-diagrams.js?v=4.3.0";
 
 const firebaseApp = initializeApp(firebaseConfig);
 const auth = getAuth(firebaseApp);
@@ -629,6 +629,407 @@ function updatePreview() {
   $("songPreview").innerHTML = renderChordMarkup(content);
 }
 
+
+
+const CHORD_ROOTS = ["C", "C#", "Db", "D", "D#", "Eb", "E", "F", "F#", "Gb", "G", "G#", "Ab", "A", "A#", "Bb", "B"];
+
+const CHORD_SUFFIX_GROUPS = [
+  {
+    group: "Maiores",
+    suffixes: ["", "7M", "maj7", "6", "add9", "9", "11", "13"]
+  },
+  {
+    group: "Menores",
+    suffixes: ["m", "m7", "m6", "m9", "m11", "m13", "m7M"]
+  },
+  {
+    group: "SÃ©timas",
+    suffixes: ["7", "7(9)", "7(11)", "7(13)", "7(b9)", "7(#9)", "7(b5)", "7(#5)"]
+  },
+  {
+    group: "Suspensos",
+    suffixes: ["sus2", "sus4", "7sus4", "add2", "add4"]
+  },
+  {
+    group: "Diminutos e aumentados",
+    suffixes: ["dim", "dim7", "m7(b5)", "aug", "+", "5"]
+  }
+];
+
+const MAJOR_FIELD_INTERVALS = [0, 2, 4, 5, 7, 9, 11];
+const MINOR_FIELD_INTERVALS = [0, 2, 3, 5, 7, 8, 10];
+const CHROMATIC_SHARPS = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+const CHROMATIC_FLATS = ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"];
+
+let chordLibraryTab = "all";
+let selectedChordRoot = "C";
+let customChords = [];
+
+function normalizeChordSearch(value = "") {
+  return String(value)
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "");
+}
+
+function getBuiltInChords() {
+  const chords = [];
+
+  CHORD_ROOTS.forEach((root) => {
+    CHORD_SUFFIX_GROUPS.forEach((group) => {
+      group.suffixes.forEach((suffix) => {
+        chords.push({
+          name: `${root}${suffix}`,
+          root,
+          group: group.group,
+          custom: false
+        });
+      });
+    });
+  });
+
+  return chords;
+}
+
+const BUILT_IN_CHORDS = getBuiltInChords();
+
+function loadCustomChords() {
+  try {
+    const stored = localStorage.getItem("cifrasIebCustomChords");
+    const parsed = stored ? JSON.parse(stored) : [];
+    customChords = Array.isArray(parsed)
+      ? parsed.filter((item) => item && item.name)
+      : [];
+  } catch (error) {
+    console.warn("NÃ£o foi possÃ­vel carregar acordes personalizados:", error);
+    customChords = [];
+  }
+}
+
+function persistCustomChords() {
+  try {
+    localStorage.setItem(
+      "cifrasIebCustomChords",
+      JSON.stringify(customChords)
+    );
+  } catch (error) {
+    console.warn("NÃ£o foi possÃ­vel salvar acordes personalizados:", error);
+  }
+}
+
+function chordButtonHtml(chord, options = {}) {
+  const removeButton = options.removable
+    ? `<button type="button" class="remove-custom-chord" data-remove-custom-chord="${safeText(chord.name)}" aria-label="Remover ${safeText(chord.name)}">Ã</button>`
+    : "";
+
+  return `
+    <div class="chord-library-item">
+      <button
+        type="button"
+        class="chord-insert-button"
+        data-insert-chord="${safeText(chord.name)}"
+        title="Inserir [${safeText(chord.name)}]"
+      >
+        <strong>${safeText(chord.name)}</strong>
+        <small>${safeText(chord.group || chord.root || "")}</small>
+      </button>
+      ${removeButton}
+    </div>`;
+}
+
+function renderChordLibraryAll() {
+  const search = normalizeChordSearch($("chordLibrarySearch")?.value || "");
+  const allChords = [...BUILT_IN_CHORDS, ...customChords];
+
+  const visible = allChords
+    .filter((chord) => {
+      if (!search) return true;
+      return normalizeChordSearch(
+        `${chord.name} ${chord.root || ""} ${chord.group || ""}`
+      ).includes(search);
+    })
+    .slice(0, search ? 240 : 180);
+
+  $("chordLibraryAllGrid").innerHTML = visible.length
+    ? visible.map((chord) => chordButtonHtml(chord)).join("")
+    : '<div class="empty-mini">Nenhum acorde encontrado.</div>';
+}
+
+function renderChordRootFilter() {
+  $("chordRootFilter").innerHTML = CHORD_ROOTS.map((root) => `
+    <button
+      type="button"
+      class="${root === selectedChordRoot ? "active" : ""}"
+      data-select-chord-root="${safeText(root)}"
+    >${safeText(root)}</button>
+  `).join("");
+}
+
+function renderChordRootGrid() {
+  const search = normalizeChordSearch($("chordLibrarySearch")?.value || "");
+
+  const visible = [...BUILT_IN_CHORDS, ...customChords]
+    .filter((chord) => chord.root === selectedChordRoot || chord.name.startsWith(selectedChordRoot))
+    .filter((chord) => {
+      if (!search) return true;
+      return normalizeChordSearch(
+        `${chord.name} ${chord.group || ""}`
+      ).includes(search);
+    });
+
+  $("chordLibraryRootGrid").innerHTML = visible.length
+    ? visible.map((chord) => chordButtonHtml(chord)).join("")
+    : '<div class="empty-mini">Nenhum acorde neste tom.</div>';
+}
+
+function rootToChromaticIndex(root) {
+  const aliases = {
+    "Db": "C#",
+    "Eb": "D#",
+    "Gb": "F#",
+    "Ab": "G#",
+    "Bb": "A#"
+  };
+
+  return CHROMATIC_SHARPS.indexOf(aliases[root] || root);
+}
+
+function shouldPreferFlats(root) {
+  return ["Db", "Eb", "F", "Gb", "Ab", "Bb"].includes(root);
+}
+
+function buildHarmonicField(root, mode) {
+  const rootIndex = rootToChromaticIndex(root);
+  const intervals = mode === "minor"
+    ? MINOR_FIELD_INTERVALS
+    : MAJOR_FIELD_INTERVALS;
+
+  const scale = shouldPreferFlats(root)
+    ? CHROMATIC_FLATS
+    : CHROMATIC_SHARPS;
+
+  const degrees = mode === "minor"
+    ? [
+        { degree: "i", suffix: "m" },
+        { degree: "iiÂ°", suffix: "dim" },
+        { degree: "III", suffix: "" },
+        { degree: "iv", suffix: "m" },
+        { degree: "v", suffix: "m" },
+        { degree: "VI", suffix: "" },
+        { degree: "VII", suffix: "" }
+      ]
+    : [
+        { degree: "I", suffix: "" },
+        { degree: "ii", suffix: "m" },
+        { degree: "iii", suffix: "m" },
+        { degree: "IV", suffix: "" },
+        { degree: "V", suffix: "" },
+        { degree: "vi", suffix: "m" },
+        { degree: "viiÂ°", suffix: "dim" }
+      ];
+
+  return intervals.map((interval, index) => {
+    const note = scale[(rootIndex + interval + 12) % 12];
+    return {
+      degree: degrees[index].degree,
+      name: `${note}${degrees[index].suffix}`,
+      group: mode === "minor" ? "Campo menor" : "Campo maior"
+    };
+  });
+}
+
+function renderHarmonicField() {
+  const root = $("harmonicFieldRoot").value || "C";
+  const mode = $("harmonicFieldMode").value || "major";
+  const field = buildHarmonicField(root, mode);
+
+  $("harmonicFieldTitle").textContent =
+    `Campo harmÃ´nico de ${root} ${mode === "minor" ? "menor" : "maior"}`;
+
+  $("harmonicFieldFormula").textContent =
+    mode === "minor"
+      ? "i Â· iiÂ° Â· III Â· iv Â· v Â· VI Â· VII"
+      : "I Â· ii Â· iii Â· IV Â· V Â· vi Â· viiÂ°";
+
+  $("harmonicFieldGrid").innerHTML = field.map((chord) => `
+    <button
+      type="button"
+      class="harmonic-field-card"
+      data-insert-chord="${safeText(chord.name)}"
+    >
+      <span>${safeText(chord.degree)}</span>
+      <strong>${safeText(chord.name)}</strong>
+      <small>Inserir acorde</small>
+    </button>
+  `).join("");
+}
+
+function renderCustomChords() {
+  $("customChordGrid").innerHTML = customChords.length
+    ? customChords
+        .slice()
+        .sort((a, b) => a.name.localeCompare(b.name, "pt-BR"))
+        .map((chord) => chordButtonHtml(chord, { removable: true }))
+        .join("")
+    : '<div class="empty-mini">VocÃª ainda nÃ£o criou acordes personalizados.</div>';
+}
+
+function switchChordLibraryTab(tab) {
+  chordLibraryTab = tab;
+
+  document.querySelectorAll(".chord-library-tab").forEach((button) => {
+    button.classList.toggle("active", button.dataset.chordTab === tab);
+  });
+
+  const panels = {
+    all: "chordLibraryAllPanel",
+    roots: "chordLibraryRootsPanel",
+    fields: "chordLibraryFieldsPanel",
+    custom: "chordLibraryCustomPanel"
+  };
+
+  Object.entries(panels).forEach(([key, id]) => {
+    $(id).classList.toggle("hidden", key !== tab);
+  });
+
+  if (tab === "all") renderChordLibraryAll();
+  if (tab === "roots") {
+    renderChordRootFilter();
+    renderChordRootGrid();
+  }
+  if (tab === "fields") renderHarmonicField();
+  if (tab === "custom") renderCustomChords();
+}
+
+function insertChordIntoEditor(chordName) {
+  const textarea = $("songContent");
+  if (!textarea) return;
+
+  const chordMarkup = `[${chordName}]`;
+  const start = textarea.selectionStart ?? textarea.value.length;
+  const end = textarea.selectionEnd ?? start;
+
+  textarea.value =
+    textarea.value.slice(0, start) +
+    chordMarkup +
+    textarea.value.slice(end);
+
+  const cursor = start + chordMarkup.length;
+  textarea.focus();
+  textarea.setSelectionRange(cursor, cursor);
+  textarea.dispatchEvent(new Event("input", { bubbles: true }));
+
+  toast(`${chordMarkup} inserido na cifra.`);
+}
+
+function openChordLibrary() {
+  loadCustomChords();
+
+  $("chordLibrarySearch").value = "";
+  selectedChordRoot = "C";
+
+  if (!$("harmonicFieldRoot").options.length) {
+    CHORD_ROOTS.forEach((root) => {
+      $("harmonicFieldRoot").insertAdjacentHTML(
+        "beforeend",
+        `<option value="${safeText(root)}">${safeText(root)}</option>`
+      );
+    });
+  }
+
+  switchChordLibraryTab("all");
+  $("chordLibraryDialog").showModal();
+}
+
+$("openChordLibraryBtn").onclick = openChordLibrary;
+
+document.querySelectorAll(".chord-library-tab").forEach((button) => {
+  button.addEventListener("click", () => {
+    switchChordLibraryTab(button.dataset.chordTab);
+  });
+});
+
+$("chordLibrarySearch").addEventListener("input", () => {
+  if (chordLibraryTab === "all") renderChordLibraryAll();
+  if (chordLibraryTab === "roots") renderChordRootGrid();
+});
+
+$("harmonicFieldRoot").addEventListener("change", renderHarmonicField);
+$("harmonicFieldMode").addEventListener("change", renderHarmonicField);
+
+$("saveCustomChordBtn").onclick = () => {
+  const name = $("customChordName").value
+    .trim()
+    .replace(/^\[|\]$/g, "")
+    .replace(/\s+/g, "");
+
+  const group = $("customChordGroup").value || "Personalizados";
+
+  if (!name) {
+    toast("Digite o nome do acorde.");
+    $("customChordName").focus();
+    return;
+  }
+
+  if (!/^[A-G](?:#|b)?[A-Za-z0-9()+/#Â°Âº+\-]*$/.test(name)) {
+    toast("Use um nome como Cadd9/G, F#m7 ou Bb7M.");
+    $("customChordName").focus();
+    return;
+  }
+
+  const alreadyExists = [...BUILT_IN_CHORDS, ...customChords]
+    .some((chord) => chord.name.toLowerCase() === name.toLowerCase());
+
+  if (alreadyExists) {
+    toast("Esse acorde jÃ¡ existe na biblioteca.");
+    return;
+  }
+
+  const rootMatch = name.match(/^[A-G](?:#|b)?/);
+
+  customChords.push({
+    name,
+    root: rootMatch?.[0] || "",
+    group,
+    custom: true
+  });
+
+  persistCustomChords();
+  $("customChordName").value = "";
+  renderCustomChords();
+  toast(`${name} foi salvo em Meus acordes.`);
+};
+
+document.addEventListener("click", (event) => {
+  const insertButton = event.target.closest("[data-insert-chord]");
+  if (insertButton) {
+    insertChordIntoEditor(insertButton.dataset.insertChord);
+    $("chordLibraryDialog").close();
+    return;
+  }
+
+  const rootButton = event.target.closest("[data-select-chord-root]");
+  if (rootButton) {
+    selectedChordRoot = rootButton.dataset.selectChordRoot;
+    renderChordRootFilter();
+    renderChordRootGrid();
+    return;
+  }
+
+  const removeButton = event.target.closest("[data-remove-custom-chord]");
+  if (removeButton) {
+    const name = removeButton.dataset.removeCustomChord;
+
+    if (!confirm(`Remover o acorde ${name}?`)) return;
+
+    customChords = customChords.filter((chord) => chord.name !== name);
+    persistCustomChords();
+    renderCustomChords();
+    toast("Acorde personalizado removido.");
+  }
+});
+
+loadCustomChords();
 
 function insertTextAtCursor(textarea, text) {
   const start = textarea.selectionStart ?? textarea.value.length;
