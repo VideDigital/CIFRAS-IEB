@@ -869,3 +869,268 @@ body{background:radial-gradient(circle at 100% 0,rgba(249,115,22,.10),transparen
     padding:20px 10px 50vh;
   }
 }
+
+
+/* V4.3 - BIBLIOTECA DE ACORDES */
+.editor-insert-tools{
+  margin:0 0 10px;
+}
+.chord-library-trigger{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  width:100%;
+  padding:12px 14px;
+  border:1px solid #33445e;
+  border-radius:15px;
+  background:linear-gradient(135deg,#101b2c,#13233a);
+  color:#f8fafc;
+  text-align:left;
+  cursor:pointer;
+}
+.chord-library-trigger:hover,
+.chord-library-trigger:focus-visible{
+  border-color:#fb923c;
+  outline:none;
+}
+.chord-library-trigger-icon{
+  display:grid;
+  flex:0 0 44px;
+  width:44px;
+  height:44px;
+  place-items:center;
+  border-radius:12px;
+  background:#2b170d;
+  color:#fb923c;
+  font-weight:900;
+}
+.chord-library-trigger strong,
+.chord-library-trigger small{
+  display:block;
+}
+.chord-library-trigger small{
+  margin-top:3px;
+  color:#94a3b8;
+  font-size:11px;
+}
+
+.chord-library-dialog{
+  width:min(920px,calc(100vw - 24px));
+  max-height:min(88dvh,900px);
+  padding:22px;
+  overflow:auto;
+}
+.chord-library-heading{
+  padding-right:40px;
+}
+.chord-library-search{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin:18px 0 12px;
+  padding:0 14px;
+  border:1px solid #334155;
+  border-radius:13px;
+  background:#0a1422;
+}
+.chord-library-search input{
+  width:100%;
+  min-height:48px;
+  padding:0;
+  border:0;
+  background:transparent;
+}
+.chord-library-tabs{
+  display:flex;
+  gap:8px;
+  overflow-x:auto;
+  margin-bottom:16px;
+  padding-bottom:4px;
+}
+.chord-library-tab{
+  flex:0 0 auto;
+  min-height:38px;
+  padding:8px 13px;
+  border:1px solid #334155;
+  border-radius:999px;
+  background:#0f1a2b;
+  color:#cbd5e1;
+  font:inherit;
+  font-size:12px;
+  font-weight:800;
+}
+.chord-library-tab.active{
+  border-color:#fb923c;
+  background:#2b170d;
+  color:#fb923c;
+}
+.chord-library-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(105px,1fr));
+  gap:9px;
+}
+.chord-library-item{
+  position:relative;
+  min-width:0;
+}
+.chord-insert-button{
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  justify-content:center;
+  width:100%;
+  min-height:70px;
+  padding:12px;
+  border:1px solid #2b3a52;
+  border-radius:13px;
+  background:#0a1422;
+  color:#f8fafc;
+  text-align:left;
+}
+.chord-insert-button:hover,
+.chord-insert-button:focus-visible{
+  border-color:#fb923c;
+  background:#131f31;
+  outline:none;
+}
+.chord-insert-button strong{
+  color:#fb923c;
+  font-size:18px;
+  line-height:1;
+}
+.chord-insert-button small{
+  margin-top:7px;
+  color:#94a3b8;
+  font-size:10px;
+}
+.remove-custom-chord{
+  position:absolute;
+  top:5px;
+  right:5px;
+  width:25px;
+  height:25px;
+  border:1px solid #6b2738;
+  border-radius:50%;
+  background:#2c1018;
+  color:#fda4af;
+  font-size:17px;
+  line-height:1;
+}
+.chord-root-filter{
+  display:flex;
+  gap:7px;
+  overflow-x:auto;
+  margin-bottom:14px;
+  padding-bottom:4px;
+}
+.chord-root-filter button{
+  flex:0 0 auto;
+  min-width:42px;
+  min-height:38px;
+  border:1px solid #334155;
+  border-radius:10px;
+  background:#0c1625;
+  color:#dbeafe;
+  font-weight:800;
+}
+.chord-root-filter button.active{
+  border-color:#fb923c;
+  background:#2b170d;
+  color:#fb923c;
+}
+.field-controls{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:12px;
+}
+.harmonic-field-explanation{
+  margin:15px 0 12px;
+  padding:13px 14px;
+  border:1px solid #2c405f;
+  border-radius:13px;
+  background:#0a1422;
+}
+.harmonic-field-explanation strong,
+.harmonic-field-explanation small{
+  display:block;
+}
+.harmonic-field-explanation small{
+  margin-top:5px;
+  color:#94a3b8;
+}
+.harmonic-field-grid{
+  display:grid;
+  grid-template-columns:repeat(7,minmax(80px,1fr));
+  gap:8px;
+  overflow-x:auto;
+  padding-bottom:5px;
+}
+.harmonic-field-card{
+  min-width:82px;
+  min-height:96px;
+  padding:10px;
+  border:1px solid #30415d;
+  border-radius:13px;
+  background:#0c1727;
+  color:#f8fafc;
+}
+.harmonic-field-card span,
+.harmonic-field-card strong,
+.harmonic-field-card small{
+  display:block;
+}
+.harmonic-field-card span{
+  color:#94a3b8;
+  font-size:11px;
+}
+.harmonic-field-card strong{
+  margin:8px 0;
+  color:#fb923c;
+  font-size:20px;
+}
+.harmonic-field-card small{
+  color:#64748b;
+  font-size:9px;
+}
+.custom-chord-form{
+  padding:16px;
+  border:1px solid #2d405c;
+  border-radius:16px;
+  background:#0a1422;
+}
+.custom-chord-form h4{
+  margin:3px 0 4px;
+}
+.custom-chord-fields{
+  display:grid;
+  grid-template-columns:2fr 1fr;
+  gap:12px;
+  margin:14px 0;
+}
+.custom-chord-list-heading{
+  margin:20px 0 10px;
+}
+.custom-chord-list-heading h4{
+  margin:0 0 3px;
+}
+.custom-chord-list-heading small{
+  color:#94a3b8;
+}
+
+@media(max-width:700px){
+  .chord-library-dialog{
+    width:calc(100vw - 12px);
+    max-height:92dvh;
+    padding:16px;
+  }
+  .chord-library-grid{
+    grid-template-columns:repeat(3,minmax(0,1fr));
+  }
+  .field-controls,
+  .custom-chord-fields{
+    grid-template-columns:1fr;
+  }
+  .harmonic-field-grid{
+    grid-template-columns:repeat(7,90px);
+  }
+}
