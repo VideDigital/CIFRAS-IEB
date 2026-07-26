@@ -7,7 +7,7 @@
   <meta name="theme-color" content="#090f1d">
   <meta name="description" content="Cifras IEB &#8212; repert&#243;rio, listas e cifras para louvor.">
   <title>Cifras IEB</title>
-  <link rel="stylesheet" href="styles.css?v=4.1.0">
+  <link rel="stylesheet" href="styles.css?v=4.2.0">
 </head>
 <body>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
@@ -119,7 +119,7 @@
           <span>&#8618;</span>
           <span>Sair da conta</span>
         </button>
-        <small>Cifras IEB &#8226; Vers&#227;o 4.1</small>
+        <small>Cifras IEB &#8226; Vers&#227;o 4.2</small>
       </div>
     </aside>
     <div id="sidebarBackdrop" class="backdrop hidden"></div>
@@ -235,6 +235,69 @@
           <div class="empty-icon">&#8599;</div>
           <h3>Nenhuma cifra compartilhada</h3>
           <p>Quando algu&#233;m compartilhar uma cifra com voc&#234;, ela aparecer&#225; aqui.</p>
+        </div>
+      </section>
+
+
+      <section id="songViewerView" class="view hidden">
+        <div class="song-viewer-top">
+          <button id="viewerBackBtn" class="back-button">&#8592; Biblioteca</button>
+
+          <div class="song-viewer-actions">
+            <button id="viewerEditBtn" class="secondary-button">Editar cifra</button>
+            <button id="viewerStageBtn" class="secondary-button">Tela cheia</button>
+          </div>
+        </div>
+
+        <div class="song-reader-shell">
+          <header class="song-reader-heading">
+            <div>
+              <span class="eyebrow">MODO DE LEITURA</span>
+              <h1 id="viewerSongTitle">TÃ­tulo da mÃºsica</h1>
+              <p id="viewerSongArtist"></p>
+            </div>
+            <span id="viewerCapoBadge" class="viewer-capo-badge hidden"></span>
+          </header>
+
+          <div class="viewer-toolbar dedicated-viewer-toolbar">
+            <div class="tool-group">
+              <span class="tool-label">Tom</span>
+              <div class="stepper">
+                <button id="viewerTransposeDown" class="icon-btn" aria-label="Diminuir tom">&#8722;</button>
+                <strong id="viewerCurrentKey">C</strong>
+                <button id="viewerTransposeUp" class="icon-btn" aria-label="Aumentar tom">&#65291;</button>
+              </div>
+            </div>
+
+            <div class="tool-group">
+              <span class="tool-label">Tamanho do texto</span>
+              <div class="stepper">
+                <button id="viewerFontDown" class="icon-btn" aria-label="Diminuir texto">A&#8722;</button>
+                <button id="viewerFontUp" class="icon-btn" aria-label="Aumentar texto">A&#65291;</button>
+              </div>
+            </div>
+
+            <div class="tool-group">
+              <span class="tool-label">Acordes</span>
+              <button id="viewerTextOnlyBtn" class="secondary-button">Somente texto</button>
+            </div>
+
+            <div class="tool-group scroll-tools">
+              <span class="tool-label">Rolagem automÃ¡tica</span>
+              <div class="scroll-control">
+                <button id="viewerAutoScrollBtn" class="secondary-button">&#9654; Iniciar</button>
+                <select id="viewerScrollSpeed" aria-label="Velocidade da rolagem">
+                  <option value="0.20">Muito lenta</option>
+                  <option value="0.40">Lenta</option>
+                  <option value="0.75" selected>Normal</option>
+                  <option value="1.25">RÃ¡pida</option>
+                  <option value="2.00">Muito rÃ¡pida</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <article id="dedicatedSongViewer" class="song-preview dedicated-song-viewer"></article>
         </div>
       </section>
 
@@ -539,6 +602,6 @@ Poderoso</code></pre>
     <button id="playGroupRepertoireBtn" class="primary full">Abrir modo de leitura</button>
     <button id="deleteRepertoireBtn" class="danger-button full">Excluir repert&#243;rio</button>
   </dialog>
-  <script type="module" src="app.js?v=4.1.0"></script>
+  <script type="module" src="app.js?v=4.2.0"></script>
 </body>
 </html>
