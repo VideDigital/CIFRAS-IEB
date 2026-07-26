@@ -617,3 +617,92 @@ body{background:radial-gradient(circle at 100% 0,rgba(249,115,22,.10),transparen
 .file-picker-box{
   min-height:150px;
 }
+
+
+/* V4 - EDITOR POR BLOCOS E ACORDES EM LINHA SUPERIOR */
+.structure-toolbar{
+  display:flex;
+  flex-wrap:wrap;
+  gap:7px;
+  margin:8px 0 10px;
+  padding:10px;
+  border:1px solid #2a3548;
+  border-radius:14px;
+  background:#0b1320;
+}
+.structure-toolbar button{
+  appearance:none;
+  border:1px solid #344258;
+  border-radius:999px;
+  padding:7px 10px;
+  background:#111c2c;
+  color:#dbe7f6;
+  font:inherit;
+  font-size:11px;
+  font-weight:700;
+  cursor:pointer;
+}
+.structure-toolbar button:hover,
+.structure-toolbar button:focus-visible{
+  border-color:#fb923c;
+  color:#fff;
+  outline:none;
+}
+.editor-help pre{
+  margin:8px 0;
+  padding:10px 12px;
+  overflow:auto;
+  border:1px solid #2a3548;
+  border-radius:10px;
+  background:#07101c;
+  color:#f8fafc;
+}
+.song-section-marker{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  min-height:28px;
+  margin:18px 0 12px;
+  padding:5px 12px;
+  border-radius:5px;
+  background:#174b9d;
+  color:#fff;
+  font-size:.72em;
+  font-weight:800;
+  letter-spacing:.08em;
+  text-align:center;
+  text-transform:uppercase;
+}
+.song-section-marker span{
+  overflow-wrap:anywhere;
+}
+.section-verse{background:#176b52;}
+.section-prechorus{background:#76511d;}
+.section-chorus{background:#b45309;}
+.section-postchorus{background:#92400e;}
+.section-bridge{background:#6d3faa;}
+.section-interlude{background:#1d5fa7;}
+.section-solo{background:#7c3f91;}
+.section-pause{background:#4b5563;}
+.section-ministry{background:#7f1d4e;}
+.section-prayer{background:#4c3a84;}
+.section-spontaneous{background:#0f766e;}
+.section-modulation{background:#9f3d18;}
+.section-ending{background:#991b1b;}
+.section-repeat{background:#374151;}
+.section-custom{background:#334155;}
+
+@media(max-width:700px){
+  .structure-toolbar{
+    flex-wrap:nowrap;
+    overflow-x:auto;
+    -webkit-overflow-scrolling:touch;
+    padding-bottom:9px;
+  }
+  .structure-toolbar button{
+    flex:0 0 auto;
+  }
+  .song-section-marker{
+    margin-top:15px;
+  }
+}
