@@ -7,8 +7,8 @@
   <meta name="theme-color" content="#090f1d">
   <meta name="description" content="Cifras IEB — repertório, listas e cifras para louvor.">
   <title>Cifras IEB</title>
-  <link rel="stylesheet" href="styles.css?v=5.1.0">
-  <link rel="manifest" href="manifest.webmanifest?v=5.1.0">
+  <link rel="stylesheet" href="styles.css?v=5.2.0">
+  <link rel="manifest" href="manifest.webmanifest?v=5.2.0">
   <link rel="apple-touch-icon" href="icons/icon-180.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -145,7 +145,7 @@
           <span>↪</span>
           <span>Sair da conta</span>
         </button>
-        <small>Cifras IEB • Versão 5.1</small>
+        <small>Cifras IEB • Versão 5.2</small>
       </div>
     </aside>
     <div id="sidebarBackdrop" class="backdrop hidden"></div>
@@ -392,12 +392,22 @@
 
           <article id="dedicatedSongViewer" class="song-preview dedicated-song-viewer"></article>
 
-          <div id="readerQuickPanel" class="reader-quick-panel hidden">
-            <button type="button" data-reader-action="font-down">A−</button>
-            <button type="button" data-reader-action="font-up">A＋</button>
-            <button type="button" data-reader-action="text-only">Somente texto</button>
-            <button type="button" data-reader-action="fullscreen">Tela cheia</button>
-            <button type="button" data-reader-action="edit">Editar</button>
+          <div id="readerQuickBackdrop" class="reader-quick-backdrop hidden" data-reader-action="close-more"></div>
+          <div id="readerQuickPanel" class="reader-quick-panel hidden" role="dialog" aria-modal="true" aria-label="Controles rápidos">
+            <div class="reader-quick-header">
+              <div>
+                <span>CONTROLES RÁPIDOS</span>
+                <strong>Personalizar leitura</strong>
+              </div>
+              <button type="button" class="reader-quick-close" data-reader-action="close-more" aria-label="Fechar controles">×</button>
+            </div>
+            <div class="reader-quick-grid">
+              <button type="button" data-reader-action="font-down"><span>A−</span><small>Diminuir texto</small></button>
+              <button type="button" data-reader-action="font-up"><span>A＋</span><small>Aumentar texto</small></button>
+              <button type="button" data-reader-action="text-only"><span>≡</span><small>Somente texto</small></button>
+              <button type="button" data-reader-action="fullscreen"><span>⛶</span><small id="readerFullscreenLabel">Tela cheia</small></button>
+              <button type="button" data-reader-action="edit" class="reader-edit-action"><span>✎</span><small>Editar cifra</small></button>
+            </div>
           </div>
 
           <nav class="reader-mobile-dock" aria-label="Controles da cifra">
@@ -882,14 +892,30 @@ Poderoso</code></pre>
       <p id="groupDetailsDescription" class="muted"></p>
     </div>
 
-    <div class="group-role-line">
-      <span id="groupRoleBadge" class="role-badge">Membro</span>
-      <span id="groupMemberCount">0 membros</span>
+    <div class="group-overview-strip">
+      <div class="group-role-line">
+        <span id="groupRoleBadge" class="role-badge">Membro</span>
+        <span id="groupMemberCount">0 membros</span>
+      </div>
+      <div class="group-overview-status">
+        <span class="status-pulse"></span>
+        <div>
+          <strong>Grupo ativo</strong>
+          <small>Dados sincronizados entre os membros</small>
+        </div>
+      </div>
     </div>
 
     <div id="groupOwnerControls" class="group-owner-controls hidden">
-      <label>
-        Adicionar pessoa pelo ID
+      <div class="group-panel-title">
+        <span class="group-panel-icon">＋</span>
+        <div>
+          <strong>Adicionar integrante</strong>
+          <small>Use o ID individual exibido na conta da pessoa</small>
+        </div>
+      </div>
+      <label class="group-member-id-field">
+        ID individual
         <div class="inline-form">
           <input id="memberPublicIdInput" placeholder="Ex.: IEB-8F4K2Q" autocapitalize="characters">
           <button id="addGroupMemberBtn" class="primary">Adicionar</button>
@@ -898,15 +924,39 @@ Poderoso</code></pre>
       <p class="tiny">Peça para a pessoa copiar o ID que aparece no menu da conta dela.</p>
     </div>
 
-    <div class="group-repertoire-section">
-      <div class="group-section-heading"><div><span class="eyebrow">REPERTÓRIOS</span><h4>Repertórios por data</h4></div><button id="newGroupRepertoireBtn" class="secondary-button">+ Novo repertório</button></div>
-      <div id="groupRepertoireList" class="group-repertoire-list"></div>
-    </div>
-    <div class="members-heading"><h4>Membros</h4></div>
-    <div id="groupMembersList" class="group-members-list"></div>
+    <div class="group-dashboard-grid">
+      <section class="group-repertoire-section group-dashboard-panel">
+        <div class="group-section-heading">
+          <div>
+            <span class="eyebrow">AGENDA MUSICAL</span>
+            <h4>Repertórios do grupo</h4>
+            <p>Organize as músicas por culto, ensaio ou evento.</p>
+          </div>
+          <button id="newGroupRepertoireBtn" class="secondary-button">+ Novo repertório</button>
+        </div>
+        <div id="groupRepertoireList" class="group-repertoire-list"></div>
+      </section>
 
-    <button id="leaveGroupBtn" class="danger-button full">Sair do grupo</button>
-    <button id="deleteGroupBtn" class="danger-button full hidden">Excluir grupo</button>
+      <section class="group-members-section group-dashboard-panel">
+        <div class="members-heading">
+          <div>
+            <span class="eyebrow">EQUIPE</span>
+            <h4>Integrantes</h4>
+            <p>Pessoas que têm acesso aos repertórios deste grupo.</p>
+          </div>
+        </div>
+        <div id="groupMembersList" class="group-members-list"></div>
+      </section>
+    </div>
+
+    <div class="group-danger-zone">
+      <div>
+        <strong>Gerenciamento do grupo</strong>
+        <small>Estas ações alteram permanentemente o seu acesso.</small>
+      </div>
+      <button id="leaveGroupBtn" class="danger-button">Sair do grupo</button>
+      <button id="deleteGroupBtn" class="danger-button hidden">Excluir grupo</button>
+    </div>
   </dialog>
 
   <dialog id="repertoireDialog">
@@ -934,6 +984,7 @@ Poderoso</code></pre>
     <button id="playGroupRepertoireBtn" class="primary full">Abrir modo de leitura</button>
     <button id="deleteRepertoireBtn" class="danger-button full">Excluir repertório</button>
   </dialog>
-  <script type="module" src="app.js?v=5.1.0"></script>
+  <script type="module" src="app.js?v=5.2.0"></script>
 </body>
 </html>
+
