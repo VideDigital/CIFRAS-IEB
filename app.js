@@ -1,9 +1,9 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
 import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail, signOut, updateProfile } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
 import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, collection, addDoc, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
-import { firebaseConfig } from "./firebase-config.js?v=5.2.0";
-import { KEYS, transposeContent, semitoneDistance, renderChordMarkup } from "./chord-engine.js?v=5.2.0";
-import { drawChordDiagram } from "./chord-diagrams.js?v=5.2.0";
+import { firebaseConfig } from "./firebase-config.js?v=6.0.0";
+import { KEYS, transposeContent, semitoneDistance, renderChordMarkup } from "./chord-engine.js?v=6.0.0";
+import { drawChordDiagram } from "./chord-diagrams.js?v=6.0.0";
 
 const firebaseApp = initializeApp(firebaseConfig);
 const auth = getAuth(firebaseApp);
@@ -2573,25 +2573,92 @@ async function extractPdfText(file) {
   return pages.join("\n\n");
 }
 
+let mammothBrowserPromise = null;
+
+function loadClassicScript(src, globalName) {
+  if (window[globalName]) return Promise.resolve(window[globalName]);
+
+  return new Promise((resolve, reject) => {
+    const existing = [...document.scripts].find(
+      (script) => script.src === new URL(src, location.href).href
+    );
+
+    if (existing) {
+      existing.addEventListener("load", () => resolve(window[globalName]), {
+        once: true
+      });
+      existing.addEventListener("error", reject, { once: true });
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.src = src;
+    script.async = true;
+    script.crossOrigin = "anonymous";
+
+    script.onload = () => {
+      if (!window[globalName]) {
+        reject(new Error(`A biblioteca ${globalName} n\u00E3o ficou dispon\u00EDvel.`));
+        return;
+      }
+
+      resolve(window[globalName]);
+    };
+
+    script.onerror = () => {
+      reject(new Error(
+        "N\u00E3o foi poss\u00EDvel carregar o leitor de DOCX. Verifique a internet e tente novamente."
+      ));
+    };
+
+    document.head.appendChild(script);
+  });
+}
+
+async function getMammothBrowser() {
+  if (window.mammoth?.extractRawText) return window.mammoth;
+
+  if (!mammothBrowserPromise) {
+    mammothBrowserPromise = loadClassicScript(
+      "https://cdn.jsdelivr.net/npm/mammoth@1.12.0/mammoth.browser.min.js",
+      "mammoth"
+    ).catch((error) => {
+      mammothBrowserPromise = null;
+      throw error;
+    });
+  }
+
+  const mammoth = await mammothBrowserPromise;
+
+  if (typeof mammoth?.extractRawText !== "function") {
+    throw new Error("O leitor de DOCX carregou sem a fun\u00E7\u00E3o necess\u00E1ria.");
+  }
+
+  return mammoth;
+}
+
 async function extractDocxText(file) {
-  const mammothModule = await import(
-    "https://cdn.jsdelivr.net/npm/mammoth@1.9.1/+esm"
-  );
+  if (!(file instanceof Blob)) {
+    throw new Error("O arquivo DOCX recebido \u00E9 inv\u00E1lido.");
+  }
 
-  // No Safari/iPhone, o pacote pode expor a API dentro de "default".
-  const mammoth = mammothModule.default || mammothModule;
+  const arrayBuffer = await file.arrayBuffer();
 
-  if (typeof mammoth.extractRawText !== "function") {
+  if (!arrayBuffer?.byteLength) {
+    throw new Error("O arquivo DOCX est\u00E1 vazio.");
+  }
+
+  const mammoth = await getMammothBrowser();
+  const result = await mammoth.extractRawText({ arrayBuffer });
+  const value = String(result?.value || "");
+
+  if (!value.trim()) {
     throw new Error(
-      "O leitor de DOCX n\u00E3o carregou corretamente. Feche a p\u00E1gina e tente novamente."
+      "O documento n\u00E3o possui texto leg\u00EDvel. Ele pode conter apenas imagens ou caixas de texto incompat\u00EDveis."
     );
   }
 
-  const result = await mammoth.extractRawText({
-    arrayBuffer: await file.arrayBuffer()
-  });
-
-  return result?.value || "";
+  return value;
 }
 
 async function readImportedFile(file) {
@@ -2641,7 +2708,7 @@ function inferSongFromFile(fileName, rawText) {
     }
   }
 
-  const lines = text.split("\n");
+  const lines = String(text || "").split("\n");
   let title = "";
   let artist = "";
   let key = "C";
@@ -2765,6 +2832,9 @@ $("bulkImportFiles").addEventListener("change", async (event) => {
 
   for (let index = 0; index < files.length; index += 1) {
     const file = files[index];
+
+    await new Promise((resolve) => window.setTimeout(resolve, 0));
+
     setImportProgress(
       index,
       files.length,
@@ -3343,7 +3413,8 @@ document.querySelectorAll("[data-mobile-view]").forEach((button) => {
   });
 });
 
-document.querySelector("[data-mobile-menu]")?.addEventListener("click", () => {
+document.querySelector("[data-mobile-menu]")?.addEventListener("click", (event) => {
+  if (event.target.closest("#songViewerView, #listPlayerView")) return;
   $("menuBtn")?.click();
 });
 
@@ -3351,6 +3422,10 @@ document.addEventListener("click", (event) => {
   const readerButton = event.target.closest("[data-reader-action]");
 
   if (readerButton) {
+    event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation();
+
     const action = readerButton.dataset.readerAction;
     const actions = {
       back: () => $("viewerBackBtn")?.click(),
@@ -3612,7 +3687,7 @@ if ("serviceWorker" in navigator) {
   window.addEventListener("load", async () => {
     try {
       const registration = await navigator.serviceWorker.register(
-        "./service-worker.js?v=5.2.0",
+        "./service-worker.js?v=6.0.0",
         { scope: "./" }
       );
 
@@ -3635,4 +3710,15 @@ document.addEventListener("keydown", (event) => {
 window.addEventListener("orientationchange", () => {
   setReaderQuickPanel(false);
 });
+
+
+document.addEventListener("pointerdown", (event) => {
+  const readerAction = event.target.closest(
+    "#songViewerView [data-reader-action], #listPlayerView [data-list-action]"
+  );
+
+  if (!readerAction) return;
+
+  event.stopPropagation();
+}, true);
 
