@@ -1,9 +1,9 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
 import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail, signOut, updateProfile } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
 import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, collection, addDoc, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
-import { firebaseConfig } from "./firebase-config.js?v=5.1.0";
-import { KEYS, transposeContent, semitoneDistance, renderChordMarkup } from "./chord-engine.js?v=5.1.0";
-import { drawChordDiagram } from "./chord-diagrams.js?v=5.1.0";
+import { firebaseConfig } from "./firebase-config.js?v=5.2.0";
+import { KEYS, transposeContent, semitoneDistance, renderChordMarkup } from "./chord-engine.js?v=5.2.0";
+import { drawChordDiagram } from "./chord-diagrams.js?v=5.2.0";
 
 const firebaseApp = initializeApp(firebaseConfig);
 const auth = getAuth(firebaseApp);
@@ -55,6 +55,7 @@ let viewerScrollFrame = null;
 const views = ["library", "lists", "groups", "search", "shared", "songViewer", "editor", "listPlayer"];
 
 function resetReaderState(nextView = "") {
+  setReaderQuickPanel(false);
   stopAutoScroll();
   stopViewerAutoScroll();
   stopPlayerAutoScroll();
@@ -893,6 +894,8 @@ function openSongViewer(id, readOnly = false) {
 
   const readerShell = $("dedicatedSongViewer").closest(".song-reader-shell");
   readerShell.classList.remove("stage-mode");
+  setReaderQuickPanel(false);
+  updateReaderFullscreenState();
   document.body.style.overflow = "";
   document.documentElement.style.overflow = "";
 
@@ -943,8 +946,27 @@ $("viewerTextOnlyBtn").onclick = () => {
   renderDedicatedSongViewer();
 };
 
+function setReaderQuickPanel(open) {
+  $("readerQuickPanel")?.classList.toggle("hidden", !open);
+  $("readerQuickBackdrop")?.classList.toggle("hidden", !open);
+  document.body.classList.toggle("reader-sheet-open", open);
+}
+
+function updateReaderFullscreenState() {
+  const shell = $("dedicatedSongViewer")?.closest(".song-reader-shell");
+  const fullscreen = shell?.classList.contains("stage-mode");
+
+  if ($("readerFullscreenLabel")) {
+    $("readerFullscreenLabel").textContent =
+      fullscreen ? "Sair da tela cheia" : "Tela cheia";
+  }
+}
+
 $("viewerStageBtn").onclick = () => {
-  toggleStageMode($("dedicatedSongViewer").closest(".song-reader-shell"));
+  const shell = $("dedicatedSongViewer").closest(".song-reader-shell");
+  toggleStageMode(shell);
+  setReaderQuickPanel(false);
+  updateReaderFullscreenState();
 };
 
 function getViewerScrollTarget() {
@@ -2360,19 +2382,42 @@ function stripChordMarkup(content = "") {
 }
 
 function looksLikeChordToken(token = "") {
-  return /^(?:N\.?C\.?|[A-G](?:#|b)?(?:m|maj|min|dim|aug|sus|add)?\d*(?:\([^)]+\))?(?:\/[A-G](?:#|b)?)?)$/i.test(token);
+  const clean = String(token)
+    .trim()
+    .replace(/^[([{]+|[)\]},.;:]+$/g, "")
+    .replace(/[\u2013\u2014]/g, "-");
+
+  if (/^N\.?C\.?$/i.test(clean)) return true;
+  if (!/^[A-G](?:#|b)?/.test(clean)) return false;
+
+  const suffix = clean.replace(/^[A-G](?:#|b)?/, "");
+
+  if (!suffix) return true;
+
+  // Aceita extens\u00F5es comuns:
+  // F#m7/9/11, C7M, Bm7(9), A/C#, Gsus4, D/F#, Cadd9.
+  return /^(?:m|maj|min|M|dim|aug|sus|add|omit|no|alt|\u00B0|\u00BA|\u00F8|\d|#|b|\+|-|\(|\)|\/[A-G](?:#|b)?|\/\d)*$/i.test(suffix);
 }
 
 function looksLikeChordRow(line = "") {
-  const tokens = String(line)
-    .trim()
+  const raw = String(line).trim();
+
+  if (!raw || raw.length > 140) return false;
+
+  const tokens = raw
     .replace(/[|:]/g, " ")
+    .replace(/\s*-\s*/g, " ")
     .split(/\s+/)
     .filter(Boolean);
 
-  return tokens.length > 0 && tokens.every((token) =>
-    looksLikeChordToken(token) || /^\(?\d+x\)?$/i.test(token)
+  const chordTokens = tokens.filter(looksLikeChordToken);
+  const allowedTokens = tokens.filter((token) =>
+    looksLikeChordToken(token) ||
+    /^\(?\d+x\)?$/i.test(token) ||
+    /^(?:bis|repete|volta)$/i.test(token)
   );
+
+  return chordTokens.length > 0 && allowedTokens.length === tokens.length;
 }
 
 const IMPORTED_SECTION_NAMES = [
@@ -2422,8 +2467,10 @@ function normalizeImportedStructure(content = "") {
 
   lines.forEach((line) => {
     const cleaned = line
+      .replace(/\u00A0/g, " ")
       .replace(/[ \t]+$/g, "")
-      .replace(/^[ \t]{18,}/, "");
+      .replace(/^[ \t]{18,}/, "")
+      .replace(/([A-G](?:#|b)?(?:m|M|maj|min|dim|aug|sus|add)?\d*(?:\/\d+)+)\s{3,}/g, "$1 ");
 
     const isBlank = !cleaned.trim();
 
@@ -2992,7 +3039,38 @@ async function loadGroupRepertoires(groupId) {
   }
 }
 function formatRepertoireDate(v){if(!v)return"Data n\u00E3o informada";const[y,m,d]=v.split("-");return`${d}/${m}/${y}`;}
-function renderGroupRepertoires(){$("groupRepertoireList").innerHTML=groupRepertoires.length?groupRepertoires.map(r=>`<button class="repertoire-card" data-open-repertoire="${r.id}"><span class="repertoire-date">${safeText(formatRepertoireDate(r.date))}</span><strong>${safeText(r.name||"Repert\u00F3rio")}</strong><small>${r.songSnapshots?.length||r.songIds?.length||0} m\u00FAsica(s)</small></button>`).join(""):'<div class="empty-mini">Nenhum repert\u00F3rio criado neste grupo.</div>';}
+function renderGroupRepertoires() {
+  $("groupRepertoireList").innerHTML = groupRepertoires.length
+    ? groupRepertoires.map((repertoire) => {
+        const amount =
+          repertoire.songSnapshots?.length ||
+          repertoire.songIds?.length ||
+          0;
+
+        return `
+          <button class="repertoire-card professional-repertoire-card"
+                  data-open-repertoire="${repertoire.id}">
+            <span class="repertoire-calendar-icon">
+              <small>${safeText(String(repertoire.date || "").slice(5, 7) || "--")}</small>
+              <strong>${safeText(String(repertoire.date || "").slice(8, 10) || "--")}</strong>
+            </span>
+            <span class="repertoire-card-copy">
+              <small>${safeText(formatRepertoireDate(repertoire.date))}</small>
+              <strong>${safeText(repertoire.name || "Repert\u00F3rio")}</strong>
+              <span>${amount} ${amount === 1 ? "m\u00FAsica" : "m\u00FAsicas"}</span>
+            </span>
+            <span class="repertoire-card-arrow">\u2192</span>
+          </button>
+        `;
+      }).join("")
+    : `
+      <div class="empty-mini professional-empty-repertoire">
+        <span>\u266B</span>
+        <strong>Nenhum repert\u00F3rio criado</strong>
+        <small>Crie o primeiro repert\u00F3rio para organizar as m\u00FAsicas do grupo.</small>
+      </div>
+    `;
+}
 function renderRepertoireSongOptions(searchTerm = "") {
   const selectedIds = new Set(
     [...$("repertoireSongOptions").querySelectorAll("input:checked")]
@@ -3283,8 +3361,15 @@ document.addEventListener("click", (event) => {
       "font-up": () => $("viewerFontUp")?.click(),
       "text-only": () => $("viewerTextOnlyBtn")?.click(),
       fullscreen: () => $("viewerStageBtn")?.click(),
-      edit: () => $("viewerEditBtn")?.click(),
-      more: () => $("readerQuickPanel")?.classList.toggle("hidden")
+      edit: () => {
+        setReaderQuickPanel(false);
+        $("viewerEditBtn")?.click();
+      },
+      more: () => {
+        const isOpen = !$("readerQuickPanel")?.classList.contains("hidden");
+        setReaderQuickPanel(!isOpen);
+      },
+      "close-more": () => setReaderQuickPanel(false)
     };
     actions[action]?.();
     return;
@@ -3527,7 +3612,7 @@ if ("serviceWorker" in navigator) {
   window.addEventListener("load", async () => {
     try {
       const registration = await navigator.serviceWorker.register(
-        "./service-worker.js?v=5.1.0",
+        "./service-worker.js?v=5.2.0",
         { scope: "./" }
       );
 
@@ -3539,3 +3624,15 @@ if ("serviceWorker" in navigator) {
 }
 
 updateConnectivityUI();
+
+
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") {
+    setReaderQuickPanel(false);
+  }
+});
+
+window.addEventListener("orientationchange", () => {
+  setReaderQuickPanel(false);
+});
+
