@@ -7,8 +7,8 @@
   <meta name="theme-color" content="#090f1d">
   <meta name="description" content="Cifras IEB — repertório, listas e cifras para louvor.">
   <title>Cifras IEB</title>
-  <link rel="stylesheet" href="styles.css?v=5.2.0">
-  <link rel="manifest" href="manifest.webmanifest?v=5.2.0">
+  <link rel="stylesheet" href="styles.css?v=6.0.0">
+  <link rel="manifest" href="manifest.webmanifest?v=6.0.0">
   <link rel="apple-touch-icon" href="icons/icon-180.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -145,7 +145,7 @@
           <span>↪</span>
           <span>Sair da conta</span>
         </button>
-        <small>Cifras IEB • Versão 5.2</small>
+        <small>Cifras IEB • Versão 6.0</small>
       </div>
     </aside>
     <div id="sidebarBackdrop" class="backdrop hidden"></div>
@@ -209,7 +209,14 @@
           </div>
           <button id="newListBtn" class="primary">＋ Nova lista</button>
         </div>
-        <div id="listGrid" class="card-grid"></div>
+        <div class="library-toolbar">
+          <div class="library-filter-tabs" aria-label="Filtros de listas">
+            <button class="active" type="button">Todas</button>
+            <button type="button">Criadas por você</button>
+            <button type="button">Compartilhadas</button>
+          </div>
+        </div>
+        <div id="listGrid" class="professional-list-grid"></div>
         <div id="emptyLists" class="empty-state hidden">
           <div class="empty-icon">☷</div>
           <h3>Nenhuma lista criada</h3>
@@ -884,7 +891,7 @@ Poderoso</code></pre>
     <button id="saveGroupBtn" class="primary full">Criar grupo</button>
   </dialog>
 
-  <dialog id="groupDetailsDialog" class="group-details-dialog">
+  <dialog id="groupDetailsDialog" class="group-details-dialog group-workspace-dialog">
     <button class="dialog-close" data-close-dialog aria-label="Fechar">×</button>
     <div class="group-details-cover">
       <span class="eyebrow">PAINEL DO GRUPO</span>
@@ -984,7 +991,7 @@ Poderoso</code></pre>
     <button id="playGroupRepertoireBtn" class="primary full">Abrir modo de leitura</button>
     <button id="deleteRepertoireBtn" class="danger-button full">Excluir repertório</button>
   </dialog>
-  <script type="module" src="app.js?v=5.2.0"></script>
+  <script type="module" src="app.js?v=6.0.0"></script>
 </body>
 </html>
 
