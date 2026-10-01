@@ -143,6 +143,12 @@ jobs:
               "songYoutubeUrl",
               "editRepertoireBtn",
               "readerMetronomePanel",
+              "listSelectedOrder",
+              "repertoireSelectedOrder",
+              "viewerMediaPanel",
+              "listMediaPanel",
+              "chordDialogInstrumentTabs",
+              "prepareOfflineBtn",
           }
           missing = sorted(required - set(ids))
           if missing:
