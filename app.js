@@ -1004,6 +1004,7 @@ function setReaderQuickPanel(open) {
 
 function setListQuickPanel(open) {
   $("listQuickPanel")?.classList.toggle("hidden", !open);
+  $("listQuickBackdrop")?.classList.toggle("hidden", !open);
   document.body.classList.toggle("list-sheet-open", open);
 }
 
@@ -2297,6 +2298,8 @@ async function openGroupDetails(groupId) {
   $("deleteGroupBtn").classList.toggle("hidden", !isOwner);
   $("leaveGroupBtn").classList.toggle("hidden", isOwner);
   $("memberPublicIdInput").value = "";
+  if ($("groupDetailRepertoireCount")) $("groupDetailRepertoireCount").textContent = "…";
+  if ($("groupDetailNextDate")) $("groupDetailNextDate").textContent = "…";
 
   $("groupMembersList").innerHTML = '<div class="muted">Carregando membros...</div>';
   $("groupRepertoireList").innerHTML = '<div class="muted">Carregando repert\u00F3rios...</div>';
@@ -3327,6 +3330,21 @@ async function loadGroupRepertoires(groupId) {
 }
 function formatRepertoireDate(v){if(!v)return"Data n\u00E3o informada";const[y,m,d]=v.split("-");return`${d}/${m}/${y}`;}
 function renderGroupRepertoires() {
+  if ($("groupDetailRepertoireCount")) {
+    $("groupDetailRepertoireCount").textContent = String(groupRepertoires.length);
+  }
+
+  if ($("groupDetailNextDate")) {
+    const today = new Date().toISOString().slice(0, 10);
+    const next = groupRepertoires
+      .filter((item) => item.date && item.date >= today)
+      .sort((a, b) => String(a.date).localeCompare(String(b.date)))[0];
+
+    $("groupDetailNextDate").textContent = next?.date
+      ? formatRepertoireDate(next.date).slice(0, 5)
+      : "—";
+  }
+
   $("groupRepertoireList").innerHTML = groupRepertoires.length
     ? groupRepertoires.map((repertoire) => {
         const amount =
@@ -3524,6 +3542,11 @@ document.addEventListener("click",(event)=>{
 
   $("repertoireDetailsName").textContent=currentRepertoire.name||"Repert\u00F3rio";
   $("repertoireDetailsDate").textContent=formatRepertoireDate(currentRepertoire.date);
+
+  const canDeleteRepertoire =
+    currentRepertoire.createdBy === currentUser.uid ||
+    currentGroup?.ownerId === currentUser.uid;
+  $("deleteRepertoireBtn")?.classList.toggle("hidden", !canDeleteRepertoire);
 
   const repertoireSongs=getCurrentRepertoireSongs();
 
