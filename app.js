@@ -1,9 +1,9 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
 import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail, signOut, updateProfile } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
 import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, collection, addDoc, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
-import { firebaseConfig } from "./firebase-config.js?v=7.0.0";
-import { KEYS, transposeContent, semitoneDistance, renderChordMarkup } from "./chord-engine.js?v=7.0.0";
-import { drawChordDiagram } from "./chord-diagrams.js?v=7.0.0";
+import { firebaseConfig } from "./firebase-config.js?v=7.1.0";
+import { KEYS, transposeContent, semitoneDistance, renderChordMarkup, stepKey } from "./chord-engine.js?v=7.1.0";
+import { drawChordDiagram } from "./chord-diagrams.js?v=7.1.0";
 
 const firebaseApp = initializeApp(firebaseConfig);
 const auth = getAuth(firebaseApp);
@@ -187,6 +187,56 @@ function repairBrokenText(value = "") {
 }
 
 
+
+function smartTitleCase(value = "") {
+  const smallWords = new Set([
+    "a","o","as","os","e","de","da","do","das","dos",
+    "em","no","na","nos","nas","para","por","com","sem"
+  ]);
+
+  return String(value)
+    .toLocaleLowerCase("pt-BR")
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((word, index) => {
+      if (index > 0 && smallWords.has(word)) return word;
+      return word.charAt(0).toLocaleUpperCase("pt-BR") + word.slice(1);
+    })
+    .join(" ");
+}
+
+function cleanSongTitle(value = "") {
+  let text = repairBrokenText(value)
+    .replace(/\.(?:docx?|pdf|txt|md|cho|json)$/i, "")
+    .replace(/^\s*\d{1,3}\s*[-_.]+\s*/, "")
+    .replace(/[_]+/g, " ")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+
+  if (!text) return "";
+
+  const letters = text.replace(/[^A-Za-zÀ-ÿ]/g, "");
+  if (letters.length >= 4 && text === text.toLocaleUpperCase("pt-BR")) {
+    text = smartTitleCase(text);
+  }
+
+  return text;
+}
+
+function cleanSongArtist(value = "") {
+  const text = repairBrokenText(value)
+    .replace(/[_]+/g, " ")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+
+  if (!text) return "";
+
+  const letters = text.replace(/[^A-Za-zÀ-ÿ]/g, "");
+  return letters.length >= 4 && text === text.toLocaleUpperCase("pt-BR")
+    ? smartTitleCase(text)
+    : text;
+}
+
 let globalSearchFilter = "all";
 
 function normalizeSearchValue(value = "") {
@@ -334,8 +384,8 @@ document.addEventListener("click", (event) => {
 function normalizeSongText(song = {}) {
   return {
     ...song,
-    title: repairBrokenText(song.title || ""),
-    artist: repairBrokenText(song.artist || ""),
+    title: cleanSongTitle(song.title || ""),
+    artist: cleanSongArtist(song.artist || ""),
     content: repairBrokenText(song.content || "")
   };
 }
@@ -917,9 +967,9 @@ function renderDedicatedSongViewer() {
     : transposedContent;
 
   $("viewerSongTitle").textContent =
-    repairBrokenText(viewingSong.title || "Sem t\u00EDtulo");
+    cleanSongTitle(viewingSong.title || "Sem t\u00EDtulo");
   $("viewerSongArtist").textContent =
-    repairBrokenText(viewingSong.artist || "Artista n\u00E3o informado");
+    cleanSongArtist(viewingSong.artist || "Artista n\u00E3o informado");
   $("viewerCurrentKey").textContent = viewerKey;
   $("viewerSongKeyMeta").textContent = `Tom ${viewerKey}`;
   $("dedicatedSongViewer").style.fontSize = `${viewerFontSize}px`;
@@ -975,11 +1025,13 @@ $("viewerTransposeUp").onclick = () => changeViewerKey(1);
 $("viewerTransposeDown").onclick = () => changeViewerKey(-1);
 
 function changeViewerKey(delta) {
-  const scale = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
-  let index = scale.indexOf(viewerKey);
-  if (index < 0) index = 0;
-  viewerKey = scale[(index + delta + 12) % 12];
+  const preferFlats =
+    /b/.test(viewerKey) ||
+    /b/.test(viewingSong?.key || "");
+
+  viewerKey = stepKey(viewerKey, delta, preferFlats);
   renderDedicatedSongViewer();
+  updateReaderFullscreenState();
 }
 
 $("viewerFontUp").onclick = () => {
@@ -3272,15 +3324,12 @@ $("playerFontDown").onclick = () => {
 };
 
 function changePlayerKey(delta) {
-  const scale = [
-    "C", "C#", "D", "D#", "E", "F",
-    "F#", "G", "G#", "A", "A#", "B"
-  ];
+  const song = listPlayer.songs[listPlayer.index];
+  const preferFlats =
+    /b/.test(playerKey) ||
+    /b/.test(song?.key || "");
 
-  let index = scale.indexOf(playerKey);
-  if (index < 0) index = 0;
-
-  playerKey = scale[(index + delta + 12) % 12];
+  playerKey = stepKey(playerKey, delta, preferFlats);
   renderListSong();
 }
 
@@ -3997,7 +4046,7 @@ if ("serviceWorker" in navigator) {
   window.addEventListener("load", async () => {
     try {
       const registration = await navigator.serviceWorker.register(
-        "./service-worker.js?v=7.0.0",
+        "./service-worker.js?v=7.1.0",
         { scope: "./" }
       );
 
