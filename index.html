@@ -1239,6 +1239,18 @@ Poderoso</code></pre>
       <input id="listSongSearchInput" type="search" placeholder="Buscar por música, artista ou tom" autocomplete="off">
     </div>
     <div id="listSongOptions" class="check-list repertoire-check-list"></div>
+
+    <section class="selected-order-panel">
+      <div class="selected-order-heading">
+        <div>
+          <span class="eyebrow">ORDEM DO REPERTÓRIO</span>
+          <strong>Organize como você vai tocar</strong>
+        </div>
+        <small>Use ↑ e ↓ para reordenar.</small>
+      </div>
+      <div id="listSelectedOrder" class="selected-order-list"></div>
+    </section>
+
     <button id="saveListBtn" class="primary full">Salvar lista</button>
   </dialog>
 
@@ -1410,6 +1422,18 @@ Poderoso</code></pre>
       <input id="repertoireSongSearchInput" type="search" placeholder="Buscar por música ou artista" autocomplete="off">
     </div>
     <div id="repertoireSongOptions" class="check-list repertoire-check-list"></div>
+
+    <section class="selected-order-panel">
+      <div class="selected-order-heading">
+        <div>
+          <span class="eyebrow">ORDEM DO CULTO</span>
+          <strong>Defina a sequência das músicas</strong>
+        </div>
+        <small>A ordem será usada no modo leitura.</small>
+      </div>
+      <div id="repertoireSelectedOrder" class="selected-order-list"></div>
+    </section>
+
     <button id="saveRepertoireBtn" class="primary full">Criar repertório</button>
   </dialog>
   <dialog id="repertoireDetailsDialog">
