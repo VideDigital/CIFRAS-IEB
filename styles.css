@@ -2613,3 +2613,91 @@ body[data-active-view="listPlayer"]{background:#0c0d10}
   .recent-song-grid{grid-template-columns:1fr}
   .home-shortcut-grid{grid-template-columns:1fr 1fr}
 }
+
+
+/* V9 repertoire order manager */
+.selected-order-panel{
+  display:grid;
+  gap:10px;
+  margin:14px 0;
+  padding:13px;
+  border:1px solid var(--line);
+  border-radius:15px;
+  background:#111318;
+}
+.selected-order-heading{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:12px;
+}
+.selected-order-heading>div{display:grid;gap:3px}
+.selected-order-heading strong{font-size:12px}
+.selected-order-heading>small{color:var(--muted);font-size:9px}
+.selected-order-list{
+  display:grid;
+  gap:6px;
+  max-height:280px;
+  overflow:auto;
+}
+.selected-order-row{
+  display:grid;
+  grid-template-columns:30px minmax(0,1fr) auto;
+  align-items:center;
+  gap:9px;
+  padding:8px;
+  border:1px solid var(--line);
+  border-radius:11px;
+  background:#191b20;
+}
+.selected-order-number{
+  display:grid;
+  width:28px;height:28px;
+  place-items:center;
+  border-radius:8px;
+  background:var(--accent-soft);
+  color:var(--accent);
+  font-size:10px;
+  font-weight:900;
+}
+.selected-order-row>div:nth-child(2){min-width:0}
+.selected-order-row strong,.selected-order-row small{
+  display:block;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.selected-order-row strong{font-size:11px}
+.selected-order-row small{margin-top:2px;color:var(--muted);font-size:8px}
+.selected-order-actions{display:flex;gap:4px}
+.selected-order-actions button{
+  width:30px;height:30px;
+  border:1px solid var(--line);
+  border-radius:8px;
+  background:#24272d;
+  color:#dfe1e4;
+  font-weight:900;
+}
+.selected-order-actions button:disabled{opacity:.28}
+.selected-order-empty{
+  display:flex;
+  align-items:center;
+  gap:9px;
+  min-height:62px;
+  padding:9px;
+  color:var(--muted);
+}
+.selected-order-empty>span{
+  display:grid;
+  width:34px;height:34px;
+  place-items:center;
+  border-radius:10px;
+  background:var(--accent-soft);
+  color:var(--accent);
+}
+.selected-order-empty small{line-height:1.45}
+@media(max-width:520px){
+  .selected-order-heading{align-items:flex-start;flex-direction:column}
+  .selected-order-row{grid-template-columns:28px minmax(0,1fr)}
+  .selected-order-actions{grid-column:2;justify-content:flex-end}
+}
