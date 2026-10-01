@@ -1727,3 +1727,529 @@ body[data-active-view="listPlayer"]{background:#0c0d10}
   .bulk-actions{display:grid;grid-template-columns:1fr}
   .group-overview-strip{grid-template-columns:1fr}
 }
+
+
+/* ================================================================
+   CIFRAS IEB V9 — PRODUCT UI
+   ================================================================ */
+:root{
+  --chord-color:#ff6a00;
+}
+
+/* Library bulk management */
+.bulk-library-bar{
+  position:sticky;
+  top:82px;
+  z-index:45;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  margin:0 0 12px;
+  padding:13px 15px;
+  border:1px solid var(--accent-border);
+  border-radius:15px;
+  background:color-mix(in srgb,var(--surface) 92%,var(--accent) 8%);
+  box-shadow:0 14px 38px rgba(0,0,0,.26);
+}
+.bulk-library-bar>div:first-child{display:grid;gap:2px}
+.bulk-library-bar strong{font-size:13px}
+.bulk-library-bar small{color:var(--muted);font-size:10px}
+.bulk-library-actions{display:flex;gap:7px;flex-wrap:wrap}
+.song-row-card.selection-enabled{
+  position:relative;
+  display:grid;
+  grid-template-columns:48px minmax(0,1fr);
+  align-items:stretch;
+}
+.song-row-card.selection-enabled.selected{
+  background:var(--accent-soft);
+}
+.song-select-toggle{
+  display:grid;
+  place-items:center;
+  margin:9px 0;
+  border:0;
+  background:transparent;
+}
+.song-select-toggle span{
+  display:grid;
+  width:25px;
+  height:25px;
+  place-items:center;
+  border:1px solid var(--line-strong);
+  border-radius:50%;
+  background:#17191d;
+  color:transparent;
+  font-size:13px;
+  font-weight:900;
+}
+.song-row-card.selected .song-select-toggle span{
+  border-color:var(--accent);
+  background:var(--accent);
+  color:#fff;
+}
+
+/* Reader gets closer to a professional music workspace */
+@media(min-width:761px){
+  .song-reader-heading{
+    min-height:148px;
+    padding:24px 28px 22px;
+  }
+  .song-reader-heading h1{
+    margin:7px 0 10px;
+    font-size:clamp(34px,3.5vw,52px);
+    letter-spacing:-.045em;
+  }
+  .reader-heading-action{
+    width:62px;
+    height:58px;
+  }
+  .song-reader-shell{
+    grid-template-areas:
+      "heading heading"
+      "media media"
+      "chords chords"
+      "toolbar content";
+  }
+  .list-player-shell{
+    grid-template-areas:
+      "header header"
+      "media media"
+      "chords chords"
+      "toolbar content"
+      "toolbar nav";
+  }
+  .dedicated-song-viewer,
+  .list-player-song{
+    font-size:17px;
+    line-height:1.62;
+  }
+  .reader-chord-card{
+    flex-basis:96px;
+    min-height:116px;
+  }
+  .reader-mini-diagram{
+    width:74px;
+    height:74px;
+  }
+  .reader-mini-diagram svg{
+    width:80px!important;
+    height:70px!important;
+  }
+}
+
+/* YouTube companion panel */
+.reader-media-panel{
+  grid-area:media;
+  display:grid;
+  grid-template-columns:minmax(0,1fr);
+  gap:10px;
+  padding:14px 18px;
+  border-right:1px solid var(--line);
+  border-left:1px solid var(--line);
+  border-bottom:1px solid var(--line);
+  background:#111317;
+}
+.reader-media-panel.hidden{display:none!important}
+.reader-media-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+.reader-media-head>div{display:grid;gap:3px}
+.reader-media-head strong{font-size:13px}
+.reader-youtube-embed{
+  width:min(720px,100%);
+  overflow:hidden;
+  border:1px solid var(--line);
+  border-radius:16px;
+  background:#090a0c;
+  aspect-ratio:16/9;
+}
+.reader-youtube-embed iframe{
+  width:100%;
+  height:100%;
+  border:0;
+}
+.reader-media-empty{
+  min-height:150px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:12px;
+  padding:20px;
+  color:var(--muted);
+}
+.reader-media-empty>span{
+  display:grid;
+  width:46px;height:46px;
+  place-items:center;
+  border-radius:14px;
+  background:var(--accent-soft);
+  color:var(--accent);
+  font-size:20px;
+}
+.reader-media-empty strong,.reader-media-empty small{display:block}
+.reader-media-empty strong{color:#fff}
+.reader-media-empty small{margin-top:3px}
+
+/* Chord explorer */
+.chord-explorer{
+  display:grid;
+  grid-template-columns:280px minmax(0,1fr);
+  gap:14px;
+}
+.chord-explorer-sidebar,
+.chord-explorer-stage,
+.tool-workspace,
+.settings-card{
+  border:1px solid var(--line);
+  border-radius:20px;
+  background:var(--surface);
+}
+.chord-explorer-sidebar{
+  align-self:start;
+  position:sticky;
+  top:90px;
+  display:grid;
+  gap:14px;
+  padding:16px;
+}
+.instrument-switcher{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:6px;
+}
+.instrument-switcher button{
+  min-height:40px;
+  padding:0 8px;
+  border:1px solid var(--line);
+  border-radius:11px;
+  background:#1b1e23;
+  color:#9ea3ac;
+  font-size:10px;
+  font-weight:800;
+}
+.instrument-switcher button.active{
+  border-color:var(--accent-border);
+  background:var(--accent-soft);
+  color:#fff;
+}
+.chord-explorer-stage{padding:20px;min-width:0}
+.chord-explorer-heading{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:18px;
+  margin-bottom:14px;
+}
+.chord-explorer-heading h2{
+  margin:4px 0 5px;
+  font-size:44px;
+  letter-spacing:-.05em;
+}
+.chord-explorer-heading p{margin:0;color:var(--muted)}
+.chord-variation-controls{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  color:var(--muted);
+  font-size:11px;
+}
+.chord-explorer-diagram{
+  min-height:360px;
+  display:grid;
+  place-items:center;
+  overflow:auto;
+  padding:20px;
+  border:1px solid var(--line);
+  border-radius:16px;
+  background:#0e1013;
+  color:#d8dbe0;
+}
+.chord-explorer-diagram .instrument-diagram-svg{
+  width:min(420px,100%);
+  height:auto;
+}
+.chord-explorer-diagram .keyboard-diagram-svg{
+  width:min(760px,100%);
+  height:auto;
+}
+.chord-theory-strip{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:8px;
+  margin-top:12px;
+}
+.chord-theory-strip>div{
+  min-width:0;
+  padding:12px;
+  border:1px solid var(--line);
+  border-radius:12px;
+  background:#121419;
+}
+.chord-theory-strip span,.chord-theory-strip strong{display:block}
+.chord-theory-strip span{
+  margin-bottom:5px;
+  color:var(--muted);
+  font-size:9px;
+  text-transform:uppercase;
+  letter-spacing:.12em;
+}
+.chord-theory-strip strong{
+  overflow:hidden;
+  text-overflow:ellipsis;
+  color:#fff;
+  white-space:nowrap;
+}
+
+/* Chord detail dialog */
+.chord-detail-dialog{width:min(780px,calc(100vw - 26px))}
+.chord-detail-diagram{
+  min-height:300px;
+  display:grid;
+  place-items:center;
+  margin:14px 0;
+  padding:16px;
+  overflow:auto;
+  border:1px solid var(--line);
+  border-radius:16px;
+  background:#0e1013;
+  color:#d9dce1;
+}
+.chord-detail-diagram .instrument-diagram-svg{width:min(420px,100%)}
+.chord-detail-diagram .keyboard-diagram-svg{width:min(720px,100%)}
+.chord-dialog-variations{
+  display:grid;
+  grid-template-columns:auto 1fr auto;
+  align-items:center;
+  gap:8px;
+}
+.chord-dialog-variations span{
+  text-align:center;
+  color:var(--muted);
+  font-size:11px;
+}
+
+/* Tools */
+.tools-grid{
+  display:grid;
+  grid-template-columns:1.35fr 1fr 1fr;
+  gap:12px;
+}
+.tool-workspace{
+  min-width:0;
+  padding:18px;
+}
+.tool-workspace-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:15px;
+}
+.tool-workspace-head h2{margin:4px 0 0}
+.tool-status{
+  display:inline-flex;
+  min-height:28px;
+  align-items:center;
+  padding:0 9px;
+  border:1px solid var(--line);
+  border-radius:999px;
+  background:#202329;
+  color:#a8adb6;
+  font-size:9px;
+  font-weight:850;
+}
+.metronome-display{
+  display:flex;
+  align-items:flex-end;
+  justify-content:center;
+  gap:8px;
+  margin:22px 0 14px;
+}
+.metronome-display strong{
+  font-size:74px;
+  line-height:.85;
+  letter-spacing:-.07em;
+}
+.metronome-display span{
+  margin-bottom:7px;
+  color:var(--muted);
+  font-size:12px;
+  font-weight:800;
+}
+#metronomeBpm{
+  width:100%;
+  accent-color:var(--accent);
+}
+.metronome-controls{
+  display:grid;
+  grid-template-columns:80px 1fr 80px;
+  gap:7px;
+  margin:12px 0;
+}
+.metronome-beats{
+  display:flex;
+  justify-content:center;
+  gap:9px;
+  margin:16px 0;
+}
+.metronome-beats span{
+  width:12px;
+  height:12px;
+  border-radius:50%;
+  background:#343840;
+  transition:.06s linear;
+}
+.metronome-beats span.accent{border:1px solid var(--accent-border)}
+.metronome-beats span.active{
+  transform:scale(1.28);
+  background:var(--accent);
+  box-shadow:0 0 18px color-mix(in srgb,var(--accent) 45%,transparent);
+}
+.reader-metronome-panel{
+  position:fixed;
+  right:18px;
+  bottom:18px;
+  z-index:4200;
+  display:grid;
+  grid-template-columns:minmax(110px,1fr) repeat(4,42px);
+  align-items:center;
+  gap:6px;
+  width:min(430px,calc(100vw - 24px));
+  padding:10px;
+  border:1px solid var(--line-strong);
+  border-radius:17px;
+  background:rgba(28,30,35,.97);
+  box-shadow:0 22px 70px rgba(0,0,0,.58);
+  backdrop-filter:blur(18px);
+}
+.reader-metronome-panel>div{display:grid;gap:2px}
+.reader-metronome-panel>div strong{font-size:14px}
+.reader-metronome-panel button{
+  width:42px;height:42px;
+  border:1px solid var(--line);
+  border-radius:11px;
+  background:#23262c;
+  color:#fff;
+  font-weight:900;
+}
+.reader-metronome-panel #readerMetronomeToggle{
+  background:var(--accent);
+  border-color:transparent;
+}
+.reader-metronome-panel.hidden{display:none!important}
+
+/* Settings */
+.settings-grid{
+  display:grid;
+  grid-template-columns:1.35fr 1fr;
+  gap:12px;
+}
+.settings-card{padding:18px}
+.settings-card h2{margin:0 0 15px}
+.theme-presets{
+  display:grid;
+  grid-template-columns:repeat(5,minmax(0,1fr));
+  gap:7px;
+  margin-bottom:16px;
+}
+.theme-presets button{
+  min-height:70px;
+  display:grid;
+  justify-items:center;
+  align-content:center;
+  gap:7px;
+  border:1px solid var(--line);
+  border-radius:12px;
+  background:#17191e;
+  color:#aaaeb7;
+  font-size:9px;
+  font-weight:800;
+}
+.theme-presets button.active{
+  border-color:rgba(255,255,255,.28);
+  background:#202329;
+  color:#fff;
+}
+.theme-presets i{
+  width:22px;height:22px;
+  border-radius:50%;
+  background:var(--swatch);
+  box-shadow:0 0 0 4px color-mix(in srgb,var(--swatch) 14%,transparent);
+}
+.field-help{color:var(--muted);font-size:10px;font-weight:500}
+
+/* Repertoire management */
+.repertoire-detail-actions{
+  display:grid;
+  grid-template-columns:1.3fr 1fr 1fr;
+  gap:8px;
+  margin-top:14px;
+}
+.professional-repertoire-card{
+  width:100%;
+  color:inherit;
+  text-align:left;
+}
+
+/* Stage mode must remain focused */
+.song-reader-shell.stage-mode .reader-media-panel,
+.list-player-shell.stage-mode .reader-media-panel{
+  display:none!important;
+}
+
+@media(max-width:1040px){
+  .tools-grid{grid-template-columns:1fr 1fr}
+  .metronome-workspace{grid-column:1/-1}
+  .settings-grid{grid-template-columns:1fr}
+  .chord-explorer{grid-template-columns:230px minmax(0,1fr)}
+}
+
+@media(max-width:760px){
+  .bulk-library-bar{
+    top:76px;
+    align-items:stretch;
+    flex-direction:column;
+    border-radius:15px;
+  }
+  .bulk-library-actions{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+  }
+  .bulk-library-actions .danger-button{grid-column:1/-1}
+  .song-row-card.selection-enabled{
+    grid-template-columns:42px minmax(0,1fr);
+  }
+  .chord-explorer{
+    display:block;
+  }
+  .chord-explorer-sidebar{
+    position:static;
+    margin-bottom:10px;
+  }
+  .chord-explorer-stage{padding:14px}
+  .chord-explorer-heading h2{font-size:38px}
+  .chord-theory-strip{grid-template-columns:1fr}
+  .tools-grid,.settings-grid{grid-template-columns:1fr}
+  .metronome-workspace{grid-column:auto}
+  .theme-presets{grid-template-columns:repeat(3,1fr)}
+  .reader-media-panel{
+    padding:11px 14px;
+    border-right:0;
+    border-left:0;
+  }
+  .reader-youtube-embed{width:100%}
+  .reader-metronome-panel{
+    right:50%;
+    bottom:calc(78px + env(safe-area-inset-bottom));
+    grid-template-columns:minmax(90px,1fr) repeat(4,38px);
+    transform:translateX(50%);
+  }
+  .reader-metronome-panel button{width:38px;height:38px}
+  .repertoire-detail-actions{grid-template-columns:1fr}
+  .instrument-switcher{grid-template-columns:1fr 1fr 1fr}
+}
