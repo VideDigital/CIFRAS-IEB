@@ -7,8 +7,8 @@
   <meta name="theme-color" content="#090f1d">
   <meta name="description" content="Cifras IEB — repertório, listas e cifras para louvor.">
   <title>Cifras IEB</title>
-  <link rel="stylesheet" href="styles.css?v=7.0.0">
-  <link rel="manifest" href="manifest.webmanifest?v=7.0.0">
+  <link rel="stylesheet" href="styles.css?v=7.1.0">
+  <link rel="manifest" href="manifest.webmanifest?v=7.1.0">
   <link rel="apple-touch-icon" href="icons/icon-180.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -145,7 +145,7 @@
           <span>↪</span>
           <span>Sair da conta</span>
         </button>
-        <small>Cifras IEB • Versão 7.0</small>
+        <small>Cifras IEB • Versão 7.1</small>
       </div>
     </aside>
     <div id="sidebarBackdrop" class="backdrop hidden"></div>
@@ -347,6 +347,20 @@
         </div>
 
         <div class="song-reader-shell">
+          <div class="reader-stage-bar" aria-label="Controles da tela cheia">
+            <button type="button" class="stage-back-button" data-reader-action="exit-fullscreen">
+              <span aria-hidden="true">←</span>
+              <span>Voltar</span>
+            </button>
+            <div class="stage-song-info">
+              <strong id="readerStageTitle">Cifra</strong>
+              <small id="readerStageMeta">Tom C</small>
+            </div>
+            <button type="button" class="stage-exit-button" data-reader-action="exit-fullscreen">
+              Sair da tela cheia
+            </button>
+          </div>
+
           <header class="song-reader-heading">
             <div>
               <span class="eyebrow">MODO DE LEITURA</span>
@@ -413,6 +427,7 @@
               <button type="button" data-reader-action="font-up"><span>A＋</span><small>Aumentar texto</small></button>
               <button type="button" data-reader-action="text-only"><span>≡</span><small>Somente texto</small></button>
               <button type="button" data-reader-action="fullscreen"><span>⛶</span><small id="readerFullscreenLabel">Tela cheia</small></button>
+              <button type="button" data-reader-action="back"><span>←</span><small>Voltar à biblioteca</small></button>
               <button type="button" data-reader-action="edit" class="reader-edit-action"><span>✎</span><small>Editar cifra</small></button>
             </div>
           </div>
@@ -571,6 +586,20 @@ Poderoso</code></pre>
 
       <section id="listPlayerView" class="view hidden">
         <div id="listPlayerShell" class="list-player-shell">
+          <div class="reader-stage-bar list-stage-bar" aria-label="Controles da tela cheia da lista">
+            <button type="button" class="stage-back-button" data-list-action="exit-fullscreen">
+              <span aria-hidden="true">←</span>
+              <span>Voltar</span>
+            </button>
+            <div class="stage-song-info">
+              <strong id="listStageTitle">Lista</strong>
+              <small id="listStageMeta">1 de 1</small>
+            </div>
+            <button type="button" class="stage-exit-button" data-list-action="exit-fullscreen">
+              Sair da tela cheia
+            </button>
+          </div>
+
           <div class="list-player-header">
             <button id="exitListPlayer" class="back-button" type="button">← Sair da lista</button>
 
@@ -1038,7 +1067,7 @@ Poderoso</code></pre>
     <button id="playGroupRepertoireBtn" class="primary full">Abrir modo de leitura</button>
     <button id="deleteRepertoireBtn" class="danger-button full">Excluir repertório</button>
   </dialog>
-  <script type="module" src="app.js?v=7.0.0"></script>
+  <script type="module" src="app.js?v=7.1.0"></script>
 </body>
 </html>
 
