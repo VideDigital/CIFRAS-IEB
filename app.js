@@ -73,6 +73,8 @@ const views = ["library", "lists", "groups", "chords", "tools", "settings", "sea
 function resetReaderState(nextView = "") {
   setReaderKeyPanel(false);
   setReaderQuickPanel(false);
+  setReaderMediaPanel(false);
+  setListMediaPanel(false);
   stopAutoScroll();
   stopViewerAutoScroll();
   stopPlayerAutoScroll();
@@ -141,6 +143,101 @@ function safeText(value = "") {
   return String(value).replace(/[&<>"']/g, (character) => ({
     "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
   })[character]);
+}
+
+function parseYouTubeId(value = "") {
+  const source = String(value || "").trim();
+  if (!source) return "";
+
+  try {
+    const url = new URL(source);
+    const host = url.hostname.replace(/^www\./, "");
+
+    if (host === "youtu.be") {
+      return url.pathname.split("/").filter(Boolean)[0] || "";
+    }
+
+    if (host.endsWith("youtube.com")) {
+      if (url.pathname === "/watch") return url.searchParams.get("v") || "";
+
+      const parts = url.pathname.split("/").filter(Boolean);
+      if (["embed", "shorts", "live"].includes(parts[0])) {
+        return parts[1] || "";
+      }
+    }
+  } catch {
+    if (/^[A-Za-z0-9_-]{11}$/.test(source)) return source;
+  }
+
+  return "";
+}
+
+function youtubeEmbedHtml(url = "") {
+  const videoId = parseYouTubeId(url);
+  if (!videoId) {
+    return `
+      <div class="reader-media-empty">
+        <span>▶</span>
+        <div>
+          <strong>Nenhum vídeo cadastrado</strong>
+          <small>Edite a cifra e cole um link do YouTube.</small>
+        </div>
+      </div>`;
+  }
+
+  if (!navigator.onLine) {
+    return `
+      <div class="reader-media-empty">
+        <span>⌁</span>
+        <div>
+          <strong>YouTube precisa de internet</strong>
+          <small>A cifra continua disponível offline normalmente.</small>
+        </div>
+      </div>`;
+  }
+
+  return `
+    <iframe
+      src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(videoId)}?playsinline=1&rel=0"
+      title="Vídeo de referência"
+      loading="lazy"
+      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+      allowfullscreen
+    ></iframe>`;
+}
+
+function setReaderMediaPanel(open) {
+  const panel = $("viewerMediaPanel");
+  if (!panel) return;
+
+  if (open) {
+    $("viewerYoutubeEmbed").innerHTML =
+      youtubeEmbedHtml(viewingSong?.youtubeUrl || "");
+    setReaderQuickPanel(false);
+  } else {
+    $("viewerYoutubeEmbed").innerHTML = "";
+  }
+
+  panel.classList.toggle("hidden", !open);
+}
+
+function currentListSong() {
+  return listPlayer.songs[listPlayer.index] || null;
+}
+
+function setListMediaPanel(open) {
+  const panel = $("listMediaPanel");
+  if (!panel) return;
+
+  if (open) {
+    $("listYoutubeEmbed").innerHTML =
+      youtubeEmbedHtml(currentListSong()?.youtubeUrl || "");
+    setListQuickPanel(false);
+  } else {
+    $("listYoutubeEmbed").innerHTML = "";
+  }
+
+  panel.classList.toggle("hidden", !open);
 }
 
 function windows1252Byte(character) {
@@ -1503,17 +1600,19 @@ function openSongEditor(id = null, readOnly = false) {
     artist: "",
     key: "C",
     capo: 0,
-    content: ""
+    content: "",
+    youtubeUrl: ""
   };
 
   $("songTitle").value = song.title || "";
   $("songArtist").value = song.artist || "";
   $("songKey").value = song.key || "C";
   $("songCapo").value = song.capo || 0;
+  $("songYoutubeUrl").value = song.youtubeUrl || "";
   $("songContent").value = song.content || "";
   previewKey = song.key || "C";
 
-  ["songTitle", "songArtist", "songKey", "songCapo", "songContent"].forEach((elementId) => {
+  ["songTitle", "songArtist", "songYoutubeUrl", "songKey", "songCapo", "songContent"].forEach((elementId) => {
     $(elementId).disabled = readOnly;
   });
 
@@ -1985,7 +2084,7 @@ document.querySelectorAll("[data-insert-section]").forEach((button) => {
   });
 });
 
-["songContent", "songKey", "songTitle", "songArtist", "songCapo"].forEach((elementId) => {
+["songContent", "songKey", "songTitle", "songArtist", "songYoutubeUrl", "songCapo"].forEach((elementId) => {
   $(elementId).addEventListener("input", () => {
     if (elementId === "songKey") previewKey = $(elementId).value;
     setDirty(true);
@@ -2036,10 +2135,19 @@ async function saveSong() {
   saveButton.textContent = "Salvando...";
 
   try {
+    const youtubeUrl = $("songYoutubeUrl").value.trim();
+
+    if (youtubeUrl && !parseYouTubeId(youtubeUrl)) {
+      toast("O link do YouTube não parece válido.");
+      $("songYoutubeUrl").focus();
+      return;
+    }
+
     const data = {
       ownerId: currentUser.uid,
       title: repairBrokenText(title),
       artist: repairBrokenText($("songArtist").value.trim()),
+      youtubeUrl,
       key: $("songKey").value,
       capo: Number($("songCapo").value) || 0,
       content: repairBrokenText($("songContent").value),
@@ -2462,6 +2570,7 @@ function renderListSong() {
 }
 
 function moveList(direction) {
+  setListMediaPanel(false);
   const nextIndex = listPlayer.index + direction;
 
   if (nextIndex < 0 || nextIndex >= listPlayer.songs.length) {
@@ -4291,7 +4400,8 @@ $("saveRepertoireBtn").onclick=async()=>{
       artist:song.artist||"",
       key:song.key||"C",
       capo:Number(song.capo)||0,
-      content:song.content||""
+      content:song.content||"",
+      youtubeUrl:song.youtubeUrl||""
     }));
 
   await addDoc(collection(db,"groupRepertoires"),{
@@ -4323,6 +4433,7 @@ function getCurrentRepertoireSongs() {
       key: song.key || "C",
       capo: Number(song.capo) || 0,
       content: song.content || "",
+      youtubeUrl: song.youtubeUrl || "",
       fromGroupRepertoire: true
     }));
   }
@@ -4440,6 +4551,7 @@ document.addEventListener("click", async (event) => {
       key: groupSong.key || "C",
       capo: Number(groupSong.capo) || 0,
       content: groupSong.content || "",
+      youtubeUrl: groupSong.youtubeUrl || "",
       importedFromGroupId: currentGroup?.id || "",
       importedFromGroupRepertoireId: currentRepertoire.id,
       importedFromGroupSongId: groupSong.sourceSongId || "",
@@ -4513,7 +4625,10 @@ document.addEventListener("click", (event) => {
       more: () => setReaderQuickPanel(
         $("readerQuickPanel")?.classList.contains("hidden") === true
       ),
-      "close-more": () => setReaderQuickPanel(false)
+      "close-more": () => setReaderQuickPanel(false),
+      media: () => setReaderMediaPanel($("viewerMediaPanel")?.classList.contains("hidden") === true),
+      "close-media": () => setReaderMediaPanel(false),
+      metronome: () => toggleReaderMetronomePanel(true)
     };
 
     actions[action]?.();
@@ -4537,6 +4652,9 @@ document.addEventListener("click", (event) => {
       fullscreen: () => $("playerStageMode")?.click(),
       "exit-fullscreen": () => exitListFullscreen(),
       exit: () => $("exitListPlayer")?.click(),
+      media: () => setListMediaPanel($("listMediaPanel")?.classList.contains("hidden") === true),
+      "close-media": () => setListMediaPanel(false),
+      metronome: () => toggleReaderMetronomePanel(true),
       more: () => setListQuickPanel(
         $("listQuickPanel")?.classList.contains("hidden") === true
       )
