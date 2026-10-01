@@ -1488,13 +1488,17 @@ $("viewerTextOnlyBtn").onclick = () => {
 };
 
 function setReaderQuickPanel(open) {
-  if (open) setReaderKeyPanel(false);
+  if (open) {
+    setReaderKeyPanel(false);
+    syncScrollSpeedButtons();
+  }
   $("readerQuickPanel")?.classList.toggle("hidden", !open);
   $("readerQuickBackdrop")?.classList.toggle("hidden", !open);
   document.body.classList.toggle("reader-sheet-open", open);
 }
 
 function setListQuickPanel(open) {
+  if (open) syncScrollSpeedButtons();
   $("listQuickPanel")?.classList.toggle("hidden", !open);
   $("listQuickBackdrop")?.classList.toggle("hidden", !open);
   document.body.classList.toggle("list-sheet-open", open);
@@ -4963,6 +4967,56 @@ document.querySelectorAll("[data-mobile-view]").forEach((button) => {
       item.classList.toggle("active", item === button);
     });
   });
+});
+
+function syncScrollSpeedButtons() {
+  const viewerSpeed = String($("viewerScrollSpeed")?.value || "0.75");
+  const listSpeed = String($("playerScrollSpeed")?.value || "0.75");
+
+  document.querySelectorAll("[data-reader-speed]").forEach((button) => {
+    button.classList.toggle(
+      "active",
+      button.dataset.readerSpeed === viewerSpeed
+    );
+  });
+
+  document.querySelectorAll("[data-list-speed]").forEach((button) => {
+    button.classList.toggle(
+      "active",
+      button.dataset.listSpeed === listSpeed
+    );
+  });
+}
+
+document.addEventListener("click", (event) => {
+  const readerSpeedButton = event.target.closest("[data-reader-speed]");
+  if (readerSpeedButton) {
+    const speed = readerSpeedButton.dataset.readerSpeed || "0.75";
+    if ($("viewerScrollSpeed")) $("viewerScrollSpeed").value = speed;
+    saveReaderPreferences({ scrollSpeed:speed });
+    syncScrollSpeedButtons();
+    toast(`Rolagem: ${readerSpeedButton.textContent.trim()}.`);
+    return;
+  }
+
+  const listSpeedButton = event.target.closest("[data-list-speed]");
+  if (listSpeedButton) {
+    const speed = listSpeedButton.dataset.listSpeed || "0.75";
+    if ($("playerScrollSpeed")) $("playerScrollSpeed").value = speed;
+    saveReaderPreferences({ scrollSpeed:speed });
+    syncScrollSpeedButtons();
+    toast(`Rolagem: ${listSpeedButton.textContent.trim()}.`);
+  }
+});
+
+$("viewerScrollSpeed")?.addEventListener("change", (event) => {
+  saveReaderPreferences({ scrollSpeed:String(event.target.value || "0.75") });
+  syncScrollSpeedButtons();
+});
+
+$("playerScrollSpeed")?.addEventListener("change", (event) => {
+  saveReaderPreferences({ scrollSpeed:String(event.target.value || "0.75") });
+  syncScrollSpeedButtons();
 });
 
 document.querySelector("[data-mobile-menu]")?.addEventListener("click", (event) => {
