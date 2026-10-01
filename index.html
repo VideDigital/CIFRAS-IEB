@@ -912,6 +912,14 @@ Poderoso</code></pre>
 
           <div class="swipe-hint">Deslize para os lados ou use os botões para trocar de música.</div>
 
+          <section id="listMediaPanel" class="reader-media-panel list-media-panel hidden">
+            <div class="reader-media-head">
+              <div><span class="eyebrow">OUVIR</span><strong>Referência no YouTube</strong></div>
+              <button type="button" class="reader-quick-close" data-list-action="close-media">×</button>
+            </div>
+            <div id="listYoutubeEmbed" class="reader-youtube-embed"></div>
+          </section>
+
           <div id="listPlayerSong" class="song-preview player list-player-song"></div>
 
           <div class="player-nav list-player-nav">
@@ -933,6 +941,8 @@ Poderoso</code></pre>
               <button type="button" data-list-action="font-up"><span>A＋</span><small>Aumentar texto</small></button>
               <button type="button" data-list-action="text-only"><span>≡</span><small>Somente texto</small></button>
               <button type="button" data-list-action="fullscreen"><span>⛶</span><small>Tela cheia</small></button>
+              <button type="button" data-list-action="media"><span>▶</span><small>Ouvir YouTube</small></button>
+              <button type="button" data-list-action="metronome"><span>◉</span><small>Metrônomo</small></button>
               <button type="button" data-list-action="exit" class="reader-edit-action"><span>←</span><small>Sair da lista</small></button>
             </div>
           </div>
