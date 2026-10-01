@@ -1,0 +1,66 @@
+name: Validate Cifras IEB
+
+on:
+  push:
+    branches:
+      - main
+      - fix/v7-stabilization
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate JavaScript syntax
+        shell: bash
+        run: |
+          cp app.js /tmp/app.mjs
+          cp chord-engine.js /tmp/chord-engine.mjs
+          cp chord-diagrams.js /tmp/chord-diagrams.mjs
+          node --check /tmp/app.mjs
+          node --check /tmp/chord-engine.mjs
+          node --check /tmp/chord-diagrams.mjs
+          node --check service-worker.js
+
+      - name: Validate required HTML hooks
+        shell: python
+        run: |
+          from pathlib import Path
+          import re
+
+          html = Path("index.html").read_text(encoding="utf-8")
+          ids = re.findall(r'\bid="([^"]+)"', html)
+          duplicates = sorted({x for x in ids if ids.count(x) > 1})
+          if duplicates:
+              raise SystemExit(f"Duplicate ids: {duplicates}")
+
+          required = {
+              "songViewerView",
+              "readerQuickPanel",
+              "readerQuickBackdrop",
+              "listPlayerView",
+              "listQuickPanel",
+              "listQuickBackdrop",
+              "bulkImportDialog",
+              "groupDetailsDialog",
+              "repertoireDialog",
+          }
+          missing = sorted(required - set(ids))
+          if missing:
+              raise SystemExit(f"Missing required ids: {missing}")
+
+          if "?v=7.0.0" not in html:
+              raise SystemExit("index.html is not pointing to v7.0.0 assets")
+
+      - name: Validate service worker version
+        shell: python
+        run: |
+          from pathlib import Path
+          sw = Path("service-worker.js").read_text(encoding="utf-8")
+          if 'cifras-ieb-v7.0.0' not in sw:
+              raise SystemExit("Service worker cache version is stale")
