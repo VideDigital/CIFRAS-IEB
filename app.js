@@ -3392,7 +3392,7 @@ function sanitizeImportedText(content = "") {
     .replace(/\u00A0/g, " ")
     .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F]/g, "")
     .replace(/[\u200B-\u200F\u202A-\u202E\u2060\uFEFF]/g, "")
-    .replace(/[\uE000-\uF8FF\uFFFD]/g, "");
+    .replace(/[\uE000-\uF8FF]/g, "");
 
   const cleaned = [];
   let previousBlank = false;
@@ -4221,6 +4221,13 @@ $("bulkImportFiles").addEventListener("change", async (event) => {
 
     try {
       const rawText = await readImportedFile(file);
+
+      if (String(rawText).includes("\uFFFD")) {
+        throw new Error(
+          "o arquivo contém caracteres ilegíveis; abra a prévia original e exporte novamente como DOCX ou TXT em UTF-8"
+        );
+      }
+
       const inferredSongs = inferSongFromFile(
         repairBrokenText(file.name),
         repairBrokenText(rawText)
