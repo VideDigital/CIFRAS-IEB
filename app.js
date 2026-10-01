@@ -1414,9 +1414,15 @@ function openSongViewer(id, readOnly = false) {
   }
 
   viewingSongReadOnly = readOnly;
+  const readerPreferences = getReaderPreferences();
   viewerTextOnlyMode = false;
-  viewerFontSize = 20;
+  viewerFontSize = Number(readerPreferences.fontSize) || 20;
   viewerKey = viewingSong.key || "C";
+
+  if ($("viewerScrollSpeed")) {
+    $("viewerScrollSpeed").value =
+      String(readerPreferences.scrollSpeed || "0.75");
+  }
 
   $("viewerTextOnlyBtn").textContent = "Somente texto";
   $("viewerTextOnlyBtn").classList.remove("active-mode");
@@ -2713,9 +2719,15 @@ function startList(id) {
 
   listPlayer.songs = list.songIds.map((songId) => songs.find((song) => song.id === songId)).filter(Boolean);
   listPlayer.index = 0;
-  playerFontSize = 20;
+  const readerPreferences = getReaderPreferences();
+  playerFontSize = Number(readerPreferences.fontSize) || 20;
   playerTextOnlyMode = false;
   playerKey = listPlayer.songs[0]?.key || "C";
+
+  if ($("playerScrollSpeed")) {
+    $("playerScrollSpeed").value =
+      String(readerPreferences.scrollSpeed || "0.75");
+  }
   $("playerTextOnlyBtn").textContent = "Somente texto";
   $("playerTextOnlyBtn").classList.remove("active-mode");
 
@@ -4938,6 +4950,425 @@ $("playerAutoScrollBtn")?.addEventListener("click", () => {
   window.requestAnimationFrame(syncListDockScrollState);
 });
 
+
+const THEME_PRESETS = {
+  orange: { accent:"#ff6a00", chord:"#ff6a00" },
+  blue: { accent:"#4f8cff", chord:"#67a1ff" },
+  green: { accent:"#32c77f", chord:"#43d990" },
+  purple: { accent:"#9a6cff", chord:"#b087ff" },
+  red: { accent:"#ff515e", chord:"#ff727c" }
+};
+
+function colorWithAlpha(hex, alpha) {
+  const value = String(hex || "").replace("#", "");
+  if (!/^[0-9a-f]{6}$/i.test(value)) return `rgba(255,106,0,${alpha})`;
+
+  const r = parseInt(value.slice(0, 2), 16);
+  const g = parseInt(value.slice(2, 4), 16);
+  const b = parseInt(value.slice(4, 6), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
+function defaultThemeSettings() {
+  return {
+    accent:"#ff6a00",
+    chord:"#ff6a00",
+    background:"#0b0c0f",
+    text:"#f5f6f8",
+    preset:"orange"
+  };
+}
+
+function getThemeSettings() {
+  try {
+    const stored = JSON.parse(
+      localStorage.getItem("cifrasIebTheme") || "null"
+    );
+    return { ...defaultThemeSettings(), ...(stored || {}) };
+  } catch {
+    return defaultThemeSettings();
+  }
+}
+
+function applyThemeSettings(settings = getThemeSettings()) {
+  const root = document.documentElement;
+  root.style.setProperty("--accent", settings.accent);
+  root.style.setProperty("--accent-2", settings.accent);
+  root.style.setProperty("--accent-soft", colorWithAlpha(settings.accent, .11));
+  root.style.setProperty("--accent-border", colorWithAlpha(settings.accent, .30));
+  root.style.setProperty("--chord-color", settings.chord);
+  root.style.setProperty("--bg", settings.background);
+  root.style.setProperty("--text", settings.text);
+
+  const metaTheme = document.querySelector('meta[name="theme-color"]');
+  metaTheme?.setAttribute("content", settings.background);
+}
+
+function saveThemeSettings(nextSettings) {
+  const settings = {
+    ...getThemeSettings(),
+    ...nextSettings
+  };
+
+  localStorage.setItem(
+    "cifrasIebTheme",
+    JSON.stringify(settings)
+  );
+  applyThemeSettings(settings);
+  syncSettingsControls();
+}
+
+function getReaderPreferences() {
+  try {
+    return {
+      fontSize:20,
+      scrollSpeed:"0.75",
+      ...(JSON.parse(
+        localStorage.getItem("cifrasIebReaderPreferences") || "null"
+      ) || {})
+    };
+  } catch {
+    return { fontSize:20, scrollSpeed:"0.75" };
+  }
+}
+
+function saveReaderPreferences(partial) {
+  const preferences = {
+    ...getReaderPreferences(),
+    ...partial
+  };
+
+  localStorage.setItem(
+    "cifrasIebReaderPreferences",
+    JSON.stringify(preferences)
+  );
+}
+
+function syncSettingsControls() {
+  const settings = getThemeSettings();
+  const preferences = getReaderPreferences();
+
+  if ($("themeAccentColor")) $("themeAccentColor").value = settings.accent;
+  if ($("themeChordColor")) $("themeChordColor").value = settings.chord;
+  if ($("themeBackgroundColor")) $("themeBackgroundColor").value = settings.background;
+  if ($("themeTextColor")) $("themeTextColor").value = settings.text;
+  if ($("defaultReaderFontSize")) $("defaultReaderFontSize").value = String(preferences.fontSize);
+  if ($("defaultScrollSpeed")) $("defaultScrollSpeed").value = String(preferences.scrollSpeed);
+
+  document.querySelectorAll("[data-theme-preset]").forEach((button) => {
+    button.classList.toggle(
+      "active",
+      button.dataset.themePreset === settings.preset
+    );
+  });
+}
+
+document.querySelectorAll("[data-theme-preset]").forEach((button) => {
+  button.addEventListener("click", () => {
+    const preset = button.dataset.themePreset;
+    const colors = THEME_PRESETS[preset];
+    if (!colors) return;
+
+    saveThemeSettings({
+      preset,
+      accent: colors.accent,
+      chord: colors.chord
+    });
+  });
+});
+
+$("themeAccentColor")?.addEventListener("input", (event) => {
+  saveThemeSettings({ accent:event.target.value, preset:"custom" });
+});
+
+$("themeChordColor")?.addEventListener("input", (event) => {
+  saveThemeSettings({ chord:event.target.value, preset:"custom" });
+});
+
+$("themeBackgroundColor")?.addEventListener("input", (event) => {
+  saveThemeSettings({ background:event.target.value, preset:"custom" });
+});
+
+$("themeTextColor")?.addEventListener("input", (event) => {
+  saveThemeSettings({ text:event.target.value, preset:"custom" });
+});
+
+$("resetThemeBtn")?.addEventListener("click", () => {
+  localStorage.removeItem("cifrasIebTheme");
+  applyThemeSettings(defaultThemeSettings());
+  syncSettingsControls();
+  toast("Cores restauradas.");
+});
+
+$("defaultReaderFontSize")?.addEventListener("change", (event) => {
+  saveReaderPreferences({ fontSize:Number(event.target.value) || 20 });
+});
+
+$("defaultScrollSpeed")?.addEventListener("change", (event) => {
+  saveReaderPreferences({ scrollSpeed:String(event.target.value || "0.75") });
+});
+
+applyThemeSettings();
+syncSettingsControls();
+
+function metronomeBpm() {
+  return Math.max(
+    30,
+    Math.min(240, Number($("metronomeBpm")?.value) || 80)
+  );
+}
+
+function updateMetronomeDisplays() {
+  const bpm = metronomeBpm();
+
+  if ($("metronomeBpmDisplay")) {
+    $("metronomeBpmDisplay").textContent = String(bpm);
+  }
+
+  if ($("readerMetronomeBpm")) {
+    $("readerMetronomeBpm").textContent = String(bpm);
+  }
+
+  if ($("metronomeStatus")) {
+    $("metronomeStatus").textContent =
+      metronomeTimer ? "Tocando" : "Parado";
+  }
+
+  if ($("metronomeToggle")) {
+    $("metronomeToggle").textContent =
+      metronomeTimer ? "Pausar metrônomo" : "Iniciar metrônomo";
+  }
+
+  if ($("readerMetronomeToggle")) {
+    $("readerMetronomeToggle").textContent =
+      metronomeTimer ? "Ⅱ" : "▶";
+  }
+}
+
+function renderMetronomeBeatDots(activeBeat = -1) {
+  const container = $("metronomeBeatDots");
+  if (!container) return;
+
+  const beats = Math.max(2, Number($("metronomeBeats")?.value) || 4);
+  container.innerHTML = Array.from({ length: beats }, (_, index) => `
+    <span class="${index === activeBeat ? "active" : ""} ${index === 0 ? "accent" : ""}"></span>
+  `).join("");
+}
+
+function scheduleMetronomeClick(time, accent) {
+  if (!metronomeAudioContext) return;
+
+  const oscillator = metronomeAudioContext.createOscillator();
+  const gain = metronomeAudioContext.createGain();
+
+  oscillator.frequency.value = accent ? 1250 : 850;
+  gain.gain.setValueAtTime(0.0001, time);
+  gain.gain.exponentialRampToValueAtTime(accent ? 0.30 : 0.18, time + 0.002);
+  gain.gain.exponentialRampToValueAtTime(0.0001, time + 0.055);
+
+  oscillator.connect(gain);
+  gain.connect(metronomeAudioContext.destination);
+
+  oscillator.start(time);
+  oscillator.stop(time + 0.065);
+}
+
+function metronomeScheduler() {
+  if (!metronomeAudioContext) return;
+
+  const beats = Math.max(2, Number($("metronomeBeats")?.value) || 4);
+  const secondsPerBeat = 60 / metronomeBpm();
+
+  while (
+    metronomeNextNoteTime <
+    metronomeAudioContext.currentTime + 0.12
+  ) {
+    const scheduledBeat = metronomeBeat;
+    scheduleMetronomeClick(
+      metronomeNextNoteTime,
+      scheduledBeat === 0
+    );
+
+    const delay = Math.max(
+      0,
+      (metronomeNextNoteTime -
+        metronomeAudioContext.currentTime) * 1000
+    );
+
+    window.setTimeout(() => {
+      renderMetronomeBeatDots(scheduledBeat);
+    }, delay);
+
+    metronomeNextNoteTime += secondsPerBeat;
+    metronomeBeat = (metronomeBeat + 1) % beats;
+  }
+}
+
+async function startMetronome() {
+  if (metronomeTimer) return;
+
+  const AudioContextClass =
+    window.AudioContext || window.webkitAudioContext;
+
+  if (!AudioContextClass) {
+    toast("Este navegador não oferece áudio para o metrônomo.");
+    return;
+  }
+
+  metronomeAudioContext =
+    metronomeAudioContext || new AudioContextClass();
+
+  if (metronomeAudioContext.state === "suspended") {
+    await metronomeAudioContext.resume();
+  }
+
+  metronomeBeat = 0;
+  metronomeNextNoteTime =
+    metronomeAudioContext.currentTime + 0.05;
+
+  metronomeTimer = window.setInterval(
+    metronomeScheduler,
+    25
+  );
+
+  metronomeScheduler();
+  updateMetronomeDisplays();
+}
+
+function stopMetronome() {
+  if (metronomeTimer) {
+    window.clearInterval(metronomeTimer);
+  }
+
+  metronomeTimer = null;
+  metronomeBeat = 0;
+  renderMetronomeBeatDots(-1);
+  updateMetronomeDisplays();
+}
+
+function toggleMetronome() {
+  if (metronomeTimer) stopMetronome();
+  else startMetronome();
+}
+
+function setMetronomeBpm(value) {
+  const bpm = Math.max(30, Math.min(240, Number(value) || 80));
+  if ($("metronomeBpm")) $("metronomeBpm").value = String(bpm);
+  updateMetronomeDisplays();
+}
+
+function toggleReaderMetronomePanel(open = null) {
+  const panel = $("readerMetronomePanel");
+  if (!panel) return;
+
+  const shouldOpen =
+    open === null
+      ? panel.classList.contains("hidden")
+      : Boolean(open);
+
+  panel.classList.toggle("hidden", !shouldOpen);
+  updateMetronomeDisplays();
+}
+
+$("metronomeToggle")?.addEventListener("click", toggleMetronome);
+$("readerMetronomeToggle")?.addEventListener("click", toggleMetronome);
+$("readerMetronomeClose")?.addEventListener("click", () =>
+  toggleReaderMetronomePanel(false)
+);
+
+$("metronomeBpm")?.addEventListener("input", (event) => {
+  setMetronomeBpm(event.target.value);
+});
+
+$("metronomeMinus")?.addEventListener("click", () =>
+  setMetronomeBpm(metronomeBpm() - 5)
+);
+$("metronomePlus")?.addEventListener("click", () =>
+  setMetronomeBpm(metronomeBpm() + 5)
+);
+$("readerMetronomeMinus")?.addEventListener("click", () =>
+  setMetronomeBpm(metronomeBpm() - 5)
+);
+$("readerMetronomePlus")?.addEventListener("click", () =>
+  setMetronomeBpm(metronomeBpm() + 5)
+);
+
+$("metronomeBeats")?.addEventListener("change", () => {
+  metronomeBeat = 0;
+  renderMetronomeBeatDots(-1);
+});
+
+$("metronomeTap")?.addEventListener("click", () => {
+  const now = performance.now();
+
+  metronomeTapTimes = metronomeTapTimes
+    .filter((time) => now - time < 2500);
+  metronomeTapTimes.push(now);
+
+  if (metronomeTapTimes.length < 2) return;
+
+  const intervals = [];
+  for (let index = 1; index < metronomeTapTimes.length; index += 1) {
+    intervals.push(
+      metronomeTapTimes[index] -
+      metronomeTapTimes[index - 1]
+    );
+  }
+
+  const average =
+    intervals.reduce((sum, value) => sum + value, 0) /
+    intervals.length;
+
+  setMetronomeBpm(Math.round(60000 / average));
+});
+
+renderMetronomeBeatDots();
+updateMetronomeDisplays();
+
+function updateOfflineReadyStatus() {
+  const status = $("offlineReadyStatus");
+  if (!status) return;
+
+  const hasLocalData =
+    Array.isArray(readLocalArea("songs")) ||
+    Array.isArray(readLocalArea("lists"));
+
+  status.textContent = hasLocalData
+    ? "Dados preparados"
+    : navigator.onLine
+      ? "Preparar agora"
+      : "Sem cache local";
+}
+
+$("prepareOfflineBtn")?.addEventListener("click", async () => {
+  const button = $("prepareOfflineBtn");
+  button.disabled = true;
+  button.textContent = "Preparando...";
+
+  try {
+    if (!navigator.onLine) {
+      toast("Conecte-se uma vez para atualizar o conteúdo offline.");
+      return;
+    }
+
+    await loadAll();
+
+    if ("serviceWorker" in navigator) {
+      const registration = await navigator.serviceWorker.ready;
+      await registration.update().catch(() => {});
+    }
+
+    markSuccessfulSync();
+    updateOfflineReadyStatus();
+    toast("Cifras e repertórios preparados para uso offline.");
+  } catch (error) {
+    console.error("Erro ao preparar offline:", error);
+    toast("Não foi possível concluir a preparação offline.");
+  } finally {
+    button.disabled = false;
+    button.textContent = "Preparar dados offline";
+  }
+});
 
 let deferredInstallPrompt = null;
 
