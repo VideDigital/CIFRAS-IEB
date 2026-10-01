@@ -2724,6 +2724,70 @@ function toggleStageMode(panel) {
 $("stageModeBtn").onclick = () => toggleStageMode($("previewPanel"));
 
 
+function moveOrderedSelection(selection, songId, delta) {
+  const ids = [...selection];
+  const index = ids.indexOf(songId);
+  if (index < 0) return selection;
+
+  const target = index + delta;
+  if (target < 0 || target >= ids.length) return selection;
+
+  [ids[index], ids[target]] = [ids[target], ids[index]];
+  return new Set(ids);
+}
+
+function selectedSongOrderHtml(selection, scope = "list") {
+  const ids = [...selection];
+
+  if (!ids.length) {
+    return `
+      <div class="selected-order-empty">
+        <span>♫</span>
+        <small>As músicas selecionadas aparecerão aqui na ordem de execução.</small>
+      </div>`;
+  }
+
+  return ids.map((songId, index) => {
+    const song = songs.find((item) => item.id === songId);
+    if (!song) return "";
+
+    return `
+      <article class="selected-order-row">
+        <span class="selected-order-number">${index + 1}</span>
+        <div>
+          <strong>${safeText(song.title || "Sem título")}</strong>
+          <small>${safeText(song.artist || "Artista não informado")} • Tom ${safeText(song.key || "C")}</small>
+        </div>
+        <div class="selected-order-actions">
+          <button
+            type="button"
+            data-${scope}-order-up="${songId}"
+            aria-label="Subir ${safeText(song.title || "")}"
+            ${index === 0 ? "disabled" : ""}
+          >↑</button>
+          <button
+            type="button"
+            data-${scope}-order-down="${songId}"
+            aria-label="Descer ${safeText(song.title || "")}"
+            ${index === ids.length - 1 ? "disabled" : ""}
+          >↓</button>
+          <button
+            type="button"
+            class="danger-text"
+            data-${scope}-order-remove="${songId}"
+            aria-label="Remover ${safeText(song.title || "")}"
+          >×</button>
+        </div>
+      </article>`;
+  }).join("");
+}
+
+function renderListSelectedOrder() {
+  if (!$("listSelectedOrder")) return;
+  $("listSelectedOrder").innerHTML =
+    selectedSongOrderHtml(listSongSelection, "list");
+}
+
 function updateListSelectionCount() {
   if ($("listSelectionCount")) {
     const count = listSongSelection.size;
@@ -2766,6 +2830,7 @@ function renderListSongOptions(searchTerm = "") {
     `;
 
   updateListSelectionCount();
+  renderListSelectedOrder();
 }
 
 function openListDialog(list = null) {
@@ -2801,11 +2866,43 @@ $("listSongOptions")?.addEventListener("change", (event) => {
   }
 
   updateListSelectionCount();
+  renderListSelectedOrder();
 });
 
 $("clearListSelectionBtn")?.addEventListener("click", () => {
   listSongSelection.clear();
   renderListSongOptions($("listSongSearchInput")?.value || "");
+  renderListSelectedOrder();
+});
+
+
+document.addEventListener("click", (event) => {
+  const up = event.target.closest("[data-list-order-up]");
+  const down = event.target.closest("[data-list-order-down]");
+  const remove = event.target.closest("[data-list-order-remove]");
+
+  if (!up && !down && !remove) return;
+
+  const songId =
+    up?.dataset.listOrderUp ||
+    down?.dataset.listOrderDown ||
+    remove?.dataset.listOrderRemove;
+
+  if (!songId) return;
+
+  if (remove) {
+    listSongSelection.delete(songId);
+    renderListSongOptions($("listSongSearchInput")?.value || "");
+  } else {
+    listSongSelection = moveOrderedSelection(
+      listSongSelection,
+      songId,
+      up ? -1 : 1
+    );
+    renderListSelectedOrder();
+  }
+
+  updateListSelectionCount();
 });
 
 
@@ -4764,6 +4861,13 @@ function renderGroupRepertoires() {
       </div>
     `;
 }
+function renderGroupRepertoireSelectedOrder() {
+  if (!$("repertoireSelectedOrder")) return;
+
+  $("repertoireSelectedOrder").innerHTML =
+    selectedSongOrderHtml(groupRepertoireSelection, "group");
+}
+
 function renderRepertoireSongOptions(searchTerm = "") {
   const selectedIds = groupRepertoireSelection;
 
@@ -4792,6 +4896,7 @@ function renderRepertoireSongOptions(searchTerm = "") {
     `;
 
   updateRepertoireSelectionCount();
+  renderGroupRepertoireSelectedOrder();
 }
 
 function updateRepertoireSelectionCount() {
@@ -4831,6 +4936,7 @@ $("repertoireSongOptions")?.addEventListener("change", (event) => {
   else groupRepertoireSelection.delete(input.value);
 
   updateRepertoireSelectionCount();
+  renderGroupRepertoireSelectedOrder();
 });
 
 $("clearRepertoireSelectionBtn")?.addEventListener("click", () => {
@@ -4839,6 +4945,38 @@ $("clearRepertoireSelectionBtn")?.addEventListener("click", () => {
     $("repertoireSongSearchInput")?.value || ""
   );
 });
+document.addEventListener("click", (event) => {
+  const up = event.target.closest("[data-group-order-up]");
+  const down = event.target.closest("[data-group-order-down]");
+  const remove = event.target.closest("[data-group-order-remove]");
+
+  if (!up && !down && !remove) return;
+
+  const songId =
+    up?.dataset.groupOrderUp ||
+    down?.dataset.groupOrderDown ||
+    remove?.dataset.groupOrderRemove;
+
+  if (!songId) return;
+
+  if (remove) {
+    groupRepertoireSelection.delete(songId);
+    renderRepertoireSongOptions(
+      $("repertoireSongSearchInput")?.value || ""
+    );
+  } else {
+    groupRepertoireSelection = moveOrderedSelection(
+      groupRepertoireSelection,
+      songId,
+      up ? -1 : 1
+    );
+    renderGroupRepertoireSelectedOrder();
+  }
+
+  updateRepertoireSelectionCount();
+});
+
+
 
 $("saveRepertoireBtn").onclick = async () => {
   if (!currentGroup) return;
