@@ -57,6 +57,7 @@ let viewerScrollFrame = null;
 const views = ["library", "lists", "groups", "search", "shared", "songViewer", "editor", "listPlayer"];
 
 function resetReaderState(nextView = "") {
+  setReaderKeyPanel(false);
   setReaderQuickPanel(false);
   stopAutoScroll();
   stopViewerAutoScroll();
@@ -975,6 +976,128 @@ $("deleteSongBtn").onclick = async () => {
 };
 
 
+function collectSongChords(content = "") {
+  const chords = [];
+  const seen = new Set();
+
+  const addChord = (value) => {
+    const chord = String(value || "").trim();
+    if (!chord || seen.has(chord) || /^N\.?C\.?$/i.test(chord)) return;
+    seen.add(chord);
+    chords.push(chord);
+  };
+
+  for (const match of String(content).matchAll(/\[([^\]]+)\]/g)) {
+    addChord(match[1]);
+  }
+
+  String(content).split("\n").forEach((line) => {
+    if (!looksLikeChordRow(line)) return;
+    extractChordTokens(line).forEach(({ chord }) => addChord(chord));
+  });
+
+  return chords;
+}
+
+function renderReaderChordStrip(content, stripId, countId) {
+  const strip = $(stripId);
+  const count = $(countId);
+  if (!strip) return;
+
+  const chords = collectSongChords(content);
+  if (count) {
+    count.textContent = `${chords.length} ${chords.length === 1 ? "acorde" : "acordes"}`;
+  }
+
+  if (!chords.length) {
+    strip.innerHTML = `
+      <div class="reader-chord-empty">
+        <span>♫</span>
+        <div>
+          <strong>Nenhum acorde identificado</strong>
+          <small>A cifra pode estar em modo somente letra.</small>
+        </div>
+      </div>`;
+    return;
+  }
+
+  strip.innerHTML = chords.slice(0, 12).map((chord) => {
+    const shape = getChordShape(chord);
+    const diagram = shape
+      ? `<span class="reader-mini-diagram">${drawChordDiagram(chord)}</span>`
+      : `<span class="reader-chord-symbol">${safeText(chord)}</span>`;
+
+    return `
+      <button
+        type="button"
+        class="reader-chord-card chord"
+        data-chord="${safeText(chord)}"
+        aria-label="Abrir acorde ${safeText(chord)}"
+      >
+        <strong>${safeText(chord)}</strong>
+        ${diagram}
+      </button>`;
+  }).join("");
+}
+
+function readerKeyScale() {
+  const preferFlats =
+    /b/.test(viewerKey || "") ||
+    /b/.test(viewingSong?.key || "");
+
+  return preferFlats
+    ? ["C","Db","D","Eb","E","F","Gb","G","Ab","A","Bb","B"]
+    : ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+}
+
+function renderReaderKeyPanel() {
+  if (!$("readerKeyGrid")) return;
+
+  const scale = readerKeyScale();
+  $("readerKeyPanelCurrent").textContent = viewerKey;
+  $("readerKeyPanelTitle").textContent = `Tom ${viewerKey}`;
+
+  $("readerKeyGrid").innerHTML = scale.map((key) => `
+    <button
+      type="button"
+      data-reader-key="${key}"
+      class="${key === viewerKey ? "active" : ""}"
+    >${key}</button>
+  `).join("");
+}
+
+function setReaderKeyPanel(open) {
+  $("readerKeyPanel")?.classList.toggle("hidden", !open);
+  $("readerKeyBackdrop")?.classList.toggle("hidden", !open);
+  document.body.classList.toggle("reader-key-sheet-open", open);
+
+  if (open) {
+    setReaderQuickPanel(false);
+    renderReaderKeyPanel();
+  }
+}
+
+function syncReaderModeUI() {
+  const shell = $("dedicatedSongViewer")?.closest(".song-reader-shell");
+  shell?.classList.toggle("reader-text-only", viewerTextOnlyMode);
+
+  document.querySelectorAll(
+    '#songViewerView [data-reader-action="text-only"]'
+  ).forEach((button) => {
+    button.classList.toggle("active", viewerTextOnlyMode);
+  });
+}
+
+document.addEventListener("click", (event) => {
+  const keyButton = event.target.closest("[data-reader-key]");
+  if (!keyButton) return;
+
+  viewerKey = keyButton.dataset.readerKey || viewerKey;
+  renderDedicatedSongViewer();
+  renderReaderKeyPanel();
+  setReaderKeyPanel(false);
+});
+
 function renderDedicatedSongViewer() {
   if (!viewingSong) return;
 
@@ -1011,6 +1134,14 @@ function renderDedicatedSongViewer() {
   $("dedicatedSongViewer").style.fontSize = `${viewerFontSize}px`;
   $("dedicatedSongViewer").innerHTML = renderChordMarkup(content);
 
+  renderReaderChordStrip(
+    transposedContent,
+    "viewerChordStrip",
+    "viewerChordCount"
+  );
+  renderReaderKeyPanel();
+  syncReaderModeUI();
+
   const capo = Number(viewingSong.capo) || 0;
   $("viewerCapoBadge").classList.toggle("hidden", capo <= 0);
   $("viewerCapoBadge").textContent = capo > 0 ? `Capotraste ${capo}` : "";
@@ -1035,6 +1166,7 @@ function openSongViewer(id, readOnly = false) {
   const readerShell = $("dedicatedSongViewer").closest(".song-reader-shell");
   readerShell.classList.remove("stage-mode");
   setReaderQuickPanel(false);
+  setReaderKeyPanel(false);
   updateReaderFullscreenState();
   document.body.style.overflow = "";
   document.documentElement.style.overflow = "";
@@ -1086,9 +1218,11 @@ $("viewerTextOnlyBtn").onclick = () => {
     viewerTextOnlyMode ? "Mostrar acordes" : "Somente texto";
   $("viewerTextOnlyBtn").classList.toggle("active-mode", viewerTextOnlyMode);
   renderDedicatedSongViewer();
+  syncReaderModeUI();
 };
 
 function setReaderQuickPanel(open) {
+  if (open) setReaderKeyPanel(false);
   $("readerQuickPanel")?.classList.toggle("hidden", !open);
   $("readerQuickBackdrop")?.classList.toggle("hidden", !open);
   document.body.classList.toggle("reader-sheet-open", open);
@@ -1124,6 +1258,7 @@ function exitReaderFullscreen() {
   document.body.style.overflow = "";
   document.documentElement.style.overflow = "";
   setReaderQuickPanel(false);
+  setReaderKeyPanel(false);
   updateReaderFullscreenState();
 }
 
@@ -2138,8 +2273,14 @@ function renderListSong() {
   $("playerCurrentKey").textContent = playerKey;
   $("listPlayerSong").style.fontSize = `${playerFontSize}px`;
 
+  renderReaderChordStrip(
+    transposedContent,
+    "listChordStrip",
+    "listChordCount"
+  );
+
   $("listPlayerSong").innerHTML = `
-    <h1>${safeText(song.title)}</h1>
+    <h1>${safeText(cleanSongTitle(song.title || "Sem título"))}</h1>
     <p class="muted">
       ${safeText(song.artist || "Artista n\u00E3o informado")}
       \u2022 Tom ${safeText(playerKey)}
@@ -4149,6 +4290,8 @@ document.addEventListener("click", (event) => {
       back: () => $("viewerBackBtn")?.click(),
       "key-down": () => $("viewerTransposeDown")?.click(),
       "key-up": () => $("viewerTransposeUp")?.click(),
+      key: () => setReaderKeyPanel(true),
+      "close-key": () => setReaderKeyPanel(false),
       scroll: () => $("viewerAutoScrollBtn")?.click(),
       "font-down": () => $("viewerFontDown")?.click(),
       "font-up": () => $("viewerFontUp")?.click(),
@@ -4439,6 +4582,7 @@ document.addEventListener("keydown", (event) => {
     return;
   }
 
+  setReaderKeyPanel(false);
   setReaderQuickPanel(false);
   setListQuickPanel(false);
 });
