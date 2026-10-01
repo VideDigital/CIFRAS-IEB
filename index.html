@@ -7,8 +7,8 @@
   <meta name="theme-color" content="#090f1d">
   <meta name="description" content="Cifras IEB — repertório, listas e cifras para louvor.">
   <title>Cifras IEB</title>
-  <link rel="stylesheet" href="styles.css?v=7.1.0">
-  <link rel="manifest" href="manifest.webmanifest?v=7.1.0">
+  <link rel="stylesheet" href="styles.css?v=8.0.0">
+  <link rel="manifest" href="manifest.webmanifest?v=8.0.0">
   <link rel="apple-touch-icon" href="icons/icon-180.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -145,7 +145,7 @@
           <span>↪</span>
           <span>Sair da conta</span>
         </button>
-        <small>Cifras IEB • Versão 7.1</small>
+        <small>Cifras IEB • Versão 8.0</small>
       </div>
     </aside>
     <div id="sidebarBackdrop" class="backdrop hidden"></div>
@@ -362,16 +362,42 @@
           </div>
 
           <header class="song-reader-heading">
-            <div>
-              <span class="eyebrow">MODO DE LEITURA</span>
+            <div class="song-reader-heading-copy">
+              <div class="reader-kicker-row">
+                <span class="eyebrow">CIFRA IEB</span>
+                <span class="reader-live-dot"><i></i> pronta para tocar</span>
+              </div>
               <h1 id="viewerSongTitle">Título da música</h1>
               <div class="viewer-meta-row">
                 <p id="viewerSongArtist"></p>
                 <span id="viewerSongKeyMeta" class="viewer-meta-pill">Tom C</span>
+                <span id="viewerCapoBadge" class="viewer-capo-badge hidden"></span>
               </div>
             </div>
-            <span id="viewerCapoBadge" class="viewer-capo-badge hidden"></span>
+
+            <div class="reader-heading-actions" aria-label="Ações rápidas">
+              <button type="button" class="reader-heading-action" data-reader-action="text-only">
+                <span>≡</span><small>Letra</small>
+              </button>
+              <button type="button" class="reader-heading-action" data-reader-action="scroll">
+                <span>↓</span><small>Rolagem</small>
+              </button>
+              <button type="button" class="reader-heading-action" data-reader-action="fullscreen">
+                <span>⛶</span><small>Tela cheia</small>
+              </button>
+            </div>
           </header>
+
+          <section class="reader-chord-section" aria-label="Acordes usados nesta cifra">
+            <div class="reader-chord-section-head">
+              <div>
+                <span class="eyebrow">ACORDES DA MÚSICA</span>
+                <strong>Toque em um acorde para abrir o diagrama</strong>
+              </div>
+              <span id="viewerChordCount" class="reader-chord-count">0 acordes</span>
+            </div>
+            <div id="viewerChordStrip" class="reader-chord-strip"></div>
+          </section>
 
           <div class="viewer-toolbar dedicated-viewer-toolbar">
             <div class="tool-group">
@@ -432,11 +458,29 @@
             </div>
           </div>
 
+          <div id="readerKeyBackdrop" class="reader-quick-backdrop hidden" data-reader-action="close-key"></div>
+          <section id="readerKeyPanel" class="reader-key-panel hidden" role="dialog" aria-modal="true" aria-label="Alterar tom">
+            <div class="reader-sheet-grabber"></div>
+            <div class="reader-key-panel-head">
+              <div>
+                <span class="eyebrow">ALTERAR TOM</span>
+                <strong id="readerKeyPanelTitle">Tom C</strong>
+              </div>
+              <button type="button" class="reader-quick-close" data-reader-action="close-key" aria-label="Fechar">×</button>
+            </div>
+            <div class="reader-key-stepper">
+              <button type="button" data-reader-action="key-down">− 1/2 tom</button>
+              <strong id="readerKeyPanelCurrent">C</strong>
+              <button type="button" data-reader-action="key-up">＋ 1/2 tom</button>
+            </div>
+            <div id="readerKeyGrid" class="reader-key-grid"></div>
+          </section>
+
           <nav class="reader-mobile-dock" aria-label="Controles da cifra">
             <button type="button" data-reader-action="back"><span>←</span><small>Voltar</small></button>
-            <button type="button" data-reader-action="key-down"><span>−</span><small>Tom</small></button>
-            <button type="button" data-reader-action="key-up"><span>＋</span><small>Tom</small></button>
+            <button type="button" data-reader-action="key"><span>♯</span><small>Tom</small></button>
             <button type="button" data-reader-action="scroll"><span>↓</span><small>Rolagem</small></button>
+            <button type="button" data-reader-action="text-only"><span>T</span><small>Letra</small></button>
             <button type="button" data-reader-action="more"><span>•••</span><small>Mais</small></button>
           </nav>
         </div>
@@ -612,6 +656,17 @@ Poderoso</code></pre>
               Tela cheia
             </button>
           </div>
+
+          <section class="reader-chord-section list-player-chord-section" aria-label="Acordes da música atual">
+            <div class="reader-chord-section-head">
+              <div>
+                <span class="eyebrow">ACORDES DA MÚSICA</span>
+                <strong>Referência rápida</strong>
+              </div>
+              <span id="listChordCount" class="reader-chord-count">0 acordes</span>
+            </div>
+            <div id="listChordStrip" class="reader-chord-strip"></div>
+          </section>
 
           <div class="viewer-toolbar list-player-toolbar">
             <div class="tool-group">
@@ -1067,7 +1122,7 @@ Poderoso</code></pre>
     <button id="playGroupRepertoireBtn" class="primary full">Abrir modo de leitura</button>
     <button id="deleteRepertoireBtn" class="danger-button full">Excluir repertório</button>
   </dialog>
-  <script type="module" src="app.js?v=7.1.0"></script>
+  <script type="module" src="app.js?v=8.0.0"></script>
 </body>
 </html>
 
