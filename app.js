@@ -972,6 +972,17 @@ function renderDedicatedSongViewer() {
     cleanSongArtist(viewingSong.artist || "Artista n\u00E3o informado");
   $("viewerCurrentKey").textContent = viewerKey;
   $("viewerSongKeyMeta").textContent = `Tom ${viewerKey}`;
+
+  if ($("readerStageTitle")) {
+    $("readerStageTitle").textContent =
+      cleanSongTitle(viewingSong.title || "Cifra");
+  }
+
+  if ($("readerStageMeta")) {
+    $("readerStageMeta").textContent =
+      `${cleanSongArtist(viewingSong.artist || "Artista não informado")} • Tom ${viewerKey}`;
+  }
+
   $("dedicatedSongViewer").style.fontSize = `${viewerFontSize}px`;
   $("dedicatedSongViewer").innerHTML = renderChordMarkup(content);
 
@@ -1066,12 +1077,29 @@ function setListQuickPanel(open) {
 
 function updateReaderFullscreenState() {
   const shell = $("dedicatedSongViewer")?.closest(".song-reader-shell");
-  const fullscreen = shell?.classList.contains("stage-mode");
+  const fullscreen = Boolean(shell?.classList.contains("stage-mode"));
 
   if ($("readerFullscreenLabel")) {
     $("readerFullscreenLabel").textContent =
       fullscreen ? "Sair da tela cheia" : "Tela cheia";
   }
+
+  if ($("viewerStageBtn")) {
+    $("viewerStageBtn").textContent =
+      fullscreen ? "Sair da tela cheia" : "Tela cheia";
+    $("viewerStageBtn").classList.toggle("active-mode", fullscreen);
+  }
+}
+
+function exitReaderFullscreen() {
+  const shell = $("dedicatedSongViewer")?.closest(".song-reader-shell");
+  if (!shell?.classList.contains("stage-mode")) return;
+
+  shell.classList.remove("stage-mode");
+  document.body.style.overflow = "";
+  document.documentElement.style.overflow = "";
+  setReaderQuickPanel(false);
+  updateReaderFullscreenState();
 }
 
 $("viewerStageBtn").onclick = () => {
@@ -1885,8 +1913,14 @@ window.addEventListener("resize", () => {
 });
 
 function toggleStageMode(panel) {
-  panel.classList.toggle("stage-mode");
-  document.body.style.overflow = panel.classList.contains("stage-mode") ? "hidden" : "";
+  if (!panel) return false;
+
+  const entering = !panel.classList.contains("stage-mode");
+  panel.classList.toggle("stage-mode", entering);
+  document.body.style.overflow = entering ? "hidden" : "";
+  document.documentElement.style.overflow = entering ? "hidden" : "";
+
+  return entering;
 }
 
 $("stageModeBtn").onclick = () => toggleStageMode($("previewPanel"));
@@ -2065,7 +2099,16 @@ function renderListSong() {
     : transposedContent;
 
   $("listProgress").textContent =
-    `${listPlayer.index + 1} de ${listPlayer.songs.length} \u2022 ${song.title}`;
+    `${listPlayer.index + 1} de ${listPlayer.songs.length} \u2022 ${cleanSongTitle(song.title)}`;
+
+  if ($("listStageTitle")) {
+    $("listStageTitle").textContent = cleanSongTitle(song.title || "Cifra");
+  }
+
+  if ($("listStageMeta")) {
+    $("listStageMeta").textContent =
+      `${listPlayer.index + 1} de ${listPlayer.songs.length} • Tom ${playerKey}`;
+  }
 
   $("playerCurrentKey").textContent = playerKey;
   $("listPlayerSong").style.fontSize = `${playerFontSize}px`;
@@ -3400,15 +3443,30 @@ function stopPlayerAutoScroll() {
   }
 }
 
-$("playerStageMode").onclick = () => {
+function updateListFullscreenState() {
   const shell = $("listPlayerShell");
-  const entering = !shell.classList.contains("stage-mode");
-
-  shell.classList.toggle("stage-mode", entering);
-  document.body.style.overflow = entering ? "hidden" : "";
+  const fullscreen = Boolean(shell?.classList.contains("stage-mode"));
 
   $("playerStageMode").textContent =
-    entering ? "Sair da tela cheia" : "Tela cheia";
+    fullscreen ? "Sair da tela cheia" : "Tela cheia";
+  $("playerStageMode").classList.toggle("active-mode", fullscreen);
+}
+
+function exitListFullscreen() {
+  const shell = $("listPlayerShell");
+  if (!shell?.classList.contains("stage-mode")) return;
+
+  shell.classList.remove("stage-mode");
+  document.body.style.overflow = "";
+  document.documentElement.style.overflow = "";
+  setListQuickPanel(false);
+  updateListFullscreenState();
+}
+
+$("playerStageMode").onclick = () => {
+  toggleStageMode($("listPlayerShell"));
+  setListQuickPanel(false);
+  updateListFullscreenState();
 };
 
 async function loadGroupRepertoires(groupId) {
@@ -3790,6 +3848,7 @@ document.addEventListener("click", (event) => {
       "font-up": () => $("viewerFontUp")?.click(),
       "text-only": () => $("viewerTextOnlyBtn")?.click(),
       fullscreen: () => $("viewerStageBtn")?.click(),
+      "exit-fullscreen": () => exitReaderFullscreen(),
       edit: () => {
         setReaderQuickPanel(false);
         $("viewerEditBtn")?.click();
@@ -3819,6 +3878,7 @@ document.addEventListener("click", (event) => {
       "font-up": () => $("playerFontUp")?.click(),
       "text-only": () => $("playerTextOnlyBtn")?.click(),
       fullscreen: () => $("playerStageMode")?.click(),
+      "exit-fullscreen": () => exitListFullscreen(),
       exit: () => $("exitListPlayer")?.click(),
       more: () => setListQuickPanel(
         $("listQuickPanel")?.classList.contains("hidden") === true
@@ -4061,10 +4121,20 @@ updateConnectivityUI();
 
 
 document.addEventListener("keydown", (event) => {
-  if (event.key === "Escape") {
-    setReaderQuickPanel(false);
-    setListQuickPanel(false);
+  if (event.key !== "Escape") return;
+
+  if ($("dedicatedSongViewer")?.closest(".song-reader-shell")?.classList.contains("stage-mode")) {
+    exitReaderFullscreen();
+    return;
   }
+
+  if ($("listPlayerShell")?.classList.contains("stage-mode")) {
+    exitListFullscreen();
+    return;
+  }
+
+  setReaderQuickPanel(false);
+  setListQuickPanel(false);
 });
 
 window.addEventListener("orientationchange", () => {
