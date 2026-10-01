@@ -96,11 +96,15 @@ export function transposeContent(content, semitones, preferFlats = false) {
 
   return bracketed
     .split("\n")
-    .map((line) =>
-      isRawChordLine(line)
+    .map((line) => {
+      // Linhas com [acordes] já foram transpostas no primeiro passo.
+      // Evita aplicar a transposição duas vezes em "[G] [D]".
+      if (/\[[^\]]+\]/.test(line)) return line;
+
+      return isRawChordLine(line)
         ? transposeRawChordLine(line, semitones, preferFlats)
-        : line
-    )
+        : line;
+    })
     .join("\n");
 }
 
