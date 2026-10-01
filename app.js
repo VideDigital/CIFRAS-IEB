@@ -2961,6 +2961,7 @@ async function extractPdfText(file) {
 }
 
 let mammothBrowserPromise = null;
+let jsZipBrowserPromise = null;
 
 function loadClassicScript(src, globalName) {
   if (window[globalName]) return Promise.resolve(window[globalName]);
@@ -3007,6 +3008,111 @@ async function getMammothBrowser() {
     throw new Error("O leitor de DOCX carregou sem as funções necessárias.");
   }
   return mammoth;
+}
+
+async function getJSZipBrowser() {
+  if (window.JSZip) return window.JSZip;
+
+  if (!jsZipBrowserPromise) {
+    jsZipBrowserPromise = loadClassicScript(
+      "https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js",
+      "JSZip"
+    ).catch((error) => {
+      jsZipBrowserPromise = null;
+      throw error;
+    });
+  }
+
+  return jsZipBrowserPromise;
+}
+
+function docxNodeText(node) {
+  let value = "";
+
+  for (const child of node.childNodes || []) {
+    const name = child.localName || child.nodeName?.split(":").pop();
+
+    if (name === "t" || name === "instrText") {
+      value += child.textContent || "";
+      continue;
+    }
+
+    if (name === "tab") {
+      value += "\t";
+      continue;
+    }
+
+    if (name === "br" || name === "cr") {
+      value += "\n";
+      continue;
+    }
+
+    value += docxNodeText(child);
+  }
+
+  return value;
+}
+
+function docxParagraphText(paragraph) {
+  return docxNodeText(paragraph)
+    .replace(/\u00A0/g, " ")
+    .replace(/[ \t]+$/g, "");
+}
+
+function extractDocxBodyTextFromXml(xmlText = "") {
+  const xml = new DOMParser().parseFromString(xmlText, "application/xml");
+
+  if (xml.querySelector("parsererror")) {
+    throw new Error("O XML interno do DOCX está inválido.");
+  }
+
+  const body = [...xml.getElementsByTagNameNS("*", "body")][0];
+  if (!body) return "";
+
+  const lines = [];
+
+  for (const node of body.childNodes) {
+    const name = node.localName || node.nodeName?.split(":").pop();
+
+    if (name === "p") {
+      lines.push(docxParagraphText(node));
+      continue;
+    }
+
+    if (name === "tbl") {
+      const rows = [...node.getElementsByTagNameNS("*", "tr")];
+
+      rows.forEach((row) => {
+        const cells = [...row.getElementsByTagNameNS("*", "tc")]
+          .map((cell) => {
+            const paragraphs = [...cell.getElementsByTagNameNS("*", "p")]
+              .map(docxParagraphText)
+              .filter((line) => line.trim());
+
+            return paragraphs.join(" ");
+          });
+
+        lines.push(cells.join("\t"));
+      });
+
+      lines.push("");
+    }
+  }
+
+  return lines.join("\n");
+}
+
+async function extractDocxXmlCandidate(arrayBuffer) {
+  const JSZip = await getJSZipBrowser();
+  const archive = await JSZip.loadAsync(arrayBuffer);
+  const documentFile = archive.file("word/document.xml");
+
+  if (!documentFile) {
+    throw new Error("O DOCX não contém word/document.xml.");
+  }
+
+  const xmlText = await documentFile.async("string");
+  return extractDocxBodyTextFromXml(xmlText);
 }
 
 function mammothHtmlToStructuredText(html = "") {
@@ -3059,7 +3165,17 @@ function importedTextQualityScore(value = "") {
     /[A-Za-zÀ-ÿ]{4,}/.test(line) && !looksLikeChordRow(line)
   ).length;
 
-  return chordLines * 10 + sectionLines * 4 + letterLines * 2 + Math.min(lines.length, 80);
+  const replacementCharacters = (text.match(/\uFFFD/g) || []).length;
+  const suspiciousMojibake = (text.match(/[ÃÂ][^\s]?/g) || []).length;
+
+  return (
+    chordLines * 12 +
+    sectionLines * 5 +
+    letterLines * 2 +
+    Math.min(lines.length, 80) -
+    replacementCharacters * 40 -
+    suspiciousMojibake * 12
+  );
 }
 
 function chooseBestImportedText(candidates = []) {
@@ -3082,27 +3198,41 @@ async function extractDocxText(file) {
     throw new Error("O arquivo DOCX está vazio.");
   }
 
-  const mammoth = await getMammothBrowser();
   const candidates = [];
 
-  if (typeof mammoth.extractRawText === "function") {
-    try {
-      const rawResult = await mammoth.extractRawText({ arrayBuffer });
-      candidates.push(rawResult?.value || "");
-    } catch (error) {
-      console.warn("Falha ao extrair texto bruto do DOCX.", error);
-    }
+  // V8: primeiro lê o XML original do Word. Esse caminho preserva UTF-8,
+  // acentos, tabs e espaços usados para posicionar acordes.
+  try {
+    const xmlCandidate = await extractDocxXmlCandidate(arrayBuffer);
+    if (xmlCandidate.trim()) candidates.push(xmlCandidate);
+  } catch (error) {
+    console.warn("Leitura direta do XML do DOCX falhou.", error);
   }
 
-  if (typeof mammoth.convertToHtml === "function") {
-    try {
-      const htmlResult = await mammoth.convertToHtml({ arrayBuffer });
-      candidates.push(
-        mammothHtmlToStructuredText(htmlResult?.value || "")
-      );
-    } catch (error) {
-      console.warn("Falha ao extrair estrutura do DOCX.", error);
+  // Mammoth fica como fallback para documentos com estruturas incomuns.
+  try {
+    const mammoth = await getMammothBrowser();
+
+    if (typeof mammoth.extractRawText === "function") {
+      try {
+        const rawResult = await mammoth.extractRawText({ arrayBuffer });
+        if (rawResult?.value) candidates.push(rawResult.value);
+      } catch (error) {
+        console.warn("Falha ao extrair texto bruto do DOCX.", error);
+      }
     }
+
+    if (typeof mammoth.convertToHtml === "function") {
+      try {
+        const htmlResult = await mammoth.convertToHtml({ arrayBuffer });
+        const htmlText = mammothHtmlToStructuredText(htmlResult?.value || "");
+        if (htmlText) candidates.push(htmlText);
+      } catch (error) {
+        console.warn("Falha ao extrair estrutura HTML do DOCX.", error);
+      }
+    }
+  } catch (error) {
+    console.warn("Mammoth indisponível; mantendo candidato XML.", error);
   }
 
   const value = chooseBestImportedText(candidates);
