@@ -56,6 +56,7 @@ let viewerScrollFrame = null;
 let bulkSelectionMode = false;
 let bulkSelectedSongIds = new Set();
 let editingGroupRepertoire = null;
+let groupRepertoireSelection = new Set();
 let chordDialogInstrument = "guitar";
 let chordDialogVariation = 0;
 let chordExplorerRoot = "C";
@@ -4547,10 +4548,7 @@ function renderGroupRepertoires() {
     `;
 }
 function renderRepertoireSongOptions(searchTerm = "") {
-  const selectedIds = new Set(
-    [...$("repertoireSongOptions").querySelectorAll("input:checked")]
-      .map((input) => input.value)
-  );
+  const selectedIds = groupRepertoireSelection;
 
   const queryText = repairBrokenText(searchTerm).trim().toLowerCase();
   const filteredSongs = songs.filter((song) => {
@@ -4590,9 +4588,16 @@ function updateRepertoireSelectionCount() {
 $("newGroupRepertoireBtn").onclick = () => {
   if (!currentGroup) return;
 
+  editingGroupRepertoire = null;
+  groupRepertoireSelection = new Set();
+
+  $("repertoireDialog").querySelector("h3").textContent = "Novo repertório";
+  $("saveRepertoireBtn").textContent = "Criar repertório";
   $("repertoireNameInput").value = "";
-  $("repertoireDateInput").value = new Date().toISOString().slice(0, 10);
+  $("repertoireDateInput").value =
+    new Date().toISOString().slice(0, 10);
   $("repertoireSongSearchInput").value = "";
+
   renderRepertoireSongOptions();
   $("repertoireDialog").showModal();
 };
@@ -4601,56 +4606,102 @@ $("repertoireSongSearchInput")?.addEventListener("input", (event) => {
   renderRepertoireSongOptions(event.target.value);
 });
 
-$("repertoireSongOptions")?.addEventListener("change", updateRepertoireSelectionCount);
+$("repertoireSongOptions")?.addEventListener("change", (event) => {
+  const input = event.target.closest('input[type="checkbox"]');
+  if (!input) return;
 
-$("clearRepertoireSelectionBtn")?.addEventListener("click", () => {
-  $("repertoireSongOptions")
-    .querySelectorAll("input:checked")
-    .forEach((input) => {
-      input.checked = false;
-    });
+  if (input.checked) groupRepertoireSelection.add(input.value);
+  else groupRepertoireSelection.delete(input.value);
 
   updateRepertoireSelectionCount();
 });
-$("saveRepertoireBtn").onclick=async()=>{
-  if(!currentGroup)return;
 
-  const name=$("repertoireNameInput").value.trim();
-  const date=$("repertoireDateInput").value;
-  const songIds=[...$("repertoireSongOptions").querySelectorAll("input:checked")].map(i=>i.value);
+$("clearRepertoireSelectionBtn")?.addEventListener("click", () => {
+  groupRepertoireSelection.clear();
+  renderRepertoireSongOptions(
+    $("repertoireSongSearchInput")?.value || ""
+  );
+});
 
-  if(!name){toast("Informe o nome do repert\u00F3rio.");return}
-  if(!date){toast("Selecione a data.");return}
-  if(!songIds.length){toast("Selecione pelo menos uma cifra.");return}
+$("saveRepertoireBtn").onclick = async () => {
+  if (!currentGroup) return;
 
-  const songSnapshots=songIds
-    .map(id=>songs.find(song=>song.id===id))
+  const name = $("repertoireNameInput").value.trim();
+  const date = $("repertoireDateInput").value;
+  const songIds = [...groupRepertoireSelection];
+
+  if (!name) {
+    toast("Informe o nome do repertório.");
+    return;
+  }
+  if (!date) {
+    toast("Selecione a data.");
+    return;
+  }
+  if (!songIds.length) {
+    toast("Selecione pelo menos uma cifra.");
+    return;
+  }
+
+  const songSnapshots = songIds
+    .map((id) => songs.find((song) => song.id === id))
     .filter(Boolean)
-    .map(song=>({
-      sourceSongId:song.id,
-      sourceOwnerId:song.ownerId||currentUser.uid,
-      title:song.title||"Sem t\u00EDtulo",
-      artist:song.artist||"",
-      key:song.key||"C",
-      capo:Number(song.capo)||0,
-      content:song.content||"",
-      youtubeUrl:song.youtubeUrl||""
+    .map((song) => ({
+      sourceSongId: song.id,
+      sourceOwnerId: song.ownerId || currentUser.uid,
+      title: song.title || "Sem título",
+      artist: song.artist || "",
+      key: song.key || "C",
+      capo: Number(song.capo) || 0,
+      content: song.content || "",
+      youtubeUrl: song.youtubeUrl || ""
     }));
 
-  await addDoc(collection(db,"groupRepertoires"),{
-    groupId:currentGroup.id,
-    name,
-    date,
-    songIds,
-    songSnapshots,
-    createdBy:currentUser.uid,
-    createdAt:serverTimestamp(),
-    updatedAt:serverTimestamp()
-  });
+  const button = $("saveRepertoireBtn");
+  button.disabled = true;
 
-  $("repertoireDialog").close();
-  toast("Repert\u00F3rio criado!");
-  await loadGroupRepertoires(currentGroup.id);
+  try {
+    if (editingGroupRepertoire?.id) {
+      await updateDoc(
+        doc(db, "groupRepertoires", editingGroupRepertoire.id),
+        {
+          name,
+          date,
+          songIds,
+          songSnapshots,
+          updatedAt: serverTimestamp()
+        }
+      );
+      toast("Repertório atualizado.");
+    } else {
+      await addDoc(collection(db, "groupRepertoires"), {
+        groupId: currentGroup.id,
+        name,
+        date,
+        songIds,
+        songSnapshots,
+        createdBy: currentUser.uid,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      });
+      toast("Repertório criado!");
+    }
+
+    editingGroupRepertoire = null;
+    groupRepertoireSelection.clear();
+    $("repertoireDialog").close();
+    await loadGroupRepertoires(currentGroup.id);
+  } catch (error) {
+    console.error("Erro ao salvar repertório:", error);
+    toast(
+      error?.code === "permission-denied"
+        ? "Você não tem permissão para alterar este repertório."
+        : "Não foi possível salvar o repertório."
+    );
+  } finally {
+    button.disabled = false;
+    button.textContent = "Criar repertório";
+  }
 };
 
 function getCurrentRepertoireSongs() {
@@ -4719,6 +4770,7 @@ document.addEventListener("click",(event)=>{
     currentRepertoire.createdBy === currentUser.uid ||
     currentGroup?.ownerId === currentUser.uid;
   $("deleteRepertoireBtn")?.classList.toggle("hidden", !canDeleteRepertoire);
+  $("editRepertoireBtn")?.classList.toggle("hidden", !canDeleteRepertoire);
 
   const repertoireSongs=getCurrentRepertoireSongs();
 
@@ -4754,6 +4806,37 @@ document.addEventListener("click",(event)=>{
   if(!button)return;
   openGroupRepertoireAt(Number(button.dataset.openRepertoireIndex)||0);
 });
+$("editRepertoireBtn")?.addEventListener("click", () => {
+  if (!currentRepertoire || !currentGroup) return;
+
+  const canEdit =
+    currentRepertoire.createdBy === currentUser.uid ||
+    currentGroup.ownerId === currentUser.uid;
+
+  if (!canEdit) {
+    toast("Você não tem permissão para editar este repertório.");
+    return;
+  }
+
+  editingGroupRepertoire = currentRepertoire;
+  groupRepertoireSelection =
+    new Set(currentRepertoire.songIds || []);
+
+  $("repertoireDialog").querySelector("h3").textContent =
+    "Editar repertório";
+  $("saveRepertoireBtn").textContent = "Salvar alterações";
+  $("repertoireNameInput").value =
+    currentRepertoire.name || "";
+  $("repertoireDateInput").value =
+    currentRepertoire.date ||
+    new Date().toISOString().slice(0, 10);
+  $("repertoireSongSearchInput").value = "";
+
+  renderRepertoireSongOptions();
+  $("repertoireDetailsDialog").close();
+  $("repertoireDialog").showModal();
+});
+
 $("playGroupRepertoireBtn").onclick=()=>openGroupRepertoireAt(0);
 
 document.addEventListener("click", async (event) => {
@@ -4806,7 +4889,56 @@ document.addEventListener("click", async (event) => {
   }
 });
 
-$("deleteRepertoireBtn").onclick=async()=>{if(!currentRepertoire||!confirm("Excluir este repert\u00F3rio?"))return;await deleteDoc(doc(db,"groupRepertoires",currentRepertoire.id));$("repertoireDetailsDialog").close();toast("Repert\u00F3rio exclu\u00EDdo.");await loadGroupRepertoires(currentGroup.id);};
+$("deleteRepertoireBtn").onclick = async () => {
+  if (!currentRepertoire) return;
+
+  const canDelete =
+    currentRepertoire.createdBy === currentUser.uid ||
+    currentGroup?.ownerId === currentUser.uid;
+
+  if (!canDelete) {
+    toast("Você não tem permissão para excluir este repertório.");
+    return;
+  }
+
+  const name = currentRepertoire.name || "Repertório";
+  if (!confirm(`Excluir o repertório "${name}"?`)) return;
+
+  const button = $("deleteRepertoireBtn");
+  button.disabled = true;
+  button.textContent = "Excluindo...";
+
+  try {
+    await deleteDoc(
+      doc(db, "groupRepertoires", currentRepertoire.id)
+    );
+
+    const deletedId = currentRepertoire.id;
+    currentRepertoire = null;
+    groupRepertoires = groupRepertoires.filter(
+      (item) => item.id !== deletedId
+    );
+
+    saveLocalArea(
+      `groupRepertoires:${currentGroup.id}`,
+      groupRepertoires
+    );
+
+    $("repertoireDetailsDialog").close();
+    renderGroupRepertoires();
+    toast("Repertório excluído.");
+  } catch (error) {
+    console.error("Erro ao excluir repertório:", error);
+    toast(
+      error?.code === "permission-denied"
+        ? "O Firebase bloqueou a exclusão. Confirme se as regras publicadas estão atualizadas."
+        : "Não foi possível excluir o repertório."
+    );
+  } finally {
+    button.disabled = false;
+    button.textContent = "Excluir repertório";
+  }
+};
 
 window.addEventListener("beforeunload", (event) => {
   if (!isDirty) return;
