@@ -1727,3 +1727,977 @@ body[data-active-view="listPlayer"]{background:#0c0d10}
   .bulk-actions{display:grid;grid-template-columns:1fr}
   .group-overview-strip{grid-template-columns:1fr}
 }
+
+
+/* ================================================================
+   CIFRAS IEB V9 — PRODUCT UI
+   ================================================================ */
+:root{
+  --chord-color:#ff6a00;
+}
+
+/* Library bulk management */
+.bulk-library-bar{
+  position:sticky;
+  top:82px;
+  z-index:45;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  margin:0 0 12px;
+  padding:13px 15px;
+  border:1px solid var(--accent-border);
+  border-radius:15px;
+  background:color-mix(in srgb,var(--surface) 92%,var(--accent) 8%);
+  box-shadow:0 14px 38px rgba(0,0,0,.26);
+}
+.bulk-library-bar>div:first-child{display:grid;gap:2px}
+.bulk-library-bar strong{font-size:13px}
+.bulk-library-bar small{color:var(--muted);font-size:10px}
+.bulk-library-actions{display:flex;gap:7px;flex-wrap:wrap}
+.song-row-card.selection-enabled{
+  position:relative;
+  display:grid;
+  grid-template-columns:48px minmax(0,1fr);
+  align-items:stretch;
+}
+.song-row-card.selection-enabled.selected{
+  background:var(--accent-soft);
+}
+.song-select-toggle{
+  display:grid;
+  place-items:center;
+  margin:9px 0;
+  border:0;
+  background:transparent;
+}
+.song-select-toggle span{
+  display:grid;
+  width:25px;
+  height:25px;
+  place-items:center;
+  border:1px solid var(--line-strong);
+  border-radius:50%;
+  background:#17191d;
+  color:transparent;
+  font-size:13px;
+  font-weight:900;
+}
+.song-row-card.selected .song-select-toggle span{
+  border-color:var(--accent);
+  background:var(--accent);
+  color:#fff;
+}
+
+/* Reader gets closer to a professional music workspace */
+@media(min-width:761px){
+  .song-reader-heading{
+    min-height:148px;
+    padding:24px 28px 22px;
+  }
+  .song-reader-heading h1{
+    margin:7px 0 10px;
+    font-size:clamp(34px,3.5vw,52px);
+    letter-spacing:-.045em;
+  }
+  .reader-heading-action{
+    width:62px;
+    height:58px;
+  }
+  .song-reader-shell{
+    grid-template-areas:
+      "heading heading"
+      "media media"
+      "chords chords"
+      "toolbar content";
+  }
+  .list-player-shell{
+    grid-template-areas:
+      "header header"
+      "media media"
+      "chords chords"
+      "toolbar content"
+      "toolbar nav";
+  }
+  .dedicated-song-viewer,
+  .list-player-song{
+    font-size:17px;
+    line-height:1.62;
+  }
+  .reader-chord-card{
+    flex-basis:96px;
+    min-height:116px;
+  }
+  .reader-mini-diagram{
+    width:74px;
+    height:74px;
+  }
+  .reader-mini-diagram svg{
+    width:80px!important;
+    height:70px!important;
+  }
+}
+
+/* YouTube companion panel */
+.reader-media-panel{
+  grid-area:media;
+  display:grid;
+  grid-template-columns:minmax(0,1fr);
+  gap:10px;
+  padding:14px 18px;
+  border-right:1px solid var(--line);
+  border-left:1px solid var(--line);
+  border-bottom:1px solid var(--line);
+  background:#111317;
+}
+.reader-media-panel.hidden{display:none!important}
+.reader-media-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+.reader-media-head>div{display:grid;gap:3px}
+.reader-media-head strong{font-size:13px}
+.reader-youtube-embed{
+  width:min(720px,100%);
+  overflow:hidden;
+  border:1px solid var(--line);
+  border-radius:16px;
+  background:#090a0c;
+  aspect-ratio:16/9;
+}
+.reader-youtube-embed iframe{
+  width:100%;
+  height:100%;
+  border:0;
+}
+.reader-media-empty{
+  min-height:150px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:12px;
+  padding:20px;
+  color:var(--muted);
+}
+.reader-media-empty>span{
+  display:grid;
+  width:46px;height:46px;
+  place-items:center;
+  border-radius:14px;
+  background:var(--accent-soft);
+  color:var(--accent);
+  font-size:20px;
+}
+.reader-media-empty strong,.reader-media-empty small{display:block}
+.reader-media-empty strong{color:#fff}
+.reader-media-empty small{margin-top:3px}
+
+/* Chord explorer */
+.chord-explorer{
+  display:grid;
+  grid-template-columns:280px minmax(0,1fr);
+  gap:14px;
+}
+.chord-explorer-sidebar,
+.chord-explorer-stage,
+.tool-workspace,
+.settings-card{
+  border:1px solid var(--line);
+  border-radius:20px;
+  background:var(--surface);
+}
+.chord-explorer-sidebar{
+  align-self:start;
+  position:sticky;
+  top:90px;
+  display:grid;
+  gap:14px;
+  padding:16px;
+}
+.instrument-switcher{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:6px;
+}
+.instrument-switcher button{
+  min-height:40px;
+  padding:0 8px;
+  border:1px solid var(--line);
+  border-radius:11px;
+  background:#1b1e23;
+  color:#9ea3ac;
+  font-size:10px;
+  font-weight:800;
+}
+.instrument-switcher button.active{
+  border-color:var(--accent-border);
+  background:var(--accent-soft);
+  color:#fff;
+}
+.chord-explorer-stage{padding:20px;min-width:0}
+.chord-explorer-heading{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:18px;
+  margin-bottom:14px;
+}
+.chord-explorer-heading h2{
+  margin:4px 0 5px;
+  font-size:44px;
+  letter-spacing:-.05em;
+}
+.chord-explorer-heading p{margin:0;color:var(--muted)}
+.chord-variation-controls{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  color:var(--muted);
+  font-size:11px;
+}
+.chord-explorer-diagram{
+  min-height:360px;
+  display:grid;
+  place-items:center;
+  overflow:auto;
+  padding:20px;
+  border:1px solid var(--line);
+  border-radius:16px;
+  background:#0e1013;
+  color:#d8dbe0;
+}
+.chord-explorer-diagram .instrument-diagram-svg{
+  width:min(420px,100%);
+  height:auto;
+}
+.chord-explorer-diagram .keyboard-diagram-svg{
+  width:min(760px,100%);
+  height:auto;
+}
+.chord-theory-strip{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:8px;
+  margin-top:12px;
+}
+.chord-theory-strip>div{
+  min-width:0;
+  padding:12px;
+  border:1px solid var(--line);
+  border-radius:12px;
+  background:#121419;
+}
+.chord-theory-strip span,.chord-theory-strip strong{display:block}
+.chord-theory-strip span{
+  margin-bottom:5px;
+  color:var(--muted);
+  font-size:9px;
+  text-transform:uppercase;
+  letter-spacing:.12em;
+}
+.chord-theory-strip strong{
+  overflow:hidden;
+  text-overflow:ellipsis;
+  color:#fff;
+  white-space:nowrap;
+}
+
+/* Chord detail dialog */
+.chord-detail-dialog{width:min(780px,calc(100vw - 26px))}
+.chord-detail-diagram{
+  min-height:300px;
+  display:grid;
+  place-items:center;
+  margin:14px 0;
+  padding:16px;
+  overflow:auto;
+  border:1px solid var(--line);
+  border-radius:16px;
+  background:#0e1013;
+  color:#d9dce1;
+}
+.chord-detail-diagram .instrument-diagram-svg{width:min(420px,100%)}
+.chord-detail-diagram .keyboard-diagram-svg{width:min(720px,100%)}
+.chord-dialog-variations{
+  display:grid;
+  grid-template-columns:auto 1fr auto;
+  align-items:center;
+  gap:8px;
+}
+.chord-dialog-variations span{
+  text-align:center;
+  color:var(--muted);
+  font-size:11px;
+}
+
+/* Tools */
+.tools-grid{
+  display:grid;
+  grid-template-columns:1.35fr 1fr 1fr;
+  gap:12px;
+}
+.tool-workspace{
+  min-width:0;
+  padding:18px;
+}
+.tool-workspace-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:15px;
+}
+.tool-workspace-head h2{margin:4px 0 0}
+.tool-status{
+  display:inline-flex;
+  min-height:28px;
+  align-items:center;
+  padding:0 9px;
+  border:1px solid var(--line);
+  border-radius:999px;
+  background:#202329;
+  color:#a8adb6;
+  font-size:9px;
+  font-weight:850;
+}
+.metronome-display{
+  display:flex;
+  align-items:flex-end;
+  justify-content:center;
+  gap:8px;
+  margin:22px 0 14px;
+}
+.metronome-display strong{
+  font-size:74px;
+  line-height:.85;
+  letter-spacing:-.07em;
+}
+.metronome-display span{
+  margin-bottom:7px;
+  color:var(--muted);
+  font-size:12px;
+  font-weight:800;
+}
+#metronomeBpm{
+  width:100%;
+  accent-color:var(--accent);
+}
+.metronome-controls{
+  display:grid;
+  grid-template-columns:80px 1fr 80px;
+  gap:7px;
+  margin:12px 0;
+}
+.metronome-beats{
+  display:flex;
+  justify-content:center;
+  gap:9px;
+  margin:16px 0;
+}
+.metronome-beats span{
+  width:12px;
+  height:12px;
+  border-radius:50%;
+  background:#343840;
+  transition:.06s linear;
+}
+.metronome-beats span.accent{border:1px solid var(--accent-border)}
+.metronome-beats span.active{
+  transform:scale(1.28);
+  background:var(--accent);
+  box-shadow:0 0 18px color-mix(in srgb,var(--accent) 45%,transparent);
+}
+.reader-metronome-panel{
+  position:fixed;
+  right:18px;
+  bottom:18px;
+  z-index:4200;
+  display:grid;
+  grid-template-columns:minmax(110px,1fr) repeat(4,42px);
+  align-items:center;
+  gap:6px;
+  width:min(430px,calc(100vw - 24px));
+  padding:10px;
+  border:1px solid var(--line-strong);
+  border-radius:17px;
+  background:rgba(28,30,35,.97);
+  box-shadow:0 22px 70px rgba(0,0,0,.58);
+  backdrop-filter:blur(18px);
+}
+.reader-metronome-panel>div{display:grid;gap:2px}
+.reader-metronome-panel>div strong{font-size:14px}
+.reader-metronome-panel button{
+  width:42px;height:42px;
+  border:1px solid var(--line);
+  border-radius:11px;
+  background:#23262c;
+  color:#fff;
+  font-weight:900;
+}
+.reader-metronome-panel #readerMetronomeToggle{
+  background:var(--accent);
+  border-color:transparent;
+}
+.reader-metronome-panel.hidden{display:none!important}
+
+/* Settings */
+.settings-grid{
+  display:grid;
+  grid-template-columns:1.35fr 1fr;
+  gap:12px;
+}
+.settings-card{padding:18px}
+.settings-card h2{margin:0 0 15px}
+.theme-presets{
+  display:grid;
+  grid-template-columns:repeat(5,minmax(0,1fr));
+  gap:7px;
+  margin-bottom:16px;
+}
+.theme-presets button{
+  min-height:70px;
+  display:grid;
+  justify-items:center;
+  align-content:center;
+  gap:7px;
+  border:1px solid var(--line);
+  border-radius:12px;
+  background:#17191e;
+  color:#aaaeb7;
+  font-size:9px;
+  font-weight:800;
+}
+.theme-presets button.active{
+  border-color:rgba(255,255,255,.28);
+  background:#202329;
+  color:#fff;
+}
+.theme-presets i{
+  width:22px;height:22px;
+  border-radius:50%;
+  background:var(--swatch);
+  box-shadow:0 0 0 4px color-mix(in srgb,var(--swatch) 14%,transparent);
+}
+.field-help{color:var(--muted);font-size:10px;font-weight:500}
+
+/* Repertoire management */
+.repertoire-detail-actions{
+  display:grid;
+  grid-template-columns:1.3fr 1fr 1fr;
+  gap:8px;
+  margin-top:14px;
+}
+.professional-repertoire-card{
+  width:100%;
+  color:inherit;
+  text-align:left;
+}
+
+/* Stage mode must remain focused */
+.song-reader-shell.stage-mode .reader-media-panel,
+.list-player-shell.stage-mode .reader-media-panel{
+  display:none!important;
+}
+
+@media(max-width:1040px){
+  .tools-grid{grid-template-columns:1fr 1fr}
+  .metronome-workspace{grid-column:1/-1}
+  .settings-grid{grid-template-columns:1fr}
+  .chord-explorer{grid-template-columns:230px minmax(0,1fr)}
+}
+
+@media(max-width:760px){
+  .bulk-library-bar{
+    top:76px;
+    align-items:stretch;
+    flex-direction:column;
+    border-radius:15px;
+  }
+  .bulk-library-actions{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+  }
+  .bulk-library-actions .danger-button{grid-column:1/-1}
+  .song-row-card.selection-enabled{
+    grid-template-columns:42px minmax(0,1fr);
+  }
+  .chord-explorer{
+    display:block;
+  }
+  .chord-explorer-sidebar{
+    position:static;
+    margin-bottom:10px;
+  }
+  .chord-explorer-stage{padding:14px}
+  .chord-explorer-heading h2{font-size:38px}
+  .chord-theory-strip{grid-template-columns:1fr}
+  .tools-grid,.settings-grid{grid-template-columns:1fr}
+  .metronome-workspace{grid-column:auto}
+  .theme-presets{grid-template-columns:repeat(3,1fr)}
+  .reader-media-panel{
+    padding:11px 14px;
+    border-right:0;
+    border-left:0;
+  }
+  .reader-youtube-embed{width:100%}
+  .reader-metronome-panel{
+    right:50%;
+    bottom:calc(78px + env(safe-area-inset-bottom));
+    grid-template-columns:minmax(90px,1fr) repeat(4,38px);
+    transform:translateX(50%);
+  }
+  .reader-metronome-panel button{width:38px;height:38px}
+  .repertoire-detail-actions{grid-template-columns:1fr}
+  .instrument-switcher{grid-template-columns:1fr 1fr 1fr}
+}
+
+
+/* V9 quick scroll speed selector */
+.reader-speed-control{
+  display:grid;
+  gap:8px;
+  margin:0 0 10px;
+  padding:11px;
+  border:1px solid var(--line);
+  border-radius:13px;
+  background:#14161a;
+}
+.reader-speed-control>span{
+  color:var(--muted);
+  font-size:9px;
+  font-weight:900;
+  letter-spacing:.11em;
+  text-transform:uppercase;
+}
+.reader-speed-control>div{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:6px;
+}
+.reader-speed-control button{
+  min-height:38px;
+  padding:0 7px;
+  border:1px solid var(--line);
+  border-radius:10px;
+  background:#202329;
+  color:#aeb2ba;
+  font-size:9px;
+  font-weight:800;
+}
+.reader-speed-control button.active{
+  border-color:var(--accent-border);
+  background:var(--accent-soft);
+  color:#fff;
+}
+@media(max-width:430px){
+  .reader-speed-control>div{grid-template-columns:1fr 1fr}
+}
+
+
+/* V9 import review */
+.bulk-summary-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+}
+.bulk-summary-head>div{display:grid;gap:4px}
+.import-review-badge{
+  display:inline-flex;
+  min-height:27px;
+  align-items:center;
+  padding:0 9px;
+  border:1px solid var(--accent-border);
+  border-radius:999px;
+  background:var(--accent-soft);
+  color:var(--accent);
+  font-size:8px;
+  font-weight:900;
+  letter-spacing:.11em;
+}
+.import-review-card{
+  grid-template-columns:34px minmax(0,1fr) auto!important;
+  align-items:start!important;
+  padding:12px!important;
+}
+.bulk-song-index{
+  display:grid;
+  width:30px;
+  height:30px;
+  place-items:center;
+  border-radius:9px;
+  background:var(--accent-soft);
+  color:var(--accent)!important;
+}
+.import-review-fields{
+  display:grid;
+  grid-template-columns:minmax(180px,1.15fr) minmax(150px,1fr) 82px;
+  gap:8px;
+  min-width:0;
+}
+.import-review-fields label{
+  min-width:0;
+  gap:4px;
+}
+.import-review-fields label small{
+  color:var(--muted);
+  font-size:8px;
+  font-weight:900;
+  letter-spacing:.09em;
+  text-transform:uppercase;
+}
+.import-review-fields input,
+.import-review-fields select{
+  min-height:38px;
+  padding:0 10px;
+  font-size:11px;
+}
+.import-review-meta{
+  grid-column:1/-1;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
+  color:#747b85;
+  font-size:9px;
+}
+.import-review-meta span,
+.import-review-meta em{
+  display:inline-flex;
+  min-height:23px;
+  align-items:center;
+  padding:0 7px;
+  border:1px solid var(--line);
+  border-radius:999px;
+  background:#111318;
+  font-style:normal;
+}
+.import-review-meta em{color:#ffb268}
+.import-review-meta em.ok{color:#68d9a1}
+.import-review-actions{
+  display:grid;
+  gap:6px;
+}
+.bulk-remove-button{
+  min-height:32px;
+  padding:0 9px;
+  border:1px solid rgba(255,90,103,.22);
+  border-radius:9px;
+  background:rgba(255,90,103,.07);
+  color:#ff848d;
+  font-size:10px;
+  font-weight:800;
+}
+@media(max-width:760px){
+  .bulk-summary-head{align-items:stretch;flex-direction:column}
+  .import-review-card{
+    grid-template-columns:30px minmax(0,1fr)!important;
+  }
+  .import-review-fields{
+    grid-template-columns:1fr 90px;
+  }
+  .import-review-fields label:first-child,
+  .import-review-fields label:nth-child(2){
+    grid-column:1/-1;
+  }
+  .import-review-actions{
+    grid-column:2;
+    grid-template-columns:1fr 1fr;
+  }
+}
+
+
+/* V9 reader mode tabs */
+.song-reader-shell{
+  grid-template-areas:
+    "heading heading"
+    "tabs tabs"
+    "media media"
+    "chords chords"
+    "toolbar content"!important;
+}
+.list-player-shell{
+  grid-template-areas:
+    "header header"
+    "tabs tabs"
+    "media media"
+    "chords chords"
+    "toolbar content"
+    "toolbar nav"!important;
+}
+.reader-mode-tabs{
+  grid-area:tabs;
+  display:flex;
+  gap:6px;
+  padding:9px 14px;
+  overflow-x:auto;
+  border-right:1px solid var(--line);
+  border-bottom:1px solid var(--line);
+  border-left:1px solid var(--line);
+  background:#121419;
+  scrollbar-width:none;
+}
+.reader-mode-tabs::-webkit-scrollbar{display:none}
+.reader-mode-tabs button{
+  flex:0 0 auto;
+  min-height:36px;
+  padding:0 13px;
+  border:1px solid transparent;
+  border-radius:10px;
+  background:#1a1c21;
+  color:#8f949e;
+  font-size:10px;
+  font-weight:850;
+}
+.reader-mode-tabs button:hover{
+  color:#fff;
+  background:#21242a;
+}
+.reader-mode-tabs button.active{
+  border-color:rgba(255,255,255,.82);
+  background:#f4f5f6;
+  color:#111318;
+}
+.song-reader-shell.stage-mode .reader-mode-tabs,
+.list-player-shell.stage-mode .reader-mode-tabs{
+  display:none!important;
+}
+.list-player-shell.reader-text-only .reader-chord-section,
+.song-reader-shell.reader-text-only .reader-chord-section{
+  display:none!important;
+}
+@media(max-width:760px){
+  .reader-mode-tabs{
+    position:sticky;
+    top:0;
+    z-index:80;
+    padding:8px 12px;
+    border-right:0;
+    border-left:0;
+    background:rgba(16,18,21,.96);
+    backdrop-filter:blur(16px);
+  }
+  .reader-mode-tabs button{
+    min-height:34px;
+    padding:0 12px;
+  }
+}
+
+
+/* V9 home dashboard */
+.home-dashboard{
+  display:grid;
+  grid-template-columns:minmax(0,1.45fr) minmax(300px,.75fr);
+  gap:12px;
+  margin:0 0 30px;
+}
+.home-recent-panel,
+.home-shortcuts-panel{
+  min-width:0;
+  padding:18px;
+  border:1px solid var(--line);
+  border-radius:20px;
+  background:var(--surface);
+}
+.home-panel-heading{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:13px;
+}
+.home-panel-heading h2{
+  margin:4px 0 0;
+  font-size:22px;
+  letter-spacing:-.035em;
+}
+.recent-song-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:1px 12px;
+}
+.recent-song-card{
+  min-width:0;
+  display:grid;
+  grid-template-columns:40px minmax(0,1fr) auto;
+  align-items:center;
+  gap:10px;
+  min-height:68px;
+  padding:9px 3px;
+  border:0;
+  border-bottom:1px solid var(--line);
+  background:transparent;
+  color:#fff;
+  text-align:left;
+}
+.recent-song-card:hover{background:rgba(255,255,255,.025)}
+.recent-song-key{
+  display:grid;
+  width:38px;height:38px;
+  place-items:center;
+  border-radius:11px;
+  background:var(--accent-soft);
+  color:var(--accent);
+  font-size:10px;
+  font-weight:950;
+}
+.recent-song-card>span:nth-child(2){min-width:0}
+.recent-song-card strong,
+.recent-song-card small{
+  display:block;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.recent-song-card strong{font-size:12px}
+.recent-song-card small{margin-top:3px;color:var(--muted);font-size:9px}
+.recent-song-card em{
+  color:#5f6570;
+  font-size:22px;
+  font-style:normal;
+}
+.recent-empty{
+  grid-column:1/-1;
+  display:flex;
+  align-items:center;
+  gap:11px;
+  min-height:100px;
+  color:var(--muted);
+}
+.recent-empty>span{
+  display:grid;
+  width:44px;height:44px;
+  place-items:center;
+  border-radius:13px;
+  background:var(--accent-soft);
+  color:var(--accent);
+  font-size:19px;
+}
+.recent-empty strong,.recent-empty small{display:block}
+.recent-empty strong{color:#fff;font-size:12px}
+.recent-empty small{margin-top:3px;font-size:9px}
+.home-shortcut-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.home-shortcut-grid button{
+  min-height:104px;
+  display:grid;
+  align-content:center;
+  justify-items:start;
+  gap:4px;
+  padding:13px;
+  border:1px solid var(--line);
+  border-radius:14px;
+  background:#121419;
+  color:#fff;
+  text-align:left;
+}
+.home-shortcut-grid button:hover{
+  border-color:var(--accent-border);
+  background:var(--accent-soft);
+}
+.home-shortcut-grid button>span{
+  color:var(--accent);
+  font-size:18px;
+  font-weight:950;
+}
+.home-shortcut-grid button strong{font-size:11px}
+.home-shortcut-grid button small{color:var(--muted);font-size:8px;line-height:1.35}
+
+@media(max-width:940px){
+  .home-dashboard{grid-template-columns:1fr}
+}
+@media(max-width:600px){
+  .home-recent-panel,.home-shortcuts-panel{padding:14px}
+  .recent-song-grid{grid-template-columns:1fr}
+  .home-shortcut-grid{grid-template-columns:1fr 1fr}
+}
+
+
+/* V9 repertoire order manager */
+.selected-order-panel{
+  display:grid;
+  gap:10px;
+  margin:14px 0;
+  padding:13px;
+  border:1px solid var(--line);
+  border-radius:15px;
+  background:#111318;
+}
+.selected-order-heading{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:12px;
+}
+.selected-order-heading>div{display:grid;gap:3px}
+.selected-order-heading strong{font-size:12px}
+.selected-order-heading>small{color:var(--muted);font-size:9px}
+.selected-order-list{
+  display:grid;
+  gap:6px;
+  max-height:280px;
+  overflow:auto;
+}
+.selected-order-row{
+  display:grid;
+  grid-template-columns:30px minmax(0,1fr) auto;
+  align-items:center;
+  gap:9px;
+  padding:8px;
+  border:1px solid var(--line);
+  border-radius:11px;
+  background:#191b20;
+}
+.selected-order-number{
+  display:grid;
+  width:28px;height:28px;
+  place-items:center;
+  border-radius:8px;
+  background:var(--accent-soft);
+  color:var(--accent);
+  font-size:10px;
+  font-weight:900;
+}
+.selected-order-row>div:nth-child(2){min-width:0}
+.selected-order-row strong,.selected-order-row small{
+  display:block;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.selected-order-row strong{font-size:11px}
+.selected-order-row small{margin-top:2px;color:var(--muted);font-size:8px}
+.selected-order-actions{display:flex;gap:4px}
+.selected-order-actions button{
+  width:30px;height:30px;
+  border:1px solid var(--line);
+  border-radius:8px;
+  background:#24272d;
+  color:#dfe1e4;
+  font-weight:900;
+}
+.selected-order-actions button:disabled{opacity:.28}
+.selected-order-empty{
+  display:flex;
+  align-items:center;
+  gap:9px;
+  min-height:62px;
+  padding:9px;
+  color:var(--muted);
+}
+.selected-order-empty>span{
+  display:grid;
+  width:34px;height:34px;
+  place-items:center;
+  border-radius:10px;
+  background:var(--accent-soft);
+  color:var(--accent);
+}
+.selected-order-empty small{line-height:1.45}
+@media(max-width:520px){
+  .selected-order-heading{align-items:flex-start;flex-direction:column}
+  .selected-order-row{grid-template-columns:28px minmax(0,1fr)}
+  .selected-order-actions{grid-column:2;justify-content:flex-end}
+}

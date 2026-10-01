@@ -59,10 +59,53 @@ export function transposeChord(chord, semitones, preferFlats = false) {
   return result;
 }
 
+function transposeRawChordToken(token, semitones, preferFlats) {
+  const source = String(token || "");
+  const clean = cleanRawChordToken(source);
+  if (!isRawChordToken(clean)) return source;
+
+  const transposed = transposeChord(clean, semitones, preferFlats);
+  const start = source.indexOf(clean);
+  if (start < 0) return transposed;
+
+  return source.slice(0, start) +
+    transposed +
+    source.slice(start + clean.length);
+}
+
+function transposeRawChordLine(line, semitones, preferFlats) {
+  const source = String(line || "");
+  const prefixMatch = source.match(
+    /^(\s*(?:intro|introdução|introducao|verso|refrão|refrao|ponte|solo|interlúdio|interludio|final)\s*:\s*)(.*)$/i
+  );
+
+  const prefix = prefixMatch?.[1] || "";
+  const body = prefixMatch?.[2] ?? source;
+
+  const transposedBody = body.replace(/\S+/g, (token) =>
+    transposeRawChordToken(token, semitones, preferFlats)
+  );
+
+  return prefix + transposedBody;
+}
+
 export function transposeContent(content, semitones, preferFlats = false) {
-  return String(content || "").replace(/\[([^\]]+)\]/g, (_, chord) =>
+  const bracketed = String(content || "").replace(/\[([^\]]+)\]/g, (_, chord) =>
     `[${transposeChord(chord.trim(), semitones, preferFlats)}]`
   );
+
+  return bracketed
+    .split("\n")
+    .map((line) => {
+      // Linhas com [acordes] já foram transpostas no primeiro passo.
+      // Evita aplicar a transposição duas vezes em "[G] [D]".
+      if (/\[[^\]]+\]/.test(line)) return line;
+
+      return isRawChordLine(line)
+        ? transposeRawChordLine(line, semitones, preferFlats)
+        : line;
+    })
+    .join("\n");
 }
 
 export function semitoneDistance(fromKey, toKey) {

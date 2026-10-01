@@ -1,15 +1,15 @@
-const CACHE_VERSION = "cifras-ieb-v8.0.0";
-const RUNTIME_CACHE = "cifras-ieb-runtime-v8.0.0";
+const CACHE_VERSION = "cifras-ieb-v9.0.0";
+const RUNTIME_CACHE = "cifras-ieb-runtime-v9.0.0";
 
 const APP_SHELL = [
   "./",
   "./index.html",
-  "./styles.css?v=8.0.0",
-  "./app.js?v=8.0.0",
-  "./firebase-config.js?v=8.0.0",
-  "./chord-engine.js?v=8.0.0",
-  "./chord-diagrams.js?v=8.0.0",
-  "./manifest.webmanifest?v=8.0.0",
+  "./styles.css?v=9.0.0",
+  "./app.js?v=9.0.0",
+  "./firebase-config.js?v=9.0.0",
+  "./chord-engine.js?v=9.0.0",
+  "./chord-diagrams.js?v=9.0.0",
+  "./manifest.webmanifest?v=9.0.0",
   "./offline.html",
   "./icons/icon-180.png",
   "./icons/icon-192.png",
@@ -23,10 +23,40 @@ const RUNTIME_HOSTS = new Set([
   "cdn.jsdelivr.net"
 ]);
 
+const OFFLINE_RUNTIME_DEPENDENCIES = [
+  "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js",
+  "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js",
+  "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js",
+  "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs",
+  "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.mjs",
+  "https://cdn.jsdelivr.net/npm/mammoth@1.12.0/mammoth.browser.min.js",
+  "https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"
+];
+
+async function prepareRuntimeDependencies() {
+  const cache = await caches.open(RUNTIME_CACHE);
+
+  await Promise.allSettled(
+    OFFLINE_RUNTIME_DEPENDENCIES.map(async (url) => {
+      const request = new Request(url, { mode:"cors" });
+      const existing = await cache.match(request);
+      if (existing) return;
+
+      const response = await fetch(request);
+      if (response && response.ok) {
+        await cache.put(request, response.clone());
+      }
+    })
+  );
+}
+
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_VERSION)
-      .then((cache) => cache.addAll(APP_SHELL))
+    Promise.all([
+      caches.open(CACHE_VERSION)
+        .then((cache) => cache.addAll(APP_SHELL)),
+      prepareRuntimeDependencies()
+    ])
       .then(() => self.skipWaiting())
   );
 });
@@ -101,7 +131,7 @@ self.addEventListener("fetch", (event) => {
 
   if (url.origin === self.location.origin) {
     event.respondWith(
-      networkFirst(request, CACHE_VERSION)
+      staleWhileRevalidate(request, CACHE_VERSION)
     );
     return;
   }
@@ -111,4 +141,22 @@ self.addEventListener("fetch", (event) => {
       staleWhileRevalidate(request, RUNTIME_CACHE)
     );
   }
+});
+
+
+self.addEventListener("message", (event) => {
+  if (event.data?.type !== "PREPARE_OFFLINE") return;
+
+  event.waitUntil(
+    Promise.all([
+      caches.open(CACHE_VERSION)
+        .then((cache) => cache.addAll(APP_SHELL)),
+      prepareRuntimeDependencies()
+    ]).then(() => {
+      event.source?.postMessage?.({
+        type: "OFFLINE_READY",
+        cacheVersion: CACHE_VERSION
+      });
+    })
+  );
 });

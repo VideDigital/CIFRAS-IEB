@@ -7,8 +7,8 @@
   <meta name="theme-color" content="#0b0c0f">
   <meta name="description" content="Cifras IEB — repertório, listas e cifras para louvor.">
   <title>Cifras IEB</title>
-  <link rel="stylesheet" href="styles.css?v=8.0.0">
-  <link rel="manifest" href="manifest.webmanifest?v=8.0.0">
+  <link rel="stylesheet" href="styles.css?v=9.0.0">
+  <link rel="manifest" href="manifest.webmanifest?v=9.0.0">
   <link rel="apple-touch-icon" href="icons/icon-180.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -113,11 +113,19 @@
         </button>
         <button class="nav-btn" data-view="lists">
           <span class="nav-icon">☷</span>
-          <span>Minhas listas</span>
+          <span>Repertórios</span>
         </button>
         <button class="nav-btn" data-view="groups">
           <span class="nav-icon">☉</span>
-          <span>Meus grupos</span>
+          <span>Grupos</span>
+        </button>
+        <button class="nav-btn" data-view="chords">
+          <span class="nav-icon">Am</span>
+          <span>Acordes</span>
+        </button>
+        <button class="nav-btn" data-view="tools">
+          <span class="nav-icon">◉</span>
+          <span>Ferramentas</span>
         </button>
         <button class="nav-btn" data-view="search">
           <span class="nav-icon">⌕</span>
@@ -126,6 +134,10 @@
         <button class="nav-btn" data-view="shared">
           <span class="nav-icon">↗</span>
           <span>Compartilhadas comigo</span>
+        </button>
+        <button class="nav-btn" data-view="settings">
+          <span class="nav-icon">⚙</span>
+          <span>Configurações</span>
         </button>
       </nav>
 
@@ -145,7 +157,7 @@
           <span>↪</span>
           <span>Sair da conta</span>
         </button>
-        <small>Cifras IEB • Versão 8.0</small>
+        <small>Cifras IEB • Versão 9.0</small>
       </div>
     </aside>
     <div id="sidebarBackdrop" class="backdrop hidden"></div>
@@ -176,12 +188,41 @@
           </article>
         </div>
 
+        <section class="home-dashboard">
+          <div class="home-recent-panel">
+            <div class="home-panel-heading">
+              <div>
+                <span class="eyebrow">CONTINUAR TOCANDO</span>
+                <h2>Tocadas recentemente</h2>
+              </div>
+              <button type="button" class="text-button" data-go-view="search">Buscar cifra</button>
+            </div>
+            <div id="recentSongsGrid" class="recent-song-grid"></div>
+          </div>
+
+          <aside class="home-shortcuts-panel">
+            <div class="home-panel-heading">
+              <div>
+                <span class="eyebrow">ATALHOS</span>
+                <h2>Pronto para o ensaio</h2>
+              </div>
+            </div>
+            <div class="home-shortcut-grid">
+              <button type="button" data-go-view="lists"><span>☷</span><strong>Repertórios</strong><small>Organizar músicas</small></button>
+              <button type="button" data-go-view="groups"><span>◎</span><strong>Grupos</strong><small>Equipe de louvor</small></button>
+              <button type="button" data-go-view="chords"><span>Am</span><strong>Acordes</strong><small>Formações e variações</small></button>
+              <button type="button" data-go-view="tools"><span>◉</span><strong>Metrônomo</strong><small>Ferramentas de prática</small></button>
+            </div>
+          </aside>
+        </section>
+
         <div class="section-head">
           <div>
             <h2>Minha biblioteca</h2>
             <p>Suas cifras pessoais e editáveis.</p>
           </div>
           <div class="library-tools">
+            <button id="bulkManageBtn" class="secondary-button">Selecionar cifras</button>
             <button id="bulkImportBtn" class="secondary-button">Importar em massa</button>
             <div class="search-wrap">
               <span>⌕</span>
@@ -190,6 +231,17 @@
           </div>
         </div>
 
+        <div id="bulkLibraryBar" class="bulk-library-bar hidden">
+          <div>
+            <strong id="bulkLibraryCount">0 selecionadas</strong>
+            <small>Selecione cifras para excluir ou organizar em lote.</small>
+          </div>
+          <div class="bulk-library-actions">
+            <button id="bulkSelectAllBtn" type="button" class="secondary-button">Selecionar todas</button>
+            <button id="bulkClearSelectionBtn" type="button" class="secondary-button">Limpar</button>
+            <button id="bulkDeleteSongsBtn" type="button" class="danger-button">Excluir selecionadas</button>
+          </div>
+        </div>
         <div id="songGrid" class="card-grid"></div>
 
         <div id="emptyLibrary" class="empty-state hidden">
@@ -319,6 +371,166 @@
         </div>
       </section>
 
+      <section id="chordsView" class="view hidden">
+        <div class="section-head page-heading">
+          <div>
+            <span class="eyebrow">LABORATÓRIO HARMÔNICO</span>
+            <h1>Acordes</h1>
+            <p>Explore formações, variações e posições para violão, guitarra, ukulele e teclado.</p>
+          </div>
+        </div>
+
+        <div class="chord-explorer">
+          <aside class="chord-explorer-sidebar">
+            <div class="chord-library-search">
+              <span>⌕</span>
+              <input id="chordExplorerSearch" type="search" placeholder="Buscar C, F#m7, Bbmaj7...">
+            </div>
+            <div id="chordExplorerRoots" class="chord-root-filter"></div>
+            <label>
+              Família
+              <select id="chordExplorerQuality"></select>
+            </label>
+            <div class="instrument-switcher" id="chordExplorerInstrument">
+              <button type="button" class="active" data-chord-instrument="guitar">Violão</button>
+              <button type="button" data-chord-instrument="ukulele">Ukulele</button>
+              <button type="button" data-chord-instrument="keyboard">Teclado</button>
+            </div>
+          </aside>
+
+          <section class="chord-explorer-stage">
+            <div class="chord-explorer-heading">
+              <div>
+                <span class="eyebrow">FORMAÇÃO</span>
+                <h2 id="chordExplorerName">C</h2>
+                <p id="chordExplorerMeta">Maior • C · E · G</p>
+              </div>
+              <div class="chord-variation-controls">
+                <button id="chordVariationPrev" type="button" class="icon-btn">←</button>
+                <span id="chordVariationLabel">Variação 1</span>
+                <button id="chordVariationNext" type="button" class="icon-btn">→</button>
+              </div>
+            </div>
+            <div id="chordExplorerDiagram" class="chord-explorer-diagram"></div>
+            <div class="chord-theory-strip">
+              <div><span>Fórmula</span><strong id="chordExplorerFormula">1 · 3 · 5</strong></div>
+              <div><span>Notas</span><strong id="chordExplorerNotes">C · E · G</strong></div>
+              <div><span>Instrumento</span><strong id="chordExplorerInstrumentLabel">Violão / guitarra</strong></div>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <section id="toolsView" class="view hidden">
+        <div class="section-head page-heading">
+          <div>
+            <span class="eyebrow">FERRAMENTAS</span>
+            <h1>Central de prática</h1>
+            <p>Metrônomo, rolagem e recursos para ensaio e apresentação.</p>
+          </div>
+        </div>
+
+        <div class="tools-grid">
+          <section class="tool-workspace metronome-workspace">
+            <div class="tool-workspace-head">
+              <div><span class="eyebrow">METRÔNOMO</span><h2>Marque o tempo</h2></div>
+              <span id="metronomeStatus" class="tool-status">Parado</span>
+            </div>
+            <div class="metronome-display">
+              <strong id="metronomeBpmDisplay">80</strong>
+              <span>BPM</span>
+            </div>
+            <input id="metronomeBpm" type="range" min="30" max="240" value="80" step="1">
+            <div class="metronome-controls">
+              <button id="metronomeMinus" type="button" class="secondary-button">−5</button>
+              <button id="metronomeTap" type="button" class="secondary-button">Tap tempo</button>
+              <button id="metronomePlus" type="button" class="secondary-button">+5</button>
+            </div>
+            <label>
+              Compasso
+              <select id="metronomeBeats">
+                <option value="2">2/4</option>
+                <option value="3">3/4</option>
+                <option value="4" selected>4/4</option>
+                <option value="6">6/8</option>
+              </select>
+            </label>
+            <div id="metronomeBeatDots" class="metronome-beats"></div>
+            <button id="metronomeToggle" type="button" class="primary full">Iniciar metrônomo</button>
+          </section>
+
+          <section class="tool-workspace">
+            <div class="tool-workspace-head">
+              <div><span class="eyebrow">MODO PALCO</span><h2>Preparar repertório</h2></div>
+            </div>
+            <p class="muted">Abra um repertório e use tela cheia, rolagem automática e mudança de tom sem sair da música.</p>
+            <button type="button" class="secondary-button full" data-go-view="lists">Abrir repertórios</button>
+          </section>
+
+          <section class="tool-workspace">
+            <div class="tool-workspace-head">
+              <div><span class="eyebrow">OFFLINE</span><h2>Pronto sem internet</h2></div>
+              <span id="offlineReadyStatus" class="tool-status">Verificando</span>
+            </div>
+            <p class="muted">O app salva a estrutura do aplicativo e mantém os dados sincronizados pelo cache persistente do Firestore.</p>
+            <button id="prepareOfflineBtn" type="button" class="secondary-button full">Preparar dados offline</button>
+          </section>
+        </div>
+      </section>
+
+      <section id="settingsView" class="view hidden">
+        <div class="section-head page-heading">
+          <div>
+            <span class="eyebrow">PERSONALIZAÇÃO</span>
+            <h1>Aparência e leitura</h1>
+            <p>Escolha as cores e deixe o Cifras IEB confortável para palco, ensaio ou estudo.</p>
+          </div>
+        </div>
+
+        <div class="settings-grid">
+          <section class="settings-card">
+            <h2>Cores do aplicativo</h2>
+            <div class="theme-presets" id="themePresets">
+              <button type="button" data-theme-preset="orange" class="active"><i style="--swatch:#ff6a00"></i>Laranja</button>
+              <button type="button" data-theme-preset="blue"><i style="--swatch:#4f8cff"></i>Azul</button>
+              <button type="button" data-theme-preset="green"><i style="--swatch:#32c77f"></i>Verde</button>
+              <button type="button" data-theme-preset="purple"><i style="--swatch:#9a6cff"></i>Roxo</button>
+              <button type="button" data-theme-preset="red"><i style="--swatch:#ff515e"></i>Vermelho</button>
+            </div>
+            <div class="form-row">
+              <label>Cor principal<input id="themeAccentColor" type="color" value="#ff6a00"></label>
+              <label>Cor dos acordes<input id="themeChordColor" type="color" value="#ff6a00"></label>
+            </div>
+            <div class="form-row">
+              <label>Cor do fundo<input id="themeBackgroundColor" type="color" value="#0b0c0f"></label>
+              <label>Cor da letra<input id="themeTextColor" type="color" value="#f5f6f8"></label>
+            </div>
+            <button id="resetThemeBtn" type="button" class="secondary-button">Restaurar padrão</button>
+          </section>
+
+          <section class="settings-card">
+            <h2>Preferências de leitura</h2>
+            <label>Tamanho padrão da cifra
+              <select id="defaultReaderFontSize">
+                <option value="16">Compacto</option>
+                <option value="18">Normal</option>
+                <option value="20" selected>Grande</option>
+                <option value="24">Muito grande</option>
+              </select>
+            </label>
+            <label>Velocidade padrão da rolagem
+              <select id="defaultScrollSpeed">
+                <option value="0.20">Muito lenta</option>
+                <option value="0.40">Lenta</option>
+                <option value="0.75" selected>Normal</option>
+                <option value="1.25">Rápida</option>
+                <option value="2.00">Muito rápida</option>
+              </select>
+            </label>
+          </section>
+        </div>
+      </section>
+
       <section id="sharedView" class="view hidden">
         <div class="section-head page-heading">
           <div>
@@ -388,6 +600,22 @@
             </div>
           </header>
 
+          <nav class="reader-mode-tabs" aria-label="Modo da cifra">
+            <button type="button" class="active" data-reader-action="normal">Cifra</button>
+            <button type="button" data-reader-action="lyrics">Letra</button>
+            <button type="button" data-reader-action="chords">Acordes</button>
+            <button type="button" data-reader-action="media">Ouvir</button>
+            <button type="button" data-reader-action="more">Mais</button>
+          </nav>
+
+          <section id="viewerMediaPanel" class="reader-media-panel hidden">
+            <div class="reader-media-head">
+              <div><span class="eyebrow">OUVIR</span><strong>Referência no YouTube</strong></div>
+              <button type="button" class="reader-quick-close" data-reader-action="close-media">×</button>
+            </div>
+            <div id="viewerYoutubeEmbed" class="reader-youtube-embed"></div>
+          </section>
+
           <section class="reader-chord-section" aria-label="Acordes usados nesta cifra">
             <div class="reader-chord-section-head">
               <div>
@@ -448,11 +676,22 @@
               </div>
               <button type="button" class="reader-quick-close" data-reader-action="close-more" aria-label="Fechar controles">×</button>
             </div>
+            <div class="reader-speed-control">
+              <span>Velocidade da rolagem</span>
+              <div>
+                <button type="button" data-reader-speed="0.20">Muito lenta</button>
+                <button type="button" data-reader-speed="0.40">Lenta</button>
+                <button type="button" data-reader-speed="0.75">Normal</button>
+                <button type="button" data-reader-speed="1.25">Rápida</button>
+              </div>
+            </div>
             <div class="reader-quick-grid">
               <button type="button" data-reader-action="font-down"><span>A−</span><small>Diminuir texto</small></button>
               <button type="button" data-reader-action="font-up"><span>A＋</span><small>Aumentar texto</small></button>
               <button type="button" data-reader-action="text-only"><span>≡</span><small>Somente texto</small></button>
               <button type="button" data-reader-action="fullscreen"><span>⛶</span><small id="readerFullscreenLabel">Tela cheia</small></button>
+              <button type="button" data-reader-action="media"><span>▶</span><small>Ouvir YouTube</small></button>
+              <button type="button" data-reader-action="metronome"><span>◉</span><small>Metrônomo</small></button>
               <button type="button" data-reader-action="back"><span>←</span><small>Voltar à biblioteca</small></button>
               <button type="button" data-reader-action="edit" class="reader-edit-action"><span>✎</span><small>Editar cifra</small></button>
             </div>
@@ -520,6 +759,12 @@
             <label>
               Artista ou ministério
               <input id="songArtist" placeholder="Ex.: Isaias Saad">
+            </label>
+
+            <label>
+              Link do YouTube
+              <input id="songYoutubeUrl" type="url" inputmode="url" placeholder="https://www.youtube.com/watch?v=...">
+              <small class="field-help">Opcional. O player pode ficar aberto enquanto você toca a cifra.</small>
             </label>
 
             <div class="form-row">
@@ -657,6 +902,14 @@ Poderoso</code></pre>
             </button>
           </div>
 
+          <nav class="reader-mode-tabs list-mode-tabs" aria-label="Modo da cifra da lista">
+            <button type="button" class="active" data-list-action="normal">Cifra</button>
+            <button type="button" data-list-action="lyrics">Letra</button>
+            <button type="button" data-list-action="chords">Acordes</button>
+            <button type="button" data-list-action="media">Ouvir</button>
+            <button type="button" data-list-action="more">Mais</button>
+          </nav>
+
           <section class="reader-chord-section list-player-chord-section" aria-label="Acordes da música atual">
             <div class="reader-chord-section-head">
               <div>
@@ -712,6 +965,14 @@ Poderoso</code></pre>
 
           <div class="swipe-hint">Deslize para os lados ou use os botões para trocar de música.</div>
 
+          <section id="listMediaPanel" class="reader-media-panel list-media-panel hidden">
+            <div class="reader-media-head">
+              <div><span class="eyebrow">OUVIR</span><strong>Referência no YouTube</strong></div>
+              <button type="button" class="reader-quick-close" data-list-action="close-media">×</button>
+            </div>
+            <div id="listYoutubeEmbed" class="reader-youtube-embed"></div>
+          </section>
+
           <div id="listPlayerSong" class="song-preview player list-player-song"></div>
 
           <div class="player-nav list-player-nav">
@@ -728,11 +989,22 @@ Poderoso</code></pre>
               </div>
               <button type="button" class="reader-quick-close" data-list-action="more" aria-label="Fechar opções">×</button>
             </div>
+            <div class="reader-speed-control">
+              <span>Velocidade da rolagem</span>
+              <div>
+                <button type="button" data-list-speed="0.20">Muito lenta</button>
+                <button type="button" data-list-speed="0.40">Lenta</button>
+                <button type="button" data-list-speed="0.75">Normal</button>
+                <button type="button" data-list-speed="1.25">Rápida</button>
+              </div>
+            </div>
             <div class="reader-quick-grid">
               <button type="button" data-list-action="font-down"><span>A−</span><small>Diminuir texto</small></button>
               <button type="button" data-list-action="font-up"><span>A＋</span><small>Aumentar texto</small></button>
               <button type="button" data-list-action="text-only"><span>≡</span><small>Somente texto</small></button>
               <button type="button" data-list-action="fullscreen"><span>⛶</span><small>Tela cheia</small></button>
+              <button type="button" data-list-action="media"><span>▶</span><small>Ouvir YouTube</small></button>
+              <button type="button" data-list-action="metronome"><span>◉</span><small>Metrônomo</small></button>
               <button type="button" data-list-action="exit" class="reader-edit-action"><span>←</span><small>Sair da lista</small></button>
             </div>
           </div>
@@ -755,11 +1027,11 @@ Poderoso</code></pre>
       <button type="button" data-mobile-view="lists">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h10M5 10h10M5 15h7M18 5v11.5a3 3 0 1 1-2-2.83V5z"/></svg><small>Listas</small>
       </button>
-      <button type="button" data-mobile-view="search">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/></svg><small>Buscar</small>
-      </button>
       <button type="button" data-mobile-view="groups">
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.3"/><path d="M3.5 19c.4-3.5 2.3-5.5 5.5-5.5s5.1 2 5.5 5.5M14.5 14.2c2.8-.4 5 1.2 5.7 4.3"/></svg><small>Grupos</small>
+      </button>
+      <button type="button" data-mobile-view="tools">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 7v5l3 2"/></svg><small>Ferramentas</small>
       </button>
       <button type="button" data-mobile-menu>
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="19" cy="12" r="1.4"/></svg><small>Mais</small>
@@ -767,6 +1039,17 @@ Poderoso</code></pre>
     </nav>
   </div>
 
+
+  <div id="readerMetronomePanel" class="reader-metronome-panel hidden">
+    <div>
+      <span class="eyebrow">METRÔNOMO</span>
+      <strong><span id="readerMetronomeBpm">80</span> BPM</strong>
+    </div>
+    <button type="button" id="readerMetronomeMinus">−</button>
+    <button type="button" id="readerMetronomeToggle">▶</button>
+    <button type="button" id="readerMetronomePlus">＋</button>
+    <button type="button" id="readerMetronomeClose">×</button>
+  </div>
 
   <dialog id="installAppDialog" class="install-app-dialog">
     <button class="dialog-close" data-close-dialog aria-label="Fechar">×</button>
@@ -890,11 +1173,25 @@ Poderoso</code></pre>
     </section>
   </dialog>
 
-  <dialog id="chordDialog">
+  <dialog id="chordDialog" class="chord-detail-dialog">
     <button class="dialog-close" data-close-dialog aria-label="Fechar">×</button>
-    <span class="eyebrow">DIAGRAMA</span>
+    <span class="eyebrow">FORMAÇÃO DO ACORDE</span>
     <h3 id="chordName">Acorde</h3>
-    <div id="chordDiagram"></div>
+    <p id="chordTheory" class="muted"></p>
+
+    <div id="chordDialogInstrumentTabs" class="instrument-switcher">
+      <button type="button" class="active" data-dialog-instrument="guitar">Violão / guitarra</button>
+      <button type="button" data-dialog-instrument="ukulele">Ukulele</button>
+      <button type="button" data-dialog-instrument="keyboard">Teclado</button>
+    </div>
+
+    <div id="chordDiagram" class="chord-detail-diagram"></div>
+
+    <div class="chord-dialog-variations">
+      <button id="chordDialogPrevVariation" type="button" class="secondary-button">← Anterior</button>
+      <span id="chordDialogVariationLabel">Variação 1</span>
+      <button id="chordDialogNextVariation" type="button" class="secondary-button">Próxima →</button>
+    </div>
     <p id="chordHelp" class="muted"></p>
   </dialog>
 
@@ -942,6 +1239,18 @@ Poderoso</code></pre>
       <input id="listSongSearchInput" type="search" placeholder="Buscar por música, artista ou tom" autocomplete="off">
     </div>
     <div id="listSongOptions" class="check-list repertoire-check-list"></div>
+
+    <section class="selected-order-panel">
+      <div class="selected-order-heading">
+        <div>
+          <span class="eyebrow">ORDEM DO REPERTÓRIO</span>
+          <strong>Organize como você vai tocar</strong>
+        </div>
+        <small>Use ↑ e ↓ para reordenar.</small>
+      </div>
+      <div id="listSelectedOrder" class="selected-order-list"></div>
+    </section>
+
     <button id="saveListBtn" class="primary full">Salvar lista</button>
   </dialog>
 
@@ -1113,16 +1422,31 @@ Poderoso</code></pre>
       <input id="repertoireSongSearchInput" type="search" placeholder="Buscar por música ou artista" autocomplete="off">
     </div>
     <div id="repertoireSongOptions" class="check-list repertoire-check-list"></div>
+
+    <section class="selected-order-panel">
+      <div class="selected-order-heading">
+        <div>
+          <span class="eyebrow">ORDEM DO CULTO</span>
+          <strong>Defina a sequência das músicas</strong>
+        </div>
+        <small>A ordem será usada no modo leitura.</small>
+      </div>
+      <div id="repertoireSelectedOrder" class="selected-order-list"></div>
+    </section>
+
     <button id="saveRepertoireBtn" class="primary full">Criar repertório</button>
   </dialog>
   <dialog id="repertoireDetailsDialog">
     <button class="dialog-close" data-close-dialog aria-label="Fechar">×</button><span class="eyebrow">REPERTÓRIO</span><h3 id="repertoireDetailsName">Repertório</h3><p id="repertoireDetailsDate" class="muted"></p>
     <div id="repertoireDetailsSongs" class="repertoire-song-list"></div>
     <p class="tiny group-library-help">As cifras criadas por outras pessoas podem ser copiadas para a sua biblioteca e editadas normalmente.</p>
-    <button id="playGroupRepertoireBtn" class="primary full">Abrir modo de leitura</button>
-    <button id="deleteRepertoireBtn" class="danger-button full">Excluir repertório</button>
+    <div class="repertoire-detail-actions">
+      <button id="playGroupRepertoireBtn" class="primary">Abrir modo de leitura</button>
+      <button id="editRepertoireBtn" class="secondary-button">Editar repertório</button>
+      <button id="deleteRepertoireBtn" class="danger-button">Excluir repertório</button>
+    </div>
   </dialog>
-  <script type="module" src="app.js?v=8.0.0"></script>
+  <script type="module" src="app.js?v=9.0.0"></script>
 </body>
 </html>
 
