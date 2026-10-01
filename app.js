@@ -1,9 +1,9 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
 import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail, signOut, updateProfile } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
 import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, collection, addDoc, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
-import { firebaseConfig } from "./firebase-config.js?v=6.0.0";
-import { KEYS, transposeContent, semitoneDistance, renderChordMarkup } from "./chord-engine.js?v=6.0.0";
-import { drawChordDiagram } from "./chord-diagrams.js?v=6.0.0";
+import { firebaseConfig } from "./firebase-config.js?v=7.0.0";
+import { KEYS, transposeContent, semitoneDistance, renderChordMarkup } from "./chord-engine.js?v=7.0.0";
+import { drawChordDiagram } from "./chord-diagrams.js?v=7.0.0";
 
 const firebaseApp = initializeApp(firebaseConfig);
 const auth = getAuth(firebaseApp);
@@ -35,10 +35,11 @@ let playerTextOnlyMode = false;
 let selectedBulkSongs = [];
 let editingSong = null;
 let editingList = null;
+let listSortMode = "recent";
 let previewKey = "C";
 let fontSize = 18;
 let scrollFrame = null;
-let listPlayer = { songs: [], index: 0 };
+let listPlayer = { songs: [], index: 0, lastSongId: null };
 let playerFontSize = 20;
 let playerKey = "C";
 let playerScrollFrame = null;
@@ -68,7 +69,7 @@ function resetReaderState(nextView = "") {
 
   if (nextView !== "listPlayer") {
     $("listPlayerShell")?.classList.remove("stage-mode");
-    $("listQuickPanel")?.classList.add("hidden");
+    setListQuickPanel(false);
   }
 
   document.body.style.overflow = "";
@@ -77,9 +78,14 @@ function resetReaderState(nextView = "") {
 
 function showView(name) {
   resetReaderState(name);
+  document.body.dataset.activeView = name;
 
   views.forEach((view) => {
     $(`${view}View`).classList.toggle("hidden", view !== name);
+  });
+
+  document.querySelectorAll("[data-mobile-view]").forEach((button) => {
+    button.classList.toggle("active", button.dataset.mobileView === name);
   });
 
   document.querySelectorAll(".nav-btn").forEach((button) => {
@@ -545,6 +551,10 @@ function saveLocalArea(area, data) {
     }));
   } catch (error) {
     console.warn(`N\u00E3o foi poss\u00EDvel salvar ${area} para uso offline.`, error);
+
+    if (error?.name === "QuotaExceededError") {
+      toast("O armazenamento offline deste aparelho está cheio. Os dados online continuam seguros.");
+    }
   }
 }
 
@@ -601,7 +611,7 @@ async function loadAll() {
     renderGlobalSearch();
   }
 
-  if (navigator.onLine) {
+  if (navigator.onLine && results.every((result) => result.status === "fulfilled")) {
     await preloadOfflineGroupRepertoires();
     markSuccessfulSync();
   }
@@ -672,10 +682,27 @@ async function loadLists() {
 
 async function loadShared() {
   try {
-    const snapshot = await getDocs(
-      query(collection(db, "shares"), where("viewerIds", "array-contains", currentUser.uid))
-    );
-    const songIds = [...new Set(snapshot.docs.map((item) => item.data().songId))];
+    let shareDocs = [];
+
+    try {
+      const newSnapshot = await getDocs(
+        query(collection(db, "shares"), where("viewerId", "==", currentUser.uid))
+      );
+      shareDocs = newSnapshot.docs;
+    } catch (error) {
+      console.warn("Consulta moderna de compartilhamentos falhou.", error);
+    }
+
+    if (!shareDocs.length) {
+      const legacySnapshot = await getDocs(
+        query(collection(db, "shares"), where("viewerIds", "array-contains", currentUser.uid))
+      );
+      shareDocs = legacySnapshot.docs;
+    }
+
+    const songIds = [...new Set(
+      shareDocs.map((item) => item.data().songId).filter(Boolean)
+    )];
 
     sharedSongs = (await Promise.all(songIds.map(async (songId) => {
       const result = await getDoc(doc(db, "songs", songId));
@@ -746,28 +773,41 @@ function renderShared() {
 }
 
 function renderLists() {
-  $("listGrid").innerHTML = lists.map((list) => {
+  const visibleLists = [...lists];
+
+  if (listSortMode === "alpha") {
+    visibleLists.sort((a, b) =>
+      repairBrokenText(a.name || "").localeCompare(
+        repairBrokenText(b.name || ""),
+        "pt-BR",
+        { sensitivity: "base" }
+      )
+    );
+  } else if (listSortMode === "size") {
+    visibleLists.sort((a, b) => {
+      const bAmount = b.songIds?.length || b.songSnapshots?.length || 0;
+      const aAmount = a.songIds?.length || a.songSnapshots?.length || 0;
+      return bAmount - aAmount;
+    });
+  }
+
+  $("listGrid").innerHTML = visibleLists.map((list) => {
     const name = repairBrokenText(list.name || "Lista sem nome");
     const amount = list.songIds?.length || list.songSnapshots?.length || 0;
     const dateText = list.date
       ? formatRepertoireDate(list.date)
-      : "Data n\u00E3o definida";
+      : "Data não definida";
 
     return `
       <article class="repertoire-row-card">
-        <button
-          type="button"
-          class="repertoire-row-main"
-          data-play-list="${list.id}"
-        >
-          <span class="repertoire-row-icon">L</span>
+        <button type="button" class="repertoire-row-main" data-play-list="${list.id}">
+          <span class="repertoire-row-icon">♫</span>
           <span class="repertoire-row-copy">
             <strong>${safeText(name)}</strong>
-            <small>${amount} m\u00FAsica(s) \u2022 ${safeText(dateText)}</small>
+            <small>${amount} ${amount === 1 ? "música" : "músicas"} • ${safeText(dateText)}</small>
           </span>
-          <span class="song-row-arrow" aria-hidden="true">\u203A</span>
+          <span class="song-row-arrow" aria-hidden="true">›</span>
         </button>
-
         <div class="repertoire-row-actions">
           <button type="button" data-edit-list="${list.id}">Editar</button>
           <button type="button" class="danger-text" data-delete-list="${list.id}">Excluir</button>
@@ -777,6 +817,16 @@ function renderLists() {
 
   $("emptyLists").classList.toggle("hidden", lists.length > 0);
 }
+
+document.querySelectorAll("[data-list-sort]").forEach((button) => {
+  button.addEventListener("click", () => {
+    listSortMode = button.dataset.listSort || "recent";
+    document.querySelectorAll("[data-list-sort]").forEach((item) => {
+      item.classList.toggle("active", item === button);
+    });
+    renderLists();
+  });
+});
 
 $("songSearch").oninput = (event) => renderSongs(event.target.value);
 
@@ -950,6 +1000,11 @@ function setReaderQuickPanel(open) {
   $("readerQuickPanel")?.classList.toggle("hidden", !open);
   $("readerQuickBackdrop")?.classList.toggle("hidden", !open);
   document.body.classList.toggle("reader-sheet-open", open);
+}
+
+function setListQuickPanel(open) {
+  $("listQuickPanel")?.classList.toggle("hidden", !open);
+  document.body.classList.toggle("list-sheet-open", open);
 }
 
 function updateReaderFullscreenState() {
@@ -1682,9 +1737,11 @@ async function handleSharedLink() {
       await setDoc(doc(db, "shares", `${data.songId}_${currentUser.uid}`), {
         songId: data.songId,
         ownerId: data.ownerId,
-        viewerIds: arrayUnion(currentUser.uid),
+        viewerId: currentUser.uid,
+        viewerIds: [currentUser.uid],
+        shareToken: token,
         createdAt: serverTimestamp()
-      }, { merge: true });
+      });
       toast("Cifra adicionada \u00E0s compartilhadas.");
     }
 
@@ -1871,8 +1928,9 @@ function renderListSong() {
 
   const originalKey = song.key || "C";
 
-  if (!playerKey) {
+  if (!playerKey || listPlayer.lastSongId !== song.id) {
     playerKey = originalKey;
+    listPlayer.lastSongId = song.id;
   }
 
   const semitones = semitoneDistance(originalKey, playerKey);
@@ -2371,8 +2429,15 @@ $("deleteGroupBtn").onclick = async () => {
 };
 
 function normalizeImportedKey(value = "C") {
-  const clean = String(value || "C").trim().replace(/\s+/g, "");
-  return KEYS.includes(clean) ? clean : "C";
+  const clean = String(value || "C")
+    .trim()
+    .replace(/\s+/g, "")
+    .replace(/♯/g, "#")
+    .replace(/♭/g, "b");
+
+  if (KEYS.includes(clean)) return clean;
+  const root = clean.match(/^([A-G](?:#|b)?)/)?.[1];
+  return root && KEYS.includes(root) ? root : "C";
 }
 
 function stripChordMarkup(content = "") {
@@ -2381,84 +2446,145 @@ function stripChordMarkup(content = "") {
     .replace(/[ \t]+\n/g, "\n");
 }
 
-function looksLikeChordToken(token = "") {
-  const clean = String(token)
+function cleanChordToken(token = "") {
+  return String(token)
     .trim()
-    .replace(/^[([{]+|[)\]},.;:]+$/g, "")
-    .replace(/[\u2013\u2014]/g, "-");
+    .replace(/^[|:;,]+|[|:;,]+$/g, "")
+    .replace(/[–—]/g, "-")
+    .replace(/♯/g, "#")
+    .replace(/♭/g, "b");
+}
+
+function looksLikeChordToken(token = "") {
+  const clean = cleanChordToken(token)
+    .replace(/^[([{]+|[)\]},.]+$/g, "");
 
   if (/^N\.?C\.?$/i.test(clean)) return true;
   if (!/^[A-G](?:#|b)?/.test(clean)) return false;
 
   const suffix = clean.replace(/^[A-G](?:#|b)?/, "");
-
   if (!suffix) return true;
 
-  // Aceita extens\u00F5es comuns:
-  // F#m7/9/11, C7M, Bm7(9), A/C#, Gsus4, D/F#, Cadd9.
-  return /^(?:m|maj|min|M|dim|aug|sus|add|omit|no|alt|\u00B0|\u00BA|\u00F8|\d|#|b|\+|-|\(|\)|\/[A-G](?:#|b)?|\/\d)*$/i.test(suffix);
+  return /^(?:m|maj|min|M|dim|aug|sus|add|omit|no|alt|°|º|ø|\d|#|b|\+|-|\(|\)|\/[A-G](?:#|b)?|\/\d)*$/i.test(suffix);
+}
+
+function extractChordTokens(line = "") {
+  const result = [];
+  const tokenPattern = /\S+/g;
+  let match;
+
+  while ((match = tokenPattern.exec(String(line)))) {
+    const token = cleanChordToken(match[0]);
+    if (looksLikeChordToken(token)) {
+      result.push({
+        chord: token.replace(/^[([{]+|[)\]},.]+$/g, ""),
+        index: match.index
+      });
+    }
+  }
+
+  return result;
 }
 
 function looksLikeChordRow(line = "") {
   const raw = String(line).trim();
+  if (!raw || raw.length > 180) return false;
 
-  if (!raw || raw.length > 140) return false;
+  const sectionPrefix = raw.match(
+    /^(?:intro|introdução|introducao|verso|refrão|refrao|ponte|solo|interlúdio|interludio|final)\s*:\s*(.*)$/i
+  );
+  const body = sectionPrefix ? sectionPrefix[1] : raw;
+  const tokens = body.replace(/[|:]/g, " ").split(/\s+/).filter(Boolean);
+  if (!tokens.length) return false;
 
-  const tokens = raw
-    .replace(/[|:]/g, " ")
-    .replace(/\s*-\s*/g, " ")
-    .split(/\s+/)
-    .filter(Boolean);
-
-  const chordTokens = tokens.filter(looksLikeChordToken);
-  const allowedTokens = tokens.filter((token) =>
+  const allowed = tokens.filter((token) =>
     looksLikeChordToken(token) ||
     /^\(?\d+x\)?$/i.test(token) ||
     /^(?:bis|repete|volta)$/i.test(token)
   );
 
-  return chordTokens.length > 0 && allowedTokens.length === tokens.length;
+  return tokens.some(looksLikeChordToken) && allowed.length === tokens.length;
+}
+
+function sanitizeImportedText(content = "") {
+  const text = repairBrokenText(String(content || ""))
+    .replace(/\r\n?/g, "\n")
+    .replace(/\u00A0/g, " ")
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F]/g, "")
+    .replace(/[\u200B-\u200F\u202A-\u202E\u2060\uFEFF]/g, "")
+    .replace(/[\uE000-\uF8FF\uFFFD]/g, "");
+
+  const cleaned = [];
+  let previousBlank = false;
+
+  for (const rawLine of text.split("\n")) {
+    const line = rawLine
+      .replace(/[ \t]+$/g, "")
+      .replace(/^[ \t]{28,}/, "")
+      .replace(/\u00AD/g, "");
+
+    const visible = [...line.trim()];
+    const letters = visible.filter((char) => /[A-Za-zÀ-ÿ]/.test(char)).length;
+    const digits = visible.filter((char) => /\d/.test(char)).length;
+    const suspicious = visible.filter((char) =>
+      !/[A-Za-zÀ-ÿ0-9\s#b|/:;,.!?()\[\]+\-'º°ø&]/.test(char)
+    ).length;
+
+    const garbage =
+      visible.length >= 8 &&
+      letters < 2 &&
+      digits < 2 &&
+      suspicious / Math.max(1, visible.length) > 0.3 &&
+      !looksLikeChordRow(line);
+
+    if (garbage) continue;
+
+    const blank = !line.trim();
+    if (blank && previousBlank) continue;
+
+    cleaned.push(line);
+    previousBlank = blank;
+  }
+
+  return cleaned.join("\n").trim();
 }
 
 const IMPORTED_SECTION_NAMES = [
-  "intro", "introdu\u00E7\u00E3o", "introducao",
+  "intro", "introdução", "introducao",
   "primeira parte", "segunda parte", "terceira parte",
   "verso", "verso 1", "verso 2", "verso 3",
-  "pr\u00E9-refr\u00E3o", "pre-refrao", "refr\u00E3o", "refrao",
-  "ponte", "interl\u00FAdio", "interludio", "solo",
-  "pausa", "ministra\u00E7\u00E3o", "ministracao",
-  "espont\u00E2neo", "espontaneo", "modula\u00E7\u00E3o", "modulacao",
+  "pré-refrão", "pre-refrao", "refrão", "refrao",
+  "ponte", "interlúdio", "interludio", "solo",
+  "pausa", "ministração", "ministracao",
+  "espontâneo", "espontaneo", "modulação", "modulacao",
   "final", "coda"
 ];
 
 function normalizeImportedSectionLine(line = "") {
   const trimmed = repairBrokenText(line).trim();
-  const match = trimmed.match(/^\[([^\]]+)\]$/);
 
+  const colonSection = trimmed.match(
+    /^(intro|introdução|introducao|verso(?:\s+\d+)?|pré-refrão|pre-refrao|refrão|refrao|ponte|interlúdio|interludio|solo|pausa|ministração|ministracao|espontâneo|espontaneo|modulação|modulacao|final|coda)\s*:\s*$/i
+  );
+
+  if (colonSection) return `::${colonSection[1].toUpperCase()}::`;
+
+  const match = trimmed.match(/^\[([^\]]+)\]$/);
   if (!match) return trimmed;
 
   const label = match[1].trim();
-  const normalized = label
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase();
+  const normalized = label.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 
   const isSection = IMPORTED_SECTION_NAMES.some((name) => {
-    const normalizedName = name
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .toLowerCase();
-
-    return normalized === normalizedName ||
-      normalized.startsWith(`${normalizedName} `);
+    const normalizedName = name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    return normalized === normalizedName || normalized.startsWith(`${normalizedName} `);
   });
 
   return isSection ? `::${label.toUpperCase()}::` : trimmed;
 }
 
 function normalizeImportedStructure(content = "") {
-  const lines = repairBrokenText(content)
-    .replace(/\r\n/g, "\n")
+  const lines = sanitizeImportedText(content)
     .split("\n")
     .map(normalizeImportedSectionLine);
 
@@ -2466,103 +2592,112 @@ function normalizeImportedStructure(content = "") {
   let previousWasBlank = false;
 
   lines.forEach((line) => {
-    const cleaned = line
-      .replace(/\u00A0/g, " ")
-      .replace(/[ \t]+$/g, "")
-      .replace(/^[ \t]{18,}/, "")
-      .replace(/([A-G](?:#|b)?(?:m|M|maj|min|dim|aug|sus|add)?\d*(?:\/\d+)+)\s{3,}/g, "$1 ");
-
-    const isBlank = !cleaned.trim();
-
-    if (isBlank && previousWasBlank) return;
-
+    const cleaned = line.replace(/[ \t]+$/g, "").replace(/^[ \t]{18,}/, "");
+    const blank = !cleaned.trim();
+    if (blank && previousWasBlank) return;
     result.push(cleaned);
-    previousWasBlank = isBlank;
+    previousWasBlank = blank;
   });
 
   return result.join("\n").trim();
 }
 
+function bracketChordRow(line = "") {
+  const tokens = extractChordTokens(line);
+  return tokens.length
+    ? tokens.map(({ chord }) => `[${chord}]`).join("   ")
+    : line;
+}
+
+function placeChordsOnLyric(chordLine, lyricLine) {
+  const matches = extractChordTokens(chordLine);
+  if (!matches.length) return lyricLine;
+
+  if (matches.length === 1) {
+    return `[${matches[0].chord}]${lyricLine.trimStart()}`;
+  }
+
+  let converted = lyricLine;
+
+  for (let index = matches.length - 1; index >= 0; index -= 1) {
+    const match = matches[index];
+    const position = Math.min(match.index || 0, converted.length);
+    converted =
+      converted.slice(0, position) +
+      `[${match.chord}]` +
+      converted.slice(position);
+  }
+
+  return converted;
+}
+
 function convertChordRowsToBracketMarkup(content = "") {
-  const lines = String(content).replace(/\r\n/g, "\n").split("\n");
+  const lines = sanitizeImportedText(content).split("\n");
   const result = [];
 
   for (let index = 0; index < lines.length; index += 1) {
-    const chordLine = lines[index];
-    const lyricLine = lines[index + 1];
+    const rawLine = lines[index];
+    const introMatch = rawLine.trim().match(/^(intro|introdução|introducao)\s*:\s*(.+)$/i);
 
-    if (
-      looksLikeChordRow(chordLine) &&
-      lyricLine !== undefined &&
-      lyricLine.trim() &&
-      !looksLikeChordRow(lyricLine)
-    ) {
-      const chordMatches = [
-        ...chordLine.matchAll(
-          /[A-G](?:#|b)?(?:m|maj|min|dim|aug|sus|add)?\d*(?:\([^)]+\))?(?:\/[A-G](?:#|b)?)?|N\.?C\.?/gi
-        )
-      ];
-
-      let convertedLyric = lyricLine;
-
-      for (let matchIndex = chordMatches.length - 1; matchIndex >= 0; matchIndex -= 1) {
-        const match = chordMatches[matchIndex];
-        const position = Math.min(match.index || 0, convertedLyric.length);
-        convertedLyric =
-          convertedLyric.slice(0, position) +
-          `[${match[0]}]` +
-          convertedLyric.slice(position);
-      }
-
-      result.push(convertedLyric);
-      index += 1;
+    if (introMatch && looksLikeChordRow(introMatch[2])) {
+      result.push("::INTRODUÇÃO::");
+      result.push(bracketChordRow(introMatch[2]));
       continue;
     }
 
-    result.push(chordLine);
+    if (!looksLikeChordRow(rawLine)) {
+      result.push(rawLine);
+      continue;
+    }
+
+    let lyricIndex = index + 1;
+    while (lyricIndex < lines.length && !lines[lyricIndex].trim() && lyricIndex <= index + 3) {
+      lyricIndex += 1;
+    }
+
+    const lyricLine = lines[lyricIndex];
+
+    if (
+      lyricLine !== undefined &&
+      lyricIndex <= index + 3 &&
+      lyricLine.trim() &&
+      !looksLikeChordRow(lyricLine) &&
+      !/^::.+::$/.test(normalizeImportedSectionLine(lyricLine))
+    ) {
+      result.push(placeChordsOnLyric(rawLine, lyricLine));
+      index = lyricIndex;
+      continue;
+    }
+
+    result.push(bracketChordRow(rawLine));
   }
 
   return result.join("\n");
 }
 
 async function extractPdfText(file) {
-  const pdfjs = await import(
-    "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs"
-  );
-
+  const pdfjs = await import("https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs");
   pdfjs.GlobalWorkerOptions.workerSrc =
     "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.mjs";
 
-  const document = await pdfjs.getDocument({
-    data: await file.arrayBuffer()
-  }).promise;
-
+  const document = await pdfjs.getDocument({ data: await file.arrayBuffer() }).promise;
   const pages = [];
 
   for (let pageNumber = 1; pageNumber <= document.numPages; pageNumber += 1) {
     const page = await document.getPage(pageNumber);
     const content = await page.getTextContent();
-
     const rows = new Map();
 
     content.items.forEach((item) => {
       const y = Math.round(item.transform?.[5] || 0);
       if (!rows.has(y)) rows.set(y, []);
-      rows.get(y).push({
-        x: item.transform?.[4] || 0,
-        text: item.str || ""
-      });
+      rows.get(y).push({ x: item.transform?.[4] || 0, text: item.str || "" });
     });
 
     const pageText = [...rows.entries()]
       .sort((a, b) => b[0] - a[0])
       .map(([, rowItems]) =>
-        rowItems
-          .sort((a, b) => a.x - b.x)
-          .map((item) => item.text)
-          .join(" ")
-          .replace(/\s+/g, " ")
-          .trim()
+        rowItems.sort((a, b) => a.x - b.x).map((item) => item.text).join(" ").replace(/\s+/g, " ").trim()
       )
       .filter(Boolean)
       .join("\n");
@@ -2570,7 +2705,7 @@ async function extractPdfText(file) {
     pages.push(pageText);
   }
 
-  return pages.join("\n\n");
+  return sanitizeImportedText(pages.join("\n\n"));
 }
 
 let mammothBrowserPromise = null;
@@ -2584,9 +2719,8 @@ function loadClassicScript(src, globalName) {
     );
 
     if (existing) {
-      existing.addEventListener("load", () => resolve(window[globalName]), {
-        once: true
-      });
+      if (window[globalName]) return resolve(window[globalName]);
+      existing.addEventListener("load", () => resolve(window[globalName]), { once: true });
       existing.addEventListener("error", reject, { once: true });
       return;
     }
@@ -2595,28 +2729,16 @@ function loadClassicScript(src, globalName) {
     script.src = src;
     script.async = true;
     script.crossOrigin = "anonymous";
-
-    script.onload = () => {
-      if (!window[globalName]) {
-        reject(new Error(`A biblioteca ${globalName} n\u00E3o ficou dispon\u00EDvel.`));
-        return;
-      }
-
-      resolve(window[globalName]);
-    };
-
-    script.onerror = () => {
-      reject(new Error(
-        "N\u00E3o foi poss\u00EDvel carregar o leitor de DOCX. Verifique a internet e tente novamente."
-      ));
-    };
-
+    script.onload = () => window[globalName]
+      ? resolve(window[globalName])
+      : reject(new Error(`A biblioteca ${globalName} não ficou disponível.`));
+    script.onerror = () => reject(new Error("Não foi possível carregar o leitor de DOCX. Verifique a internet."));
     document.head.appendChild(script);
   });
 }
 
 async function getMammothBrowser() {
-  if (window.mammoth?.extractRawText) return window.mammoth;
+  if (window.mammoth?.convertToHtml) return window.mammoth;
 
   if (!mammothBrowserPromise) {
     mammothBrowserPromise = loadClassicScript(
@@ -2629,33 +2751,72 @@ async function getMammothBrowser() {
   }
 
   const mammoth = await mammothBrowserPromise;
-
-  if (typeof mammoth?.extractRawText !== "function") {
-    throw new Error("O leitor de DOCX carregou sem a fun\u00E7\u00E3o necess\u00E1ria.");
+  if (typeof mammoth?.convertToHtml !== "function") {
+    throw new Error("O leitor de DOCX carregou sem as funções necessárias.");
   }
-
   return mammoth;
 }
 
-async function extractDocxText(file) {
-  if (!(file instanceof Blob)) {
-    throw new Error("O arquivo DOCX recebido \u00E9 inv\u00E1lido.");
+function mammothHtmlToStructuredText(html = "") {
+  const parsed = new DOMParser().parseFromString(String(html), "text/html");
+  const lines = [];
+
+  function add(value) {
+    const text = String(value || "").replace(/\s+/g, " ").trim();
+    if (text) lines.push(text);
   }
+
+  function visit(element) {
+    if (!element || element.nodeType !== Node.ELEMENT_NODE) return;
+    const tag = element.tagName;
+
+    if (tag === "TABLE") {
+      element.querySelectorAll("tr").forEach((row) => {
+        const cells = [...row.children]
+          .filter((child) => child.matches("td,th"))
+          .map((cell) => cell.textContent.replace(/\s+/g, " ").trim())
+          .filter(Boolean);
+        if (cells.length) lines.push(cells.join("    "));
+      });
+      lines.push("");
+      return;
+    }
+
+    if (/^H[1-6]$/.test(tag) || tag === "P" || tag === "LI") {
+      add(element.textContent);
+      return;
+    }
+
+    [...element.children].forEach(visit);
+  }
+
+  [...parsed.body.children].forEach(visit);
+  return sanitizeImportedText(lines.join("\n"));
+}
+
+async function extractDocxText(file) {
+  if (!(file instanceof Blob)) throw new Error("O arquivo DOCX recebido é inválido.");
 
   const arrayBuffer = await file.arrayBuffer();
-
-  if (!arrayBuffer?.byteLength) {
-    throw new Error("O arquivo DOCX est\u00E1 vazio.");
-  }
+  if (!arrayBuffer?.byteLength) throw new Error("O arquivo DOCX está vazio.");
 
   const mammoth = await getMammothBrowser();
-  const result = await mammoth.extractRawText({ arrayBuffer });
-  const value = String(result?.value || "");
+  let value = "";
+
+  try {
+    const htmlResult = await mammoth.convertToHtml({ arrayBuffer });
+    value = mammothHtmlToStructuredText(htmlResult?.value || "");
+  } catch (error) {
+    console.warn("Falha na leitura estruturada do DOCX; tentando texto bruto.", error);
+  }
+
+  if (!value.trim() && typeof mammoth.extractRawText === "function") {
+    const rawResult = await mammoth.extractRawText({ arrayBuffer });
+    value = sanitizeImportedText(rawResult?.value || "");
+  }
 
   if (!value.trim()) {
-    throw new Error(
-      "O documento n\u00E3o possui texto leg\u00EDvel. Ele pode conter apenas imagens ou caixas de texto incompat\u00EDveis."
-    );
+    throw new Error("O DOCX não possui texto musical legível. Ele pode conter apenas imagens.");
   }
 
   return value;
@@ -2663,24 +2824,38 @@ async function extractDocxText(file) {
 
 async function readImportedFile(file) {
   const extension = file.name.split(".").pop()?.toLowerCase() || "";
+  let value = "";
 
   if (extension === "pdf" || file.type === "application/pdf") {
-    return extractPdfText(file);
-  }
-
-  if (
+    value = await extractPdfText(file);
+  } else if (
     extension === "docx" ||
     file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
   ) {
-    return extractDocxText(file);
+    value = await extractDocxText(file);
+  } else {
+    value = await file.text();
   }
 
-  return file.text();
+  return sanitizeImportedText(value);
+}
+
+function inferKeyFromContent(content = "") {
+  const explicit = String(content).match(/^\s*tom\s*:\s*([^\s]+)\s*$/im);
+  if (explicit) return normalizeImportedKey(explicit[1]);
+
+  for (const line of String(content).split("\n")) {
+    const chord = extractChordTokens(line)[0]?.chord;
+    if (chord) return normalizeImportedKey(chord);
+  }
+
+  return "C";
 }
 
 function inferSongFromFile(fileName, rawText) {
-  const text = String(rawText || "").replace(/\r\n/g, "\n").trim();
-  const baseName = fileName
+  const extension = fileName.split(".").pop()?.toLowerCase() || "";
+  const text = sanitizeImportedText(rawText);
+  const baseName = repairBrokenText(fileName)
     .replace(/\.[^.]+$/, "")
     .replace(/[_-]+/g, " ")
     .replace(/\s+/g, " ")
@@ -2688,40 +2863,43 @@ function inferSongFromFile(fileName, rawText) {
 
   if (!text) return [];
 
-  if (fileName.toLowerCase().endsWith(".json")) {
+  if (extension === "json") {
     try {
       const data = JSON.parse(text);
       const items = Array.isArray(data) ? data : [data];
 
-      return items.map((item, index) => ({
-        title: String(item.title || item.titulo || `${baseName} ${index + 1}`).trim(),
-        artist: String(item.artist || item.artista || "").trim(),
-        key: normalizeImportedKey(item.key || item.tom || "C"),
-        capo: Number(item.capo || item.capotraste || 0) || 0,
-        content: convertChordRowsToBracketMarkup(
-          String(item.content || item.cifra || "").trim()
-        ),
-        sourceFileName: fileName
-      })).filter((song) => song.title && song.content);
-    } catch (error) {
-      console.warn("JSON inv\u00E1lido:", fileName, error);
+      return items.map((item, index) => {
+        const source = sanitizeImportedText(item.content || item.cifra || "");
+        const converted = normalizeImportedStructure(convertChordRowsToBracketMarkup(source));
+
+        return {
+          title: String(item.title || item.titulo || `${baseName} ${index + 1}`).trim(),
+          artist: String(item.artist || item.artista || "").trim(),
+          key: normalizeImportedKey(item.key || item.tom || inferKeyFromContent(source)),
+          capo: Number(item.capo || item.capotraste || 0) || 0,
+          content: converted,
+          sourceFileName: fileName
+        };
+      }).filter((song) => song.title && song.content);
+    } catch {
+      throw new Error("JSON inválido ou fora do formato esperado.");
     }
   }
 
-  const lines = String(text || "").split("\n");
+  const lines = text.split("\n");
   let title = "";
   let artist = "";
-  let key = "C";
+  let key = "";
   let capo = 0;
   let contentStart = -1;
 
   lines.forEach((line, index) => {
     const trimmed = line.trim();
 
-    if (/^t[i\u00ED]tulo\s*:/i.test(trimmed)) {
-      title = trimmed.replace(/^t[i\u00ED]tulo\s*:/i, "").trim();
-    } else if (/^(artista|minist[e\u00E9]rio)\s*:/i.test(trimmed)) {
-      artist = trimmed.replace(/^(artista|minist[e\u00E9]rio)\s*:/i, "").trim();
+    if (/^t[ií]tulo\s*:/i.test(trimmed)) {
+      title = trimmed.replace(/^t[ií]tulo\s*:/i, "").trim();
+    } else if (/^(artista|minist[eé]rio)\s*:/i.test(trimmed)) {
+      artist = trimmed.replace(/^(artista|minist[eé]rio)\s*:/i, "").trim();
     } else if (/^tom\s*:/i.test(trimmed)) {
       key = normalizeImportedKey(trimmed.replace(/^tom\s*:/i, "").trim());
     } else if (/^capotraste\s*:/i.test(trimmed)) {
@@ -2731,33 +2909,29 @@ function inferSongFromFile(fileName, rawText) {
     }
   });
 
-  const metadataPattern =
-    /^(t[i\u00ED]tulo|artista|minist[e\u00E9]rio|tom|capotraste)\s*:/i;
+  const metadataPattern = /^(t[ií]tulo|artista|minist[eé]rio|tom|capotraste)\s*:/i;
 
   let rawContent = contentStart >= 0
     ? lines.slice(contentStart).join("\n").trim()
-    : lines
-        .filter((line) => !metadataPattern.test(line.trim()))
-        .join("\n")
-        .trim();
+    : lines.filter((line) => !metadataPattern.test(line.trim())).join("\n").trim();
 
-  // PDFs frequentemente repetem o t\u00EDtulo no come\u00E7o.
-  if (!title && lines[0]?.trim()) {
-    const firstLine = lines[0].trim();
+  if (!title && extension !== "docx") {
+    const firstLine = lines[0]?.trim() || "";
+
     if (
+      firstLine &&
       firstLine.length <= 100 &&
       !looksLikeChordRow(firstLine) &&
-      !/\[[^\]]+\]/.test(firstLine) &&
-      !/^(tom|capotraste|artista|minist\u00E9rio|titulo|t\u00EDtulo)\s*:/i.test(firstLine)
+      !/^\[.+\]$/.test(firstLine) &&
+      !/^(tom|capotraste|artista|minist[eé]rio|titulo|título)\s*:/i.test(firstLine)
     ) {
       title = firstLine;
       rawContent = lines.slice(1).join("\n").trim();
     }
   }
 
-  const content = normalizeImportedStructure(
-    convertChordRowsToBracketMarkup(rawContent)
-  );
+  const content = normalizeImportedStructure(convertChordRowsToBracketMarkup(rawContent));
+  key = key || inferKeyFromContent(rawContent);
 
   return [{
     title: title || baseName || "Cifra importada",
@@ -2768,6 +2942,7 @@ function inferSongFromFile(fileName, rawText) {
     sourceFileName: fileName
   }].filter((song) => song.content);
 }
+
 
 function setImportProgress(current, total, message) {
   const wrapper = $("bulkImportProgress");
@@ -2788,31 +2963,73 @@ function renderBulkImportSummary(items, failures = []) {
   element.classList.remove("hidden");
 
   const successHtml = items.length
-    ? `<strong>${items.length} cifra(s) pronta(s) para importar</strong>
+    ? `<div class="bulk-summary-head">
+         <strong>${items.length} cifra(s) pronta(s) para revisar</strong>
+         <small>Confira uma amostra antes de salvar.</small>
+       </div>
        <div class="bulk-song-list">
          ${items.map((song, index) => `
            <div class="bulk-song-item">
              <span>${index + 1}</span>
              <div>
                <strong>${safeText(song.title)}</strong>
-               <small>${safeText(song.sourceFileName)} \u2022 Tom ${safeText(song.key)}</small>
+               <small>${safeText(song.sourceFileName)} • Tom ${safeText(song.key)}</small>
              </div>
+             <button type="button" class="bulk-preview-button" data-preview-import="${index}">Ver</button>
            </div>
          `).join("")}
        </div>`
-    : "<strong>Nenhuma cifra v\u00E1lida foi encontrada.</strong>";
+    : "<strong>Nenhuma cifra válida foi encontrada.</strong>";
 
   const failuresHtml = failures.length
     ? `<div class="import-errors">
-         <strong>${failures.length} arquivo(s) n\u00E3o puderam ser lidos</strong>
-         ${failures.map((failure) => `
+         <strong>${failures.length} arquivo(s) não puderam ser lidos</strong>
+         ${failures.slice(0, 12).map((failure) => `
            <small>${safeText(failure.file)}: ${safeText(failure.reason)}</small>
          `).join("")}
+         ${failures.length > 12 ? `<small>+ ${failures.length - 12} outros arquivos com erro.</small>` : ""}
        </div>`
     : "";
 
   element.innerHTML = successHtml + failuresHtml;
 }
+
+function openBulkImportPreview(index) {
+  const song = selectedBulkSongs[index];
+  if (!song) return;
+
+  let dialog = $("bulkPreviewDialog");
+
+  if (!dialog) {
+    dialog = document.createElement("dialog");
+    dialog.id = "bulkPreviewDialog";
+    dialog.className = "bulk-preview-dialog";
+    dialog.innerHTML = `
+      <button class="dialog-close" type="button" data-close-bulk-preview aria-label="Fechar">×</button>
+      <span class="eyebrow">PRÉVIA DA IMPORTAÇÃO</span>
+      <h3 id="bulkPreviewTitle"></h3>
+      <p id="bulkPreviewMeta" class="muted"></p>
+      <article id="bulkPreviewContent" class="song-preview bulk-preview-content"></article>
+    `;
+    document.body.appendChild(dialog);
+
+    dialog.addEventListener("click", (event) => {
+      if (event.target.closest("[data-close-bulk-preview]")) dialog.close();
+    });
+  }
+
+  $("bulkPreviewTitle").textContent = song.title || "Cifra importada";
+  $("bulkPreviewMeta").textContent =
+    `${song.artist || "Artista não informado"} • Tom ${song.key || "C"}`;
+  $("bulkPreviewContent").innerHTML = renderChordMarkup(song.content || "");
+  dialog.showModal();
+}
+
+document.addEventListener("click", (event) => {
+  const previewButton = event.target.closest("[data-preview-import]");
+  if (!previewButton) return;
+  openBulkImportPreview(Number(previewButton.dataset.previewImport));
+});
 
 $("bulkImportBtn").onclick = () => {
   selectedBulkSongs = [];
@@ -3419,12 +3636,11 @@ document.querySelector("[data-mobile-menu]")?.addEventListener("click", (event) 
 });
 
 document.addEventListener("click", (event) => {
-  const readerButton = event.target.closest("[data-reader-action]");
+  const readerButton = event.target.closest("#songViewerView [data-reader-action]");
 
   if (readerButton) {
     event.preventDefault();
     event.stopPropagation();
-    event.stopImmediatePropagation();
 
     const action = readerButton.dataset.readerAction;
     const actions = {
@@ -3440,19 +3656,22 @@ document.addEventListener("click", (event) => {
         setReaderQuickPanel(false);
         $("viewerEditBtn")?.click();
       },
-      more: () => {
-        const isOpen = !$("readerQuickPanel")?.classList.contains("hidden");
-        setReaderQuickPanel(!isOpen);
-      },
+      more: () => setReaderQuickPanel(
+        $("readerQuickPanel")?.classList.contains("hidden") === true
+      ),
       "close-more": () => setReaderQuickPanel(false)
     };
+
     actions[action]?.();
     return;
   }
 
-  const listButton = event.target.closest("[data-list-action]");
+  const listButton = event.target.closest("#listPlayerView [data-list-action]");
 
   if (listButton) {
+    event.preventDefault();
+    event.stopPropagation();
+
     const action = listButton.dataset.listAction;
     const actions = {
       previous: () => $("prevListSong")?.click(),
@@ -3463,12 +3682,14 @@ document.addEventListener("click", (event) => {
       "text-only": () => $("playerTextOnlyBtn")?.click(),
       fullscreen: () => $("playerStageMode")?.click(),
       exit: () => $("exitListPlayer")?.click(),
-      more: () => $("listQuickPanel")?.classList.toggle("hidden")
+      more: () => setListQuickPanel(
+        $("listQuickPanel")?.classList.contains("hidden") === true
+      )
     };
+
     actions[action]?.();
   }
-});
-
+}, true);
 
 window.addEventListener("pageshow", () => {
   document.body.style.overflow = "";
@@ -3542,7 +3763,7 @@ const OFFLINE_WRITE_SELECTORS = [
   "#saveCustomChordBtn",
   "#newGroupRepertoireBtn",
   "#addGroupMemberBtn",
-  "#importBulkConfirmBtn"
+  "#confirmBulkImportBtn"
 ].join(",");
 
 function isRunningAsInstalledApp() {
@@ -3687,7 +3908,7 @@ if ("serviceWorker" in navigator) {
   window.addEventListener("load", async () => {
     try {
       const registration = await navigator.serviceWorker.register(
-        "./service-worker.js?v=6.0.0",
+        "./service-worker.js?v=7.0.0",
         { scope: "./" }
       );
 
@@ -3704,21 +3925,13 @@ updateConnectivityUI();
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") {
     setReaderQuickPanel(false);
+    setListQuickPanel(false);
   }
 });
 
 window.addEventListener("orientationchange", () => {
   setReaderQuickPanel(false);
+  setListQuickPanel(false);
 });
 
-
-document.addEventListener("pointerdown", (event) => {
-  const readerAction = event.target.closest(
-    "#songViewerView [data-reader-action], #listPlayerView [data-list-action]"
-  );
-
-  if (!readerAction) return;
-
-  event.stopPropagation();
-}, true);
 
