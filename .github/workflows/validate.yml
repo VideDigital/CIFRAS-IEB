@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - main
-      - fix/v7-1-reader-import-ui
+      - fix/v8-reader-import-redesign
   pull_request:
     branches:
       - main
@@ -53,18 +53,25 @@ jobs:
               "readerStageMeta",
               "listStageTitle",
               "listStageMeta",
+              "readerChordStrip",
+              "viewerChordCount",
+              "readerKeyPanel",
+              "readerKeyGrid",
+              "readerKeyBackdrop",
+              "listChordStrip",
+              "listChordCount",
           }
           missing = sorted(required - set(ids))
           if missing:
               raise SystemExit(f"Missing required ids: {missing}")
 
           if "?v=7.1.0" not in html:
-              raise SystemExit("index.html is not pointing to v7.1.0 assets")
+              raise SystemExit("index.html is not pointing to v8.0.0 assets")
 
       - name: Validate service worker version
         shell: python
         run: |
           from pathlib import Path
           sw = Path("service-worker.js").read_text(encoding="utf-8")
-          if 'cifras-ieb-v7.1.0' not in sw:
+          if 'cifras-ieb-v8.0.0' not in sw:
               raise SystemExit("Service worker cache version is stale")
