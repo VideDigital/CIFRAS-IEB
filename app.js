@@ -4129,20 +4129,67 @@ function renderBulkImportSummary(items, failures = []) {
 
   const successHtml = items.length
     ? `<div class="bulk-summary-head">
-         <strong>${items.length} cifra(s) pronta(s) para revisar</strong>
-         <small>Confira uma amostra antes de salvar.</small>
+         <div>
+           <strong>${items.length} cifra(s) pronta(s) para revisar</strong>
+           <small>Ajuste título, artista ou tom antes de salvar. Você também pode remover arquivos da importação.</small>
+         </div>
+         <span class="import-review-badge">REVISÃO OBRIGATÓRIA</span>
        </div>
        <div class="bulk-song-list">
-         ${items.map((song, index) => `
-           <div class="bulk-song-item">
-             <span>${index + 1}</span>
-             <div>
-               <strong>${safeText(song.title)}</strong>
-               <small>${safeText(song.sourceFileName)} • Tom ${safeText(song.key)}</small>
-             </div>
-             <button type="button" class="bulk-preview-button" data-preview-import="${index}">Ver</button>
-           </div>
-         `).join("")}
+         ${items.map((song, index) => {
+           const chordCount = collectSongChords(song.content || "").length;
+           const warnings = [
+             !song.artist ? "sem artista" : "",
+             chordCount === 0 ? "nenhum acorde detectado" : ""
+           ].filter(Boolean);
+
+           return `
+             <article class="bulk-song-item import-review-card" data-import-row="${index}">
+               <span class="bulk-song-index">${index + 1}</span>
+               <div class="import-review-fields">
+                 <label>
+                   <small>Título</small>
+                   <input
+                     type="text"
+                     value="${safeText(song.title || "")}"
+                     data-import-field="title"
+                     data-import-index="${index}"
+                   >
+                 </label>
+                 <label>
+                   <small>Artista</small>
+                   <input
+                     type="text"
+                     value="${safeText(song.artist || "")}"
+                     placeholder="Artista não informado"
+                     data-import-field="artist"
+                     data-import-index="${index}"
+                   >
+                 </label>
+                 <label class="import-key-field">
+                   <small>Tom</small>
+                   <select
+                     data-import-field="key"
+                     data-import-index="${index}"
+                   >
+                     ${KEYS.map((key) => `
+                       <option value="${key}" ${key === song.key ? "selected" : ""}>${key}</option>
+                     `).join("")}
+                   </select>
+                 </label>
+                 <div class="import-review-meta">
+                   <span>${safeText(song.sourceFileName || "Arquivo")}</span>
+                   <span>${chordCount} ${chordCount === 1 ? "acorde" : "acordes"}</span>
+                   ${warnings.length ? `<em>⚠ ${safeText(warnings.join(" • "))}</em>` : "<em class=\"ok\">✓ estrutura reconhecida</em>"}
+                 </div>
+               </div>
+               <div class="import-review-actions">
+                 <button type="button" class="bulk-preview-button" data-preview-import="${index}">Prévia</button>
+                 <button type="button" class="bulk-remove-button" data-remove-import="${index}">Remover</button>
+               </div>
+             </article>
+           `;
+         }).join("")}
        </div>`
     : "<strong>Nenhuma cifra válida foi encontrada.</strong>";
 
@@ -4158,6 +4205,40 @@ function renderBulkImportSummary(items, failures = []) {
 
   element.innerHTML = successHtml + failuresHtml;
 }
+
+document.addEventListener("input", (event) => {
+  const field = event.target.closest("[data-import-field]");
+  if (!field) return;
+
+  const index = Number(field.dataset.importIndex);
+  const property = field.dataset.importField;
+  const song = selectedBulkSongs[index];
+
+  if (!song || !["title", "artist", "key"].includes(property)) return;
+
+  song[property] =
+    property === "key"
+      ? normalizeImportedKey(field.value)
+      : repairBrokenText(field.value.trim());
+});
+
+document.addEventListener("click", (event) => {
+  const removeButton = event.target.closest("[data-remove-import]");
+  if (!removeButton) return;
+
+  const index = Number(removeButton.dataset.removeImport);
+  if (!Number.isInteger(index) || !selectedBulkSongs[index]) return;
+
+  selectedBulkSongs.splice(index, 1);
+  renderBulkImportSummary(selectedBulkSongs, []);
+  setImportProgress(
+    selectedBulkSongs.length,
+    selectedBulkSongs.length,
+    selectedBulkSongs.length ? "Revise antes de importar" : "Nenhuma cifra selecionada"
+  );
+});
+
+
 
 function openBulkImportPreview(index) {
   const song = selectedBulkSongs[index];
