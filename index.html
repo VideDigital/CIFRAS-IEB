@@ -289,7 +289,7 @@
           <div>
             <span class="eyebrow">BUSCA GLOBAL</span>
             <h1>Encontre qualquer música</h1>
-            <p>Pesquise por título, artista, tom, lista ou repertório.</p>
+            <p>Pesquise por título, artista, tom, lista ou grupo.</p>
           </div>
         </div>
 
@@ -846,8 +846,18 @@ Poderoso</code></pre>
         <input id="listDate" type="date">
       </div>
     </label>
-    <p class="field-title">Selecione as músicas</p>
-    <div id="listSongOptions" class="check-list"></div>
+    <div class="repertoire-selection-heading">
+      <div>
+        <p class="field-title">Selecione as músicas</p>
+        <small id="listSelectionCount">0 selecionadas</small>
+      </div>
+      <button id="clearListSelectionBtn" type="button" class="text-button">Limpar</button>
+    </div>
+    <div class="repertoire-song-search">
+      <span>⌕</span>
+      <input id="listSongSearchInput" type="search" placeholder="Buscar por música, artista ou tom" autocomplete="off">
+    </div>
+    <div id="listSongOptions" class="check-list repertoire-check-list"></div>
     <button id="saveListBtn" class="primary full">Salvar lista</button>
   </dialog>
 
