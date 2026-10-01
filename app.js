@@ -5607,11 +5607,17 @@ function updateOfflineReadyStatus() {
     Array.isArray(readLocalArea("songs")) ||
     Array.isArray(readLocalArea("lists"));
 
-  status.textContent = hasLocalData
-    ? "Dados preparados"
-    : navigator.onLine
-      ? "Preparar agora"
-      : "Sem cache local";
+  const runtimePrepared =
+    Boolean(localStorage.getItem("cifrasIebOfflinePreparedAt"));
+
+  status.textContent =
+    hasLocalData && runtimePrepared
+      ? "Pronto offline"
+      : hasLocalData
+        ? "Dados locais salvos"
+        : navigator.onLine
+          ? "Preparar agora"
+          : "Sem cache local";
 }
 
 $("prepareOfflineBtn")?.addEventListener("click", async () => {
@@ -5630,6 +5636,13 @@ $("prepareOfflineBtn")?.addEventListener("click", async () => {
     if ("serviceWorker" in navigator) {
       const registration = await navigator.serviceWorker.ready;
       await registration.update().catch(() => {});
+
+      const worker =
+        navigator.serviceWorker.controller ||
+        registration.active ||
+        registration.waiting;
+
+      worker?.postMessage?.({ type:"PREPARE_OFFLINE" });
     }
 
     markSuccessfulSync();
@@ -5791,6 +5804,18 @@ $("confirmInstallBtn")?.addEventListener("click", async () => {
   await deferredInstallPrompt.userChoice;
   deferredInstallPrompt = null;
 });
+
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.addEventListener("message", (event) => {
+    if (event.data?.type !== "OFFLINE_READY") return;
+
+    localStorage.setItem(
+      "cifrasIebOfflinePreparedAt",
+      new Date().toISOString()
+    );
+    updateOfflineReadyStatus();
+  });
+}
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", async () => {
