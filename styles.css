@@ -2408,3 +2408,80 @@ body[data-active-view="listPlayer"]{background:#0c0d10}
     grid-template-columns:1fr 1fr;
   }
 }
+
+
+/* V9 reader mode tabs */
+.song-reader-shell{
+  grid-template-areas:
+    "heading heading"
+    "tabs tabs"
+    "media media"
+    "chords chords"
+    "toolbar content"!important;
+}
+.list-player-shell{
+  grid-template-areas:
+    "header header"
+    "tabs tabs"
+    "media media"
+    "chords chords"
+    "toolbar content"
+    "toolbar nav"!important;
+}
+.reader-mode-tabs{
+  grid-area:tabs;
+  display:flex;
+  gap:6px;
+  padding:9px 14px;
+  overflow-x:auto;
+  border-right:1px solid var(--line);
+  border-bottom:1px solid var(--line);
+  border-left:1px solid var(--line);
+  background:#121419;
+  scrollbar-width:none;
+}
+.reader-mode-tabs::-webkit-scrollbar{display:none}
+.reader-mode-tabs button{
+  flex:0 0 auto;
+  min-height:36px;
+  padding:0 13px;
+  border:1px solid transparent;
+  border-radius:10px;
+  background:#1a1c21;
+  color:#8f949e;
+  font-size:10px;
+  font-weight:850;
+}
+.reader-mode-tabs button:hover{
+  color:#fff;
+  background:#21242a;
+}
+.reader-mode-tabs button.active{
+  border-color:rgba(255,255,255,.82);
+  background:#f4f5f6;
+  color:#111318;
+}
+.song-reader-shell.stage-mode .reader-mode-tabs,
+.list-player-shell.stage-mode .reader-mode-tabs{
+  display:none!important;
+}
+.list-player-shell.reader-text-only .reader-chord-section,
+.song-reader-shell.reader-text-only .reader-chord-section{
+  display:none!important;
+}
+@media(max-width:760px){
+  .reader-mode-tabs{
+    position:sticky;
+    top:0;
+    z-index:80;
+    padding:8px 12px;
+    border-right:0;
+    border-left:0;
+    background:rgba(16,18,21,.96);
+    backdrop-filter:blur(16px);
+  }
+  .reader-mode-tabs button{
+    min-height:34px;
+    padding:0 12px;
+  }
+}
