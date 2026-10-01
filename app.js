@@ -1702,14 +1702,13 @@ function getBuiltInChords() {
   const chords = [];
 
   CHORD_ROOTS.forEach((root) => {
-    CHORD_SUFFIX_GROUPS.forEach((group) => {
-      group.suffixes.forEach((suffix) => {
-        chords.push({
-          name: `${root}${suffix}`,
-          root,
-          group: group.group,
-          custom: false
-        });
+    CHORD_QUALITY_CATALOG.forEach((quality) => {
+      chords.push({
+        name: `${root}${quality.suffix}`,
+        root,
+        group: quality.label,
+        custom: false,
+        formula: quality.formula
       });
     });
   });
@@ -2269,12 +2268,234 @@ async function handleSharedLink() {
   }
 }
 
+function renderChordDialog() {
+  const chord = $("chordName")?.textContent || "C";
+  const info = getChordInfo(chord);
+  const variations = getChordVariations(
+    chord,
+    chordDialogInstrument,
+    8
+  );
+
+  if (chordDialogInstrument !== "keyboard") {
+    chordDialogVariation = Math.max(
+      0,
+      Math.min(chordDialogVariation, Math.max(0, variations.length - 1))
+    );
+  } else {
+    chordDialogVariation = 0;
+  }
+
+  $("chordDiagram").innerHTML =
+    drawInstrumentChord(chord, chordDialogInstrument, chordDialogVariation);
+
+  $("chordTheory").textContent = info
+    ? `${info.label} • ${info.notes.join(" · ")} • ${info.formulaText}`
+    : "Formação não reconhecida.";
+
+  const count = chordDialogInstrument === "keyboard"
+    ? 1
+    : Math.max(1, variations.length);
+
+  $("chordDialogVariationLabel").textContent =
+    chordDialogInstrument === "keyboard"
+      ? "Visualização do teclado"
+      : `Variação ${chordDialogVariation + 1} de ${count}`;
+
+  $("chordDialogPrevVariation").disabled =
+    chordDialogInstrument === "keyboard" || chordDialogVariation <= 0;
+  $("chordDialogNextVariation").disabled =
+    chordDialogInstrument === "keyboard" ||
+    chordDialogVariation >= count - 1;
+
+  document.querySelectorAll("[data-dialog-instrument]").forEach((button) => {
+    button.classList.toggle(
+      "active",
+      button.dataset.dialogInstrument === chordDialogInstrument
+    );
+  });
+
+  $("chordHelp").textContent =
+    chordDialogInstrument === "keyboard"
+      ? "As teclas em destaque formam o acorde. Experimente as inversões reorganizando as mesmas notas."
+      : "× indica corda abafada e ○ indica corda solta. Use as variações para encontrar a posição mais confortável.";
+}
+
 function showChord(chord) {
   $("chordName").textContent = chord;
-  $("chordDiagram").innerHTML = drawChordDiagram(chord);
-  $("chordHelp").textContent = "\u00D7 indica uma corda que n\u00E3o deve ser tocada. \u25CB indica corda solta.";
+  chordDialogInstrument = "guitar";
+  chordDialogVariation = 0;
+  renderChordDialog();
   $("chordDialog").showModal();
 }
+
+document.querySelectorAll("[data-dialog-instrument]").forEach((button) => {
+  button.addEventListener("click", () => {
+    chordDialogInstrument = button.dataset.dialogInstrument || "guitar";
+    chordDialogVariation = 0;
+    renderChordDialog();
+  });
+});
+
+$("chordDialogPrevVariation")?.addEventListener("click", () => {
+  chordDialogVariation = Math.max(0, chordDialogVariation - 1);
+  renderChordDialog();
+});
+
+$("chordDialogNextVariation")?.addEventListener("click", () => {
+  chordDialogVariation += 1;
+  renderChordDialog();
+});
+
+
+function chordExplorerCurrentName() {
+  return `${chordExplorerRoot}${chordExplorerSuffix}`;
+}
+
+function renderChordExplorerRoots() {
+  if (!$("chordExplorerRoots")) return;
+
+  $("chordExplorerRoots").innerHTML = CHORD_ROOTS.map((root) => `
+    <button
+      type="button"
+      class="${root === chordExplorerRoot ? "active" : ""}"
+      data-explorer-root="${safeText(root)}"
+    >${safeText(root)}</button>
+  `).join("");
+}
+
+function ensureChordExplorerQualities() {
+  const select = $("chordExplorerQuality");
+  if (!select || select.options.length) return;
+
+  CHORD_QUALITY_CATALOG.forEach((quality) => {
+    const option = document.createElement("option");
+    option.value = quality.suffix;
+    option.textContent =
+      quality.suffix
+        ? `${quality.label} (${quality.suffix})`
+        : quality.label;
+    select.appendChild(option);
+  });
+}
+
+function renderChordExplorer() {
+  if (!$("chordExplorerDiagram")) return;
+
+  ensureChordExplorerQualities();
+  renderChordExplorerRoots();
+
+  $("chordExplorerQuality").value = chordExplorerSuffix;
+
+  const chord = chordExplorerCurrentName();
+  const info = getChordInfo(chord);
+  const variations = getChordVariations(
+    chord,
+    chordExplorerInstrument,
+    8
+  );
+
+  const count =
+    chordExplorerInstrument === "keyboard"
+      ? 1
+      : Math.max(1, variations.length);
+
+  chordExplorerVariation = Math.max(
+    0,
+    Math.min(chordExplorerVariation, count - 1)
+  );
+
+  $("chordExplorerName").textContent = chord;
+  $("chordExplorerMeta").textContent = info
+    ? `${info.label} • ${info.notes.join(" · ")}`
+    : "Acorde";
+  $("chordExplorerFormula").textContent =
+    info?.formulaText || "—";
+  $("chordExplorerNotes").textContent =
+    info?.notes?.join(" · ") || "—";
+  $("chordExplorerInstrumentLabel").textContent =
+    chordExplorerInstrument === "guitar"
+      ? "Violão / guitarra"
+      : chordExplorerInstrument === "ukulele"
+        ? "Ukulele"
+        : "Teclado";
+
+  $("chordExplorerDiagram").innerHTML =
+    drawInstrumentChord(
+      chord,
+      chordExplorerInstrument,
+      chordExplorerVariation
+    );
+
+  $("chordVariationLabel").textContent =
+    chordExplorerInstrument === "keyboard"
+      ? "Teclado"
+      : `Variação ${chordExplorerVariation + 1} de ${count}`;
+
+  $("chordVariationPrev").disabled =
+    chordExplorerInstrument === "keyboard" ||
+    chordExplorerVariation <= 0;
+  $("chordVariationNext").disabled =
+    chordExplorerInstrument === "keyboard" ||
+    chordExplorerVariation >= count - 1;
+
+  document.querySelectorAll("[data-chord-instrument]").forEach((button) => {
+    button.classList.toggle(
+      "active",
+      button.dataset.chordInstrument === chordExplorerInstrument
+    );
+  });
+}
+
+document.addEventListener("click", (event) => {
+  const rootButton = event.target.closest("[data-explorer-root]");
+  if (rootButton) {
+    chordExplorerRoot = rootButton.dataset.explorerRoot || "C";
+    chordExplorerVariation = 0;
+    renderChordExplorer();
+    return;
+  }
+
+  const instrumentButton = event.target.closest("[data-chord-instrument]");
+  if (instrumentButton) {
+    chordExplorerInstrument =
+      instrumentButton.dataset.chordInstrument || "guitar";
+    chordExplorerVariation = 0;
+    renderChordExplorer();
+  }
+});
+
+$("chordExplorerQuality")?.addEventListener("change", (event) => {
+  chordExplorerSuffix = event.target.value || "";
+  chordExplorerVariation = 0;
+  renderChordExplorer();
+});
+
+$("chordExplorerSearch")?.addEventListener("input", (event) => {
+  const queryText = String(event.target.value || "")
+    .trim()
+    .replace(/\s+/g, "");
+
+  if (!queryText) return;
+
+  const info = getChordInfo(queryText);
+  if (!info) return;
+
+  chordExplorerRoot = info.root;
+  chordExplorerSuffix = info.suffix;
+  chordExplorerVariation = 0;
+  renderChordExplorer();
+});
+
+$("chordVariationPrev")?.addEventListener("click", () => {
+  chordExplorerVariation = Math.max(0, chordExplorerVariation - 1);
+  renderChordExplorer();
+});
+
+$("chordVariationNext")?.addEventListener("click", () => {
+  chordExplorerVariation += 1;
+  renderChordExplorer();
+});
 
 $("autoScrollBtn").onclick = () => {
   if (scrollFrame) {
