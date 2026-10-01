@@ -36,6 +36,7 @@ let selectedBulkSongs = [];
 let editingSong = null;
 let editingList = null;
 let listSortMode = "recent";
+let listSongSelection = new Set();
 let previewKey = "C";
 let fontSize = 18;
 let scrollFrame = null;
@@ -205,7 +206,7 @@ function buildGlobalSearchResults(queryText) {
 
   songs.forEach((song) => {
     const haystack = normalizeSearchValue(
-      `${song.title} ${song.artist} ${song.key} ${song.content}`
+      `${song.title} ${song.artist} ${song.key}`
     );
 
     if (haystack.includes(queryValue)) {
@@ -221,9 +222,13 @@ function buildGlobalSearchResults(queryText) {
   });
 
   lists.forEach((list) => {
-    const songNames = (list.songSnapshots || [])
-      .map((song) => `${song.title || ""} ${song.artist || ""}`)
-      .join(" ");
+    const snapshotNames = (list.songSnapshots || [])
+      .map((song) => `${song.title || ""} ${song.artist || ""}`);
+    const linkedNames = (list.songIds || [])
+      .map((songId) => songs.find((song) => song.id === songId))
+      .filter(Boolean)
+      .map((song) => `${song.title || ""} ${song.artist || ""}`);
+    const songNames = [...snapshotNames, ...linkedNames].join(" ");
 
     const haystack = normalizeSearchValue(
       `${list.name || ""} ${list.date || ""} ${songNames}`
@@ -320,8 +325,7 @@ document.addEventListener("click", (event) => {
   if (type === "songs") {
     openSongViewer(id, false);
   } else if (type === "lists") {
-    const list = lists.find((item) => item.id === id);
-    if (list) openListPlayer(list);
+    startList(id);
   } else if (type === "groups") {
     openGroupDetails(id);
   }
@@ -1836,28 +1840,91 @@ function toggleStageMode(panel) {
 $("stageModeBtn").onclick = () => toggleStageMode($("previewPanel"));
 
 
+function updateListSelectionCount() {
+  if ($("listSelectionCount")) {
+    const count = listSongSelection.size;
+    $("listSelectionCount").textContent =
+      `${count} ${count === 1 ? "selecionada" : "selecionadas"}`;
+  }
+}
+
+function renderListSongOptions(searchTerm = "") {
+  const queryText = repairBrokenText(searchTerm).trim().toLowerCase();
+  const visibleSongs = songs.filter((song) => {
+    const haystack =
+      `${song.title || ""} ${song.artist || ""} ${song.key || ""}`.toLowerCase();
+
+    return !queryText || haystack.includes(queryText);
+  });
+
+  $("listSongOptions").innerHTML = visibleSongs.length
+    ? visibleSongs.map((song) => `
+        <label class="repertoire-song-option">
+          <input
+            type="checkbox"
+            value="${song.id}"
+            ${listSongSelection.has(song.id) ? "checked" : ""}
+          >
+          <span class="repertoire-option-key">${safeText(song.key || "C")}</span>
+          <span class="repertoire-option-copy">
+            <strong>${safeText(song.title || "Sem título")}</strong>
+            <small>${safeText(song.artist || "Artista não informado")}</small>
+          </span>
+          <span class="repertoire-option-check">✓</span>
+        </label>
+      `).join("")
+    : `
+      <div class="empty-mini">
+        ${songs.length
+          ? "Nenhuma cifra encontrada nessa busca."
+          : "Crie uma cifra antes de montar uma lista."}
+      </div>
+    `;
+
+  updateListSelectionCount();
+}
+
 function openListDialog(list = null) {
   editingList = list;
-  $("listDialogTitle").textContent = list ? "Editar repert\u00F3rio" : "Novo repert\u00F3rio";
-  $("listName").value = list?.name || "";
-  $("listDate").value = list?.date || new Date().toISOString().slice(0, 10);
+  listSongSelection = new Set(list?.songIds || []);
 
-  if (!songs.length) {
-    $("listSongOptions").innerHTML = `
-      <div class="empty-state">
-        <p>Crie uma cifra antes de montar uma lista.</p>
-      </div>`;
-  } else {
-    $("listSongOptions").innerHTML = songs.map((song) => `
-      <label class="check-row">
-        <input type="checkbox" value="${song.id}" ${list?.songIds?.includes(song.id) ? "checked" : ""}>
-        <span>${safeText(song.title)} \u2014 ${safeText(song.artist || "Sem artista")}</span>
-      </label>
-    `).join("");
+  $("listDialogTitle").textContent =
+    list ? "Editar repertório" : "Novo repertório";
+  $("listName").value = list?.name || "";
+  $("listDate").value =
+    list?.date || new Date().toISOString().slice(0, 10);
+
+  if ($("listSongSearchInput")) {
+    $("listSongSearchInput").value = "";
   }
 
+  renderListSongOptions();
   $("listDialog").showModal();
 }
+
+$("listSongSearchInput")?.addEventListener("input", (event) => {
+  renderListSongOptions(event.target.value);
+});
+
+$("listSongOptions")?.addEventListener("change", (event) => {
+  const input = event.target.closest('input[type="checkbox"]');
+  if (!input) return;
+
+  if (input.checked) {
+    listSongSelection.add(input.value);
+  } else {
+    listSongSelection.delete(input.value);
+  }
+
+  updateListSelectionCount();
+});
+
+$("clearListSelectionBtn")?.addEventListener("click", () => {
+  listSongSelection.clear();
+  renderListSongOptions($("listSongSearchInput")?.value || "");
+});
+
+
 
 $("saveListBtn").onclick = async () => {
   const name = $("listName").value.trim();
@@ -1873,8 +1940,7 @@ $("saveListBtn").onclick = async () => {
     return;
   }
 
-  const songIds = [...$("listSongOptions").querySelectorAll("input:checked")]
-    .map((input) => input.value);
+  const songIds = [...listSongSelection];
 
   if (!songIds.length) {
     toast("Selecione pelo menos uma m\u00FAsica.");

@@ -38,13 +38,23 @@ service cloud.firestore {
           /databases/$(database)/documents/shares/$(songId + "_" + request.auth.uid)
         ).data.songId == songId
         && (
-          get(
-            /databases/$(database)/documents/shares/$(songId + "_" + request.auth.uid)
-          ).data.viewerId == request.auth.uid
+          (
+            "viewerId" in get(
+              /databases/$(database)/documents/shares/$(songId + "_" + request.auth.uid)
+            ).data
+            && get(
+              /databases/$(database)/documents/shares/$(songId + "_" + request.auth.uid)
+            ).data.viewerId == request.auth.uid
+          )
           ||
-          request.auth.uid in get(
-            /databases/$(database)/documents/shares/$(songId + "_" + request.auth.uid)
-          ).data.viewerIds
+          (
+            "viewerIds" in get(
+              /databases/$(database)/documents/shares/$(songId + "_" + request.auth.uid)
+            ).data
+            && request.auth.uid in get(
+              /databases/$(database)/documents/shares/$(songId + "_" + request.auth.uid)
+            ).data.viewerIds
+          )
         );
     }
 
@@ -73,9 +83,12 @@ service cloud.firestore {
         if owns(resource.data)
         || hasValidSongShare(songId);
 
-      allow update, delete:
+      allow update:
         if owns(resource.data)
         && request.resource.data.ownerId == resource.data.ownerId;
+
+      allow delete:
+        if owns(resource.data);
     }
 
     match /lists/{listId} {
@@ -169,7 +182,12 @@ service cloud.firestore {
         if signedIn()
         && resource.data.active == true;
 
-      allow update, delete:
+      allow update:
+        if owns(resource.data)
+        && request.resource.data.ownerId == resource.data.ownerId
+        && request.resource.data.songId == resource.data.songId;
+
+      allow delete:
         if owns(resource.data);
     }
 
@@ -196,9 +214,17 @@ service cloud.firestore {
       allow read:
         if signedIn()
         && (
-          resource.data.viewerId == request.auth.uid
-          || request.auth.uid in resource.data.viewerIds
-          || resource.data.ownerId == request.auth.uid
+          (
+            "viewerId" in resource.data
+            && resource.data.viewerId == request.auth.uid
+          )
+          ||
+          (
+            "viewerIds" in resource.data
+            && request.auth.uid in resource.data.viewerIds
+          )
+          ||
+          resource.data.ownerId == request.auth.uid
         );
 
       allow update: if false;
