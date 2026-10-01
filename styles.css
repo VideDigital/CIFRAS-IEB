@@ -2253,3 +2253,45 @@ body[data-active-view="listPlayer"]{background:#0c0d10}
   .repertoire-detail-actions{grid-template-columns:1fr}
   .instrument-switcher{grid-template-columns:1fr 1fr 1fr}
 }
+
+
+/* V9 quick scroll speed selector */
+.reader-speed-control{
+  display:grid;
+  gap:8px;
+  margin:0 0 10px;
+  padding:11px;
+  border:1px solid var(--line);
+  border-radius:13px;
+  background:#14161a;
+}
+.reader-speed-control>span{
+  color:var(--muted);
+  font-size:9px;
+  font-weight:900;
+  letter-spacing:.11em;
+  text-transform:uppercase;
+}
+.reader-speed-control>div{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:6px;
+}
+.reader-speed-control button{
+  min-height:38px;
+  padding:0 7px;
+  border:1px solid var(--line);
+  border-radius:10px;
+  background:#202329;
+  color:#aeb2ba;
+  font-size:9px;
+  font-weight:800;
+}
+.reader-speed-control button.active{
+  border-color:var(--accent-border);
+  background:var(--accent-soft);
+  color:#fff;
+}
+@media(max-width:430px){
+  .reader-speed-control>div{grid-template-columns:1fr 1fr}
+}
