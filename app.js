@@ -5373,23 +5373,12 @@ $("prepareOfflineBtn")?.addEventListener("click", async () => {
 let deferredInstallPrompt = null;
 
 const OFFLINE_WRITE_SELECTORS = [
-  "#newSongBtn",
-  "[data-new-song]",
-  "#bulkImportBtn",
-  "#newListBtn",
-  "[data-new-list]",
+  "#shareBtn",
   "#newGroupBtn",
   "[data-new-group]",
-  "#viewerEditBtn",
-  "#saveSongBtn",
-  "#saveListBtn",
   "#saveGroupBtn",
-  "#saveRepertoireBtn",
-  "#saveCustomChordBtn",
-  "#newGroupRepertoireBtn",
-  "#addGroupMemberBtn",
-  "#confirmBulkImportBtn"
-].join(",");
+  "#addGroupMemberBtn"
+].join(",");;
 
 function isRunningAsInstalledApp() {
   return window.matchMedia("(display-mode: standalone)").matches ||
