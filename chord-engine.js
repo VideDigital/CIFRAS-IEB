@@ -89,7 +89,7 @@ function repairRenderedText(value = "") {
     if (before === text) break;
   }
 
-  return text.replace(/\uFFFD/g, "");
+  return text;
 }
 
 function escapeHtml(value = "") {

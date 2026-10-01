@@ -1,15 +1,15 @@
-const CACHE_VERSION = "cifras-ieb-v7.1.0";
-const RUNTIME_CACHE = "cifras-ieb-runtime-v7.1.0";
+const CACHE_VERSION = "cifras-ieb-v8.0.0";
+const RUNTIME_CACHE = "cifras-ieb-runtime-v8.0.0";
 
 const APP_SHELL = [
   "./",
   "./index.html",
-  "./styles.css?v=7.1.0",
-  "./app.js?v=7.1.0",
-  "./firebase-config.js?v=7.1.0",
-  "./chord-engine.js?v=7.1.0",
-  "./chord-diagrams.js?v=7.1.0",
-  "./manifest.webmanifest?v=7.1.0",
+  "./styles.css?v=8.0.0",
+  "./app.js?v=8.0.0",
+  "./firebase-config.js?v=8.0.0",
+  "./chord-engine.js?v=8.0.0",
+  "./chord-diagrams.js?v=8.0.0",
+  "./manifest.webmanifest?v=8.0.0",
   "./offline.html",
   "./icons/icon-180.png",
   "./icons/icon-192.png",

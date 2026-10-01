@@ -1,9 +1,9 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
 import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail, signOut, updateProfile } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
 import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, collection, addDoc, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
-import { firebaseConfig } from "./firebase-config.js?v=7.1.0";
-import { KEYS, transposeContent, semitoneDistance, renderChordMarkup, stepKey } from "./chord-engine.js?v=7.1.0";
-import { drawChordDiagram } from "./chord-diagrams.js?v=7.1.0";
+import { firebaseConfig } from "./firebase-config.js?v=8.0.0";
+import { KEYS, transposeContent, semitoneDistance, renderChordMarkup, stepKey } from "./chord-engine.js?v=8.0.0";
+import { drawChordDiagram, getChordShape } from "./chord-diagrams.js?v=8.0.0";
 
 const firebaseApp = initializeApp(firebaseConfig);
 const auth = getAuth(firebaseApp);
@@ -57,6 +57,7 @@ let viewerScrollFrame = null;
 const views = ["library", "lists", "groups", "search", "shared", "songViewer", "editor", "listPlayer"];
 
 function resetReaderState(nextView = "") {
+  setReaderKeyPanel(false);
   setReaderQuickPanel(false);
   stopAutoScroll();
   stopViewerAutoScroll();
@@ -181,12 +182,37 @@ function repairBrokenText(value = "") {
   });
 
   return text
-    .replace(/\uFFFD/g, "")
     .replace(/[ \t]+\n/g, "\n")
     .trimEnd();
 }
 
 
+
+function repairLegacyPortugueseGaps(value = "") {
+  let text = String(value ?? "");
+
+  const replacements = [
+    [/\badora\s+o\b/gi, "adoração"],
+    [/\bcora\s+o\b/gi, "coração"],
+    [/\bcor\s+a\s+o\b/gi, "coração"],
+    [/\bgl\s+ria\b/gi, "glória"],
+    [/\bministra\s+o\b/gi, "ministração"],
+    [/\bmodula\s+o\b/gi, "modulação"],
+    [/\bintrodu\s+o\b/gi, "introdução"],
+    [/\bun\s+o\b/gi, "unção"],
+    [/\bcan\s+o\b/gi, "canção"],
+    [/\bora\s+o\b/gi, "oração"],
+    [/\bcomunh\s+o\b/gi, "comunhão"],
+    [/\birm\s+os\b/gi, "irmãos"],
+    [/\best\s+s\b/gi, "estás"]
+  ];
+
+  replacements.forEach(([pattern, replacement]) => {
+    text = text.replace(pattern, replacement);
+  });
+
+  return text;
+}
 
 function smartTitleCase(value = "") {
   const smallWords = new Set([
@@ -386,7 +412,7 @@ function normalizeSongText(song = {}) {
     ...song,
     title: cleanSongTitle(song.title || ""),
     artist: cleanSongArtist(song.artist || ""),
-    content: repairBrokenText(song.content || "")
+    content: repairLegacyPortugueseGaps(repairBrokenText(song.content || ""))
   };
 }
 
@@ -950,6 +976,128 @@ $("deleteSongBtn").onclick = async () => {
 };
 
 
+function collectSongChords(content = "") {
+  const chords = [];
+  const seen = new Set();
+
+  const addChord = (value) => {
+    const chord = String(value || "").trim();
+    if (!chord || seen.has(chord) || /^N\.?C\.?$/i.test(chord)) return;
+    seen.add(chord);
+    chords.push(chord);
+  };
+
+  for (const match of String(content).matchAll(/\[([^\]]+)\]/g)) {
+    addChord(match[1]);
+  }
+
+  String(content).split("\n").forEach((line) => {
+    if (!looksLikeChordRow(line)) return;
+    extractChordTokens(line).forEach(({ chord }) => addChord(chord));
+  });
+
+  return chords;
+}
+
+function renderReaderChordStrip(content, stripId, countId) {
+  const strip = $(stripId);
+  const count = $(countId);
+  if (!strip) return;
+
+  const chords = collectSongChords(content);
+  if (count) {
+    count.textContent = `${chords.length} ${chords.length === 1 ? "acorde" : "acordes"}`;
+  }
+
+  if (!chords.length) {
+    strip.innerHTML = `
+      <div class="reader-chord-empty">
+        <span>♫</span>
+        <div>
+          <strong>Nenhum acorde identificado</strong>
+          <small>A cifra pode estar em modo somente letra.</small>
+        </div>
+      </div>`;
+    return;
+  }
+
+  strip.innerHTML = chords.slice(0, 12).map((chord) => {
+    const shape = getChordShape(chord);
+    const diagram = shape
+      ? `<span class="reader-mini-diagram">${drawChordDiagram(chord)}</span>`
+      : `<span class="reader-chord-symbol">${safeText(chord)}</span>`;
+
+    return `
+      <button
+        type="button"
+        class="reader-chord-card chord"
+        data-chord="${safeText(chord)}"
+        aria-label="Abrir acorde ${safeText(chord)}"
+      >
+        <strong>${safeText(chord)}</strong>
+        ${diagram}
+      </button>`;
+  }).join("");
+}
+
+function readerKeyScale() {
+  const preferFlats =
+    /b/.test(viewerKey || "") ||
+    /b/.test(viewingSong?.key || "");
+
+  return preferFlats
+    ? ["C","Db","D","Eb","E","F","Gb","G","Ab","A","Bb","B"]
+    : ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+}
+
+function renderReaderKeyPanel() {
+  if (!$("readerKeyGrid")) return;
+
+  const scale = readerKeyScale();
+  $("readerKeyPanelCurrent").textContent = viewerKey;
+  $("readerKeyPanelTitle").textContent = `Tom ${viewerKey}`;
+
+  $("readerKeyGrid").innerHTML = scale.map((key) => `
+    <button
+      type="button"
+      data-reader-key="${key}"
+      class="${key === viewerKey ? "active" : ""}"
+    >${key}</button>
+  `).join("");
+}
+
+function setReaderKeyPanel(open) {
+  $("readerKeyPanel")?.classList.toggle("hidden", !open);
+  $("readerKeyBackdrop")?.classList.toggle("hidden", !open);
+  document.body.classList.toggle("reader-key-sheet-open", open);
+
+  if (open) {
+    setReaderQuickPanel(false);
+    renderReaderKeyPanel();
+  }
+}
+
+function syncReaderModeUI() {
+  const shell = $("dedicatedSongViewer")?.closest(".song-reader-shell");
+  shell?.classList.toggle("reader-text-only", viewerTextOnlyMode);
+
+  document.querySelectorAll(
+    '#songViewerView [data-reader-action="text-only"]'
+  ).forEach((button) => {
+    button.classList.toggle("active", viewerTextOnlyMode);
+  });
+}
+
+document.addEventListener("click", (event) => {
+  const keyButton = event.target.closest("[data-reader-key]");
+  if (!keyButton) return;
+
+  viewerKey = keyButton.dataset.readerKey || viewerKey;
+  renderDedicatedSongViewer();
+  renderReaderKeyPanel();
+  setReaderKeyPanel(false);
+});
+
 function renderDedicatedSongViewer() {
   if (!viewingSong) return;
 
@@ -986,6 +1134,14 @@ function renderDedicatedSongViewer() {
   $("dedicatedSongViewer").style.fontSize = `${viewerFontSize}px`;
   $("dedicatedSongViewer").innerHTML = renderChordMarkup(content);
 
+  renderReaderChordStrip(
+    transposedContent,
+    "viewerChordStrip",
+    "viewerChordCount"
+  );
+  renderReaderKeyPanel();
+  syncReaderModeUI();
+
   const capo = Number(viewingSong.capo) || 0;
   $("viewerCapoBadge").classList.toggle("hidden", capo <= 0);
   $("viewerCapoBadge").textContent = capo > 0 ? `Capotraste ${capo}` : "";
@@ -1010,6 +1166,7 @@ function openSongViewer(id, readOnly = false) {
   const readerShell = $("dedicatedSongViewer").closest(".song-reader-shell");
   readerShell.classList.remove("stage-mode");
   setReaderQuickPanel(false);
+  setReaderKeyPanel(false);
   updateReaderFullscreenState();
   document.body.style.overflow = "";
   document.documentElement.style.overflow = "";
@@ -1061,9 +1218,11 @@ $("viewerTextOnlyBtn").onclick = () => {
     viewerTextOnlyMode ? "Mostrar acordes" : "Somente texto";
   $("viewerTextOnlyBtn").classList.toggle("active-mode", viewerTextOnlyMode);
   renderDedicatedSongViewer();
+  syncReaderModeUI();
 };
 
 function setReaderQuickPanel(open) {
+  if (open) setReaderKeyPanel(false);
   $("readerQuickPanel")?.classList.toggle("hidden", !open);
   $("readerQuickBackdrop")?.classList.toggle("hidden", !open);
   document.body.classList.toggle("reader-sheet-open", open);
@@ -1099,6 +1258,7 @@ function exitReaderFullscreen() {
   document.body.style.overflow = "";
   document.documentElement.style.overflow = "";
   setReaderQuickPanel(false);
+  setReaderKeyPanel(false);
   updateReaderFullscreenState();
 }
 
@@ -2113,8 +2273,14 @@ function renderListSong() {
   $("playerCurrentKey").textContent = playerKey;
   $("listPlayerSong").style.fontSize = `${playerFontSize}px`;
 
+  renderReaderChordStrip(
+    transposedContent,
+    "listChordStrip",
+    "listChordCount"
+  );
+
   $("listPlayerSong").innerHTML = `
-    <h1>${safeText(song.title)}</h1>
+    <h1>${safeText(cleanSongTitle(song.title || "Sem título"))}</h1>
     <p class="muted">
       ${safeText(song.artist || "Artista n\u00E3o informado")}
       \u2022 Tom ${safeText(playerKey)}
@@ -2936,6 +3102,7 @@ async function extractPdfText(file) {
 }
 
 let mammothBrowserPromise = null;
+let jsZipBrowserPromise = null;
 
 function loadClassicScript(src, globalName) {
   if (window[globalName]) return Promise.resolve(window[globalName]);
@@ -2982,6 +3149,111 @@ async function getMammothBrowser() {
     throw new Error("O leitor de DOCX carregou sem as funções necessárias.");
   }
   return mammoth;
+}
+
+async function getJSZipBrowser() {
+  if (window.JSZip) return window.JSZip;
+
+  if (!jsZipBrowserPromise) {
+    jsZipBrowserPromise = loadClassicScript(
+      "https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js",
+      "JSZip"
+    ).catch((error) => {
+      jsZipBrowserPromise = null;
+      throw error;
+    });
+  }
+
+  return jsZipBrowserPromise;
+}
+
+function docxNodeText(node) {
+  let value = "";
+
+  for (const child of node.childNodes || []) {
+    const name = child.localName || child.nodeName?.split(":").pop();
+
+    if (name === "t" || name === "instrText") {
+      value += child.textContent || "";
+      continue;
+    }
+
+    if (name === "tab") {
+      value += "\t";
+      continue;
+    }
+
+    if (name === "br" || name === "cr") {
+      value += "\n";
+      continue;
+    }
+
+    value += docxNodeText(child);
+  }
+
+  return value;
+}
+
+function docxParagraphText(paragraph) {
+  return docxNodeText(paragraph)
+    .replace(/\u00A0/g, " ")
+    .replace(/[ \t]+$/g, "");
+}
+
+function extractDocxBodyTextFromXml(xmlText = "") {
+  const xml = new DOMParser().parseFromString(xmlText, "application/xml");
+
+  if (xml.querySelector("parsererror")) {
+    throw new Error("O XML interno do DOCX está inválido.");
+  }
+
+  const body = [...xml.getElementsByTagNameNS("*", "body")][0];
+  if (!body) return "";
+
+  const lines = [];
+
+  for (const node of body.childNodes) {
+    const name = node.localName || node.nodeName?.split(":").pop();
+
+    if (name === "p") {
+      lines.push(docxParagraphText(node));
+      continue;
+    }
+
+    if (name === "tbl") {
+      const rows = [...node.getElementsByTagNameNS("*", "tr")];
+
+      rows.forEach((row) => {
+        const cells = [...row.getElementsByTagNameNS("*", "tc")]
+          .map((cell) => {
+            const paragraphs = [...cell.getElementsByTagNameNS("*", "p")]
+              .map(docxParagraphText)
+              .filter((line) => line.trim());
+
+            return paragraphs.join(" ");
+          });
+
+        lines.push(cells.join("\t"));
+      });
+
+      lines.push("");
+    }
+  }
+
+  return lines.join("\n");
+}
+
+async function extractDocxXmlCandidate(arrayBuffer) {
+  const JSZip = await getJSZipBrowser();
+  const archive = await JSZip.loadAsync(arrayBuffer);
+  const documentFile = archive.file("word/document.xml");
+
+  if (!documentFile) {
+    throw new Error("O DOCX não contém word/document.xml.");
+  }
+
+  const xmlText = await documentFile.async("string");
+  return extractDocxBodyTextFromXml(xmlText);
 }
 
 function mammothHtmlToStructuredText(html = "") {
@@ -3034,7 +3306,17 @@ function importedTextQualityScore(value = "") {
     /[A-Za-zÀ-ÿ]{4,}/.test(line) && !looksLikeChordRow(line)
   ).length;
 
-  return chordLines * 10 + sectionLines * 4 + letterLines * 2 + Math.min(lines.length, 80);
+  const replacementCharacters = (text.match(/\uFFFD/g) || []).length;
+  const suspiciousMojibake = (text.match(/[ÃÂ][^\s]?/g) || []).length;
+
+  return (
+    chordLines * 12 +
+    sectionLines * 5 +
+    letterLines * 2 +
+    Math.min(lines.length, 80) -
+    replacementCharacters * 40 -
+    suspiciousMojibake * 12
+  );
 }
 
 function chooseBestImportedText(candidates = []) {
@@ -3057,27 +3339,41 @@ async function extractDocxText(file) {
     throw new Error("O arquivo DOCX está vazio.");
   }
 
-  const mammoth = await getMammothBrowser();
   const candidates = [];
 
-  if (typeof mammoth.extractRawText === "function") {
-    try {
-      const rawResult = await mammoth.extractRawText({ arrayBuffer });
-      candidates.push(rawResult?.value || "");
-    } catch (error) {
-      console.warn("Falha ao extrair texto bruto do DOCX.", error);
-    }
+  // V8: primeiro lê o XML original do Word. Esse caminho preserva UTF-8,
+  // acentos, tabs e espaços usados para posicionar acordes.
+  try {
+    const xmlCandidate = await extractDocxXmlCandidate(arrayBuffer);
+    if (xmlCandidate.trim()) candidates.push(xmlCandidate);
+  } catch (error) {
+    console.warn("Leitura direta do XML do DOCX falhou.", error);
   }
 
-  if (typeof mammoth.convertToHtml === "function") {
-    try {
-      const htmlResult = await mammoth.convertToHtml({ arrayBuffer });
-      candidates.push(
-        mammothHtmlToStructuredText(htmlResult?.value || "")
-      );
-    } catch (error) {
-      console.warn("Falha ao extrair estrutura do DOCX.", error);
+  // Mammoth fica como fallback para documentos com estruturas incomuns.
+  try {
+    const mammoth = await getMammothBrowser();
+
+    if (typeof mammoth.extractRawText === "function") {
+      try {
+        const rawResult = await mammoth.extractRawText({ arrayBuffer });
+        if (rawResult?.value) candidates.push(rawResult.value);
+      } catch (error) {
+        console.warn("Falha ao extrair texto bruto do DOCX.", error);
+      }
     }
+
+    if (typeof mammoth.convertToHtml === "function") {
+      try {
+        const htmlResult = await mammoth.convertToHtml({ arrayBuffer });
+        const htmlText = mammothHtmlToStructuredText(htmlResult?.value || "");
+        if (htmlText) candidates.push(htmlText);
+      } catch (error) {
+        console.warn("Falha ao extrair estrutura HTML do DOCX.", error);
+      }
+    }
+  } catch (error) {
+    console.warn("Mammoth indisponível; mantendo candidato XML.", error);
   }
 
   const value = chooseBestImportedText(candidates);
@@ -3994,6 +4290,8 @@ document.addEventListener("click", (event) => {
       back: () => $("viewerBackBtn")?.click(),
       "key-down": () => $("viewerTransposeDown")?.click(),
       "key-up": () => $("viewerTransposeUp")?.click(),
+      key: () => setReaderKeyPanel(true),
+      "close-key": () => setReaderKeyPanel(false),
       scroll: () => $("viewerAutoScrollBtn")?.click(),
       "font-down": () => $("viewerFontDown")?.click(),
       "font-up": () => $("viewerFontUp")?.click(),
@@ -4257,7 +4555,7 @@ if ("serviceWorker" in navigator) {
   window.addEventListener("load", async () => {
     try {
       const registration = await navigator.serviceWorker.register(
-        "./service-worker.js?v=7.1.0",
+        "./service-worker.js?v=8.0.0",
         { scope: "./" }
       );
 
@@ -4284,6 +4582,7 @@ document.addEventListener("keydown", (event) => {
     return;
   }
 
+  setReaderKeyPanel(false);
   setReaderQuickPanel(false);
   setListQuickPanel(false);
 });
