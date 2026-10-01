@@ -53,7 +53,7 @@ jobs:
               "readerStageMeta",
               "listStageTitle",
               "listStageMeta",
-              "readerChordStrip",
+              "viewerChordStrip",
               "viewerChordCount",
               "readerKeyPanel",
               "readerKeyGrid",
@@ -65,7 +65,7 @@ jobs:
           if missing:
               raise SystemExit(f"Missing required ids: {missing}")
 
-          if "?v=7.1.0" not in html:
+          if "?v=8.0.0" not in html:
               raise SystemExit("index.html is not pointing to v8.0.0 assets")
 
       - name: Validate service worker version
