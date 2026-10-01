@@ -206,7 +206,7 @@ function buildGlobalSearchResults(queryText) {
 
   songs.forEach((song) => {
     const haystack = normalizeSearchValue(
-      `${song.title} ${song.artist} ${song.key} ${song.content}`
+      `${song.title} ${song.artist} ${song.key}`
     );
 
     if (haystack.includes(queryValue)) {
@@ -222,9 +222,13 @@ function buildGlobalSearchResults(queryText) {
   });
 
   lists.forEach((list) => {
-    const songNames = (list.songSnapshots || [])
-      .map((song) => `${song.title || ""} ${song.artist || ""}`)
-      .join(" ");
+    const snapshotNames = (list.songSnapshots || [])
+      .map((song) => `${song.title || ""} ${song.artist || ""}`);
+    const linkedNames = (list.songIds || [])
+      .map((songId) => songs.find((song) => song.id === songId))
+      .filter(Boolean)
+      .map((song) => `${song.title || ""} ${song.artist || ""}`);
+    const songNames = [...snapshotNames, ...linkedNames].join(" ");
 
     const haystack = normalizeSearchValue(
       `${list.name || ""} ${list.date || ""} ${songNames}`
@@ -321,8 +325,7 @@ document.addEventListener("click", (event) => {
   if (type === "songs") {
     openSongViewer(id, false);
   } else if (type === "lists") {
-    const list = lists.find((item) => item.id === id);
-    if (list) openListPlayer(list);
+    startList(id);
   } else if (type === "groups") {
     openGroupDetails(id);
   }
