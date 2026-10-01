@@ -1,9 +1,9 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
 import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail, signOut, updateProfile } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
 import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, collection, addDoc, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
-import { firebaseConfig } from "./firebase-config.js?v=7.1.0";
-import { KEYS, transposeContent, semitoneDistance, renderChordMarkup, stepKey } from "./chord-engine.js?v=7.1.0";
-import { drawChordDiagram } from "./chord-diagrams.js?v=7.1.0";
+import { firebaseConfig } from "./firebase-config.js?v=8.0.0";
+import { KEYS, transposeContent, semitoneDistance, renderChordMarkup, stepKey } from "./chord-engine.js?v=8.0.0";
+import { drawChordDiagram, getChordShape } from "./chord-diagrams.js?v=8.0.0";
 
 const firebaseApp = initializeApp(firebaseConfig);
 const auth = getAuth(firebaseApp);
@@ -181,12 +181,37 @@ function repairBrokenText(value = "") {
   });
 
   return text
-    .replace(/\uFFFD/g, "")
     .replace(/[ \t]+\n/g, "\n")
     .trimEnd();
 }
 
 
+
+function repairLegacyPortugueseGaps(value = "") {
+  let text = String(value ?? "");
+
+  const replacements = [
+    [/\badora\s+o\b/gi, "adoração"],
+    [/\bcora\s+o\b/gi, "coração"],
+    [/\bcor\s+a\s+o\b/gi, "coração"],
+    [/\bgl\s+ria\b/gi, "glória"],
+    [/\bministra\s+o\b/gi, "ministração"],
+    [/\bmodula\s+o\b/gi, "modulação"],
+    [/\bintrodu\s+o\b/gi, "introdução"],
+    [/\bun\s+o\b/gi, "unção"],
+    [/\bcan\s+o\b/gi, "canção"],
+    [/\bora\s+o\b/gi, "oração"],
+    [/\bcomunh\s+o\b/gi, "comunhão"],
+    [/\birm\s+os\b/gi, "irmãos"],
+    [/\best\s+s\b/gi, "estás"]
+  ];
+
+  replacements.forEach(([pattern, replacement]) => {
+    text = text.replace(pattern, replacement);
+  });
+
+  return text;
+}
 
 function smartTitleCase(value = "") {
   const smallWords = new Set([
@@ -386,7 +411,7 @@ function normalizeSongText(song = {}) {
     ...song,
     title: cleanSongTitle(song.title || ""),
     artist: cleanSongArtist(song.artist || ""),
-    content: repairBrokenText(song.content || "")
+    content: repairLegacyPortugueseGaps(repairBrokenText(song.content || ""))
   };
 }
 
@@ -4257,7 +4282,7 @@ if ("serviceWorker" in navigator) {
   window.addEventListener("load", async () => {
     try {
       const registration = await navigator.serviceWorker.register(
-        "./service-worker.js?v=7.1.0",
+        "./service-worker.js?v=8.0.0",
         { scope: "./" }
       );
 
