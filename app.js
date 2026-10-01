@@ -1,9 +1,9 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
 import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail, signOut, updateProfile } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
 import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, collection, addDoc, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
-import { firebaseConfig } from "./firebase-config.js?v=8.0.0";
-import { KEYS, transposeContent, semitoneDistance, renderChordMarkup, stepKey } from "./chord-engine.js?v=8.0.0";
-import { drawChordDiagram, getChordShape } from "./chord-diagrams.js?v=8.0.0";
+import { firebaseConfig } from "./firebase-config.js?v=9.0.0";
+import { KEYS, transposeContent, semitoneDistance, renderChordMarkup, stepKey } from "./chord-engine.js?v=9.0.0";
+import { drawChordDiagram, getChordShape, drawInstrumentChord, getChordVariations, getChordInfo, CHORD_QUALITY_CATALOG } from "./chord-diagrams.js?v=9.0.0";
 
 const firebaseApp = initializeApp(firebaseConfig);
 const auth = getAuth(firebaseApp);
@@ -1299,18 +1299,19 @@ $("viewerAutoScrollBtn").onclick = () => {
     return;
   }
 
-  const speed = Number($("viewerScrollSpeed").value) || 0.75;
   $("viewerAutoScrollBtn").textContent = "Pausar";
   $("viewerAutoScrollBtn").classList.add("is-scrolling");
 
   let previousTime = performance.now();
 
   const step = (currentTime) => {
-    const elapsed = Math.min(50, currentTime - previousTime);
+    const elapsed = Math.min(80, currentTime - previousTime);
     previousTime = currentTime;
 
+    const speedSetting = Number($("viewerScrollSpeed")?.value) || 0.75;
+    const pixelsPerSecond = Math.max(6, speedSetting * 55);
     const target = getViewerScrollTarget();
-    target.scrollBy(speed * elapsed * 0.055);
+    target.scrollBy((pixelsPerSecond * elapsed) / 1000);
 
     if (target.position >= target.maximum - 2) {
       stopViewerAutoScroll();
@@ -1834,10 +1835,11 @@ $("transposeUp").onclick = () => changeKey(1);
 $("transposeDown").onclick = () => changeKey(-1);
 
 function changeKey(delta) {
-  const chromaticScale = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
-  let index = chromaticScale.indexOf(previewKey);
-  if (index < 0) index = 0;
-  previewKey = chromaticScale[(index + delta + 12) % 12];
+  const preferFlats =
+    /b/.test(previewKey || "") ||
+    /b/.test($("songKey")?.value || "");
+
+  previewKey = stepKey(previewKey, delta, preferFlats);
   updatePreview();
 }
 
@@ -2771,9 +2773,52 @@ function normalizeImportedKey(value = "C") {
 }
 
 function stripChordMarkup(content = "") {
-  return String(content)
-    .replace(/\[[^\]]+\]/g, "")
-    .replace(/[ \t]+\n/g, "\n");
+  const sectionAliases = {
+    intro: "INTRODUÇÃO",
+    "introdução": "INTRODUÇÃO",
+    introducao: "INTRODUÇÃO",
+    verso: "VERSO",
+    "refrão": "REFRÃO",
+    refrao: "REFRÃO",
+    ponte: "PONTE",
+    solo: "SOLO",
+    "interlúdio": "INTERLÚDIO",
+    interludio: "INTERLÚDIO",
+    final: "FINAL"
+  };
+
+  const output = [];
+
+  String(content || "")
+    .replace(/\r\n?/g, "\n")
+    .split("\n")
+    .forEach((line) => {
+      const raw = String(line || "");
+      const sectionChordRow = raw.match(
+        /^\s*(intro|introdução|introducao|verso|refrão|refrao|ponte|solo|interlúdio|interludio|final)\s*:\s*(.*)$/i
+      );
+
+      if (sectionChordRow && looksLikeChordRow(raw)) {
+        const key = sectionChordRow[1].toLowerCase();
+        output.push(`::${sectionAliases[key] || sectionChordRow[1].toUpperCase()}::`);
+        return;
+      }
+
+      if (looksLikeChordRow(raw)) {
+        return;
+      }
+
+      const lyric = raw
+        .replace(/\[[^\]]+\]/g, "")
+        .replace(/[ \t]+$/g, "");
+
+      output.push(lyric);
+    });
+
+  return output
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
 }
 
 function cleanChordToken(token = "") {
@@ -3856,18 +3901,19 @@ $("playerAutoScrollBtn").onclick = () => {
     return;
   }
 
-  const speed = Number($("playerScrollSpeed").value) || 0.75;
   $("playerAutoScrollBtn").textContent = "Pausar";
   $("playerAutoScrollBtn").classList.add("is-scrolling");
 
   let previousTime = performance.now();
 
   const step = (currentTime) => {
-    const elapsed = Math.min(50, currentTime - previousTime);
+    const elapsed = Math.min(80, currentTime - previousTime);
     previousTime = currentTime;
 
+    const speedSetting = Number($("playerScrollSpeed")?.value) || 0.75;
+    const pixelsPerSecond = Math.max(6, speedSetting * 55);
     const target = getListScrollTarget();
-    target.scrollBy(speed * elapsed * 0.055);
+    target.scrollBy((pixelsPerSecond * elapsed) / 1000);
 
     if (target.position >= target.maximum - 2) {
       stopPlayerAutoScroll();
@@ -4555,7 +4601,7 @@ if ("serviceWorker" in navigator) {
   window.addEventListener("load", async () => {
     try {
       const registration = await navigator.serviceWorker.register(
-        "./service-worker.js?v=8.0.0",
+        "./service-worker.js?v=9.0.0",
         { scope: "./" }
       );
 
