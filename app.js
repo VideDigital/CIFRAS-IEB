@@ -1,9 +1,9 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
 import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail, signOut, updateProfile } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
 import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, collection, addDoc, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
-import { firebaseConfig } from "./firebase-config.js?v=7.0.0";
-import { KEYS, transposeContent, semitoneDistance, renderChordMarkup } from "./chord-engine.js?v=7.0.0";
-import { drawChordDiagram } from "./chord-diagrams.js?v=7.0.0";
+import { firebaseConfig } from "./firebase-config.js?v=7.1.0";
+import { KEYS, transposeContent, semitoneDistance, renderChordMarkup, stepKey } from "./chord-engine.js?v=7.1.0";
+import { drawChordDiagram } from "./chord-diagrams.js?v=7.1.0";
 
 const firebaseApp = initializeApp(firebaseConfig);
 const auth = getAuth(firebaseApp);
@@ -187,6 +187,56 @@ function repairBrokenText(value = "") {
 }
 
 
+
+function smartTitleCase(value = "") {
+  const smallWords = new Set([
+    "a","o","as","os","e","de","da","do","das","dos",
+    "em","no","na","nos","nas","para","por","com","sem"
+  ]);
+
+  return String(value)
+    .toLocaleLowerCase("pt-BR")
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((word, index) => {
+      if (index > 0 && smallWords.has(word)) return word;
+      return word.charAt(0).toLocaleUpperCase("pt-BR") + word.slice(1);
+    })
+    .join(" ");
+}
+
+function cleanSongTitle(value = "") {
+  let text = repairBrokenText(value)
+    .replace(/\.(?:docx?|pdf|txt|md|cho|json)$/i, "")
+    .replace(/^\s*\d{1,3}\s*[-_.]+\s*/, "")
+    .replace(/[_]+/g, " ")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+
+  if (!text) return "";
+
+  const letters = text.replace(/[^A-Za-zÀ-ÿ]/g, "");
+  if (letters.length >= 4 && text === text.toLocaleUpperCase("pt-BR")) {
+    text = smartTitleCase(text);
+  }
+
+  return text;
+}
+
+function cleanSongArtist(value = "") {
+  const text = repairBrokenText(value)
+    .replace(/[_]+/g, " ")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+
+  if (!text) return "";
+
+  const letters = text.replace(/[^A-Za-zÀ-ÿ]/g, "");
+  return letters.length >= 4 && text === text.toLocaleUpperCase("pt-BR")
+    ? smartTitleCase(text)
+    : text;
+}
+
 let globalSearchFilter = "all";
 
 function normalizeSearchValue(value = "") {
@@ -334,8 +384,8 @@ document.addEventListener("click", (event) => {
 function normalizeSongText(song = {}) {
   return {
     ...song,
-    title: repairBrokenText(song.title || ""),
-    artist: repairBrokenText(song.artist || ""),
+    title: cleanSongTitle(song.title || ""),
+    artist: cleanSongArtist(song.artist || ""),
     content: repairBrokenText(song.content || "")
   };
 }
@@ -917,11 +967,22 @@ function renderDedicatedSongViewer() {
     : transposedContent;
 
   $("viewerSongTitle").textContent =
-    repairBrokenText(viewingSong.title || "Sem t\u00EDtulo");
+    cleanSongTitle(viewingSong.title || "Sem t\u00EDtulo");
   $("viewerSongArtist").textContent =
-    repairBrokenText(viewingSong.artist || "Artista n\u00E3o informado");
+    cleanSongArtist(viewingSong.artist || "Artista n\u00E3o informado");
   $("viewerCurrentKey").textContent = viewerKey;
   $("viewerSongKeyMeta").textContent = `Tom ${viewerKey}`;
+
+  if ($("readerStageTitle")) {
+    $("readerStageTitle").textContent =
+      cleanSongTitle(viewingSong.title || "Cifra");
+  }
+
+  if ($("readerStageMeta")) {
+    $("readerStageMeta").textContent =
+      `${cleanSongArtist(viewingSong.artist || "Artista não informado")} • Tom ${viewerKey}`;
+  }
+
   $("dedicatedSongViewer").style.fontSize = `${viewerFontSize}px`;
   $("dedicatedSongViewer").innerHTML = renderChordMarkup(content);
 
@@ -975,11 +1036,13 @@ $("viewerTransposeUp").onclick = () => changeViewerKey(1);
 $("viewerTransposeDown").onclick = () => changeViewerKey(-1);
 
 function changeViewerKey(delta) {
-  const scale = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
-  let index = scale.indexOf(viewerKey);
-  if (index < 0) index = 0;
-  viewerKey = scale[(index + delta + 12) % 12];
+  const preferFlats =
+    /b/.test(viewerKey) ||
+    /b/.test(viewingSong?.key || "");
+
+  viewerKey = stepKey(viewerKey, delta, preferFlats);
   renderDedicatedSongViewer();
+  updateReaderFullscreenState();
 }
 
 $("viewerFontUp").onclick = () => {
@@ -1014,12 +1077,29 @@ function setListQuickPanel(open) {
 
 function updateReaderFullscreenState() {
   const shell = $("dedicatedSongViewer")?.closest(".song-reader-shell");
-  const fullscreen = shell?.classList.contains("stage-mode");
+  const fullscreen = Boolean(shell?.classList.contains("stage-mode"));
 
   if ($("readerFullscreenLabel")) {
     $("readerFullscreenLabel").textContent =
       fullscreen ? "Sair da tela cheia" : "Tela cheia";
   }
+
+  if ($("viewerStageBtn")) {
+    $("viewerStageBtn").textContent =
+      fullscreen ? "Sair da tela cheia" : "Tela cheia";
+    $("viewerStageBtn").classList.toggle("active-mode", fullscreen);
+  }
+}
+
+function exitReaderFullscreen() {
+  const shell = $("dedicatedSongViewer")?.closest(".song-reader-shell");
+  if (!shell?.classList.contains("stage-mode")) return;
+
+  shell.classList.remove("stage-mode");
+  document.body.style.overflow = "";
+  document.documentElement.style.overflow = "";
+  setReaderQuickPanel(false);
+  updateReaderFullscreenState();
 }
 
 $("viewerStageBtn").onclick = () => {
@@ -1833,8 +1913,14 @@ window.addEventListener("resize", () => {
 });
 
 function toggleStageMode(panel) {
-  panel.classList.toggle("stage-mode");
-  document.body.style.overflow = panel.classList.contains("stage-mode") ? "hidden" : "";
+  if (!panel) return false;
+
+  const entering = !panel.classList.contains("stage-mode");
+  panel.classList.toggle("stage-mode", entering);
+  document.body.style.overflow = entering ? "hidden" : "";
+  document.documentElement.style.overflow = entering ? "hidden" : "";
+
+  return entering;
 }
 
 $("stageModeBtn").onclick = () => toggleStageMode($("previewPanel"));
@@ -2013,7 +2099,16 @@ function renderListSong() {
     : transposedContent;
 
   $("listProgress").textContent =
-    `${listPlayer.index + 1} de ${listPlayer.songs.length} \u2022 ${song.title}`;
+    `${listPlayer.index + 1} de ${listPlayer.songs.length} \u2022 ${cleanSongTitle(song.title)}`;
+
+  if ($("listStageTitle")) {
+    $("listStageTitle").textContent = cleanSongTitle(song.title || "Cifra");
+  }
+
+  if ($("listStageMeta")) {
+    $("listStageMeta").textContent =
+      `${listPlayer.index + 1} de ${listPlayer.songs.length} • Tom ${playerKey}`;
+  }
 
   $("playerCurrentKey").textContent = playerKey;
   $("listPlayerSong").style.fontSize = `${playerFontSize}px`;
@@ -2679,22 +2774,34 @@ function bracketChordRow(line = "") {
 }
 
 function placeChordsOnLyric(chordLine, lyricLine) {
-  const matches = extractChordTokens(chordLine);
-  if (!matches.length) return lyricLine;
+  const expandedChordLine = String(chordLine || "").replace(/\t/g, "    ");
+  const expandedLyricLine = String(lyricLine || "").replace(/\t/g, "    ");
+  const matches = extractChordTokens(expandedChordLine);
 
-  if (matches.length === 1) {
-    return `[${matches[0].chord}]${lyricLine.trimStart()}`;
-  }
+  if (!matches.length) return expandedLyricLine;
 
-  let converted = lyricLine;
+  const sourceWidth = Math.max(1, expandedChordLine.length);
+  const lyricWidth = Math.max(1, expandedLyricLine.length);
+  let converted = expandedLyricLine;
 
   for (let index = matches.length - 1; index >= 0; index -= 1) {
     const match = matches[index];
-    const position = Math.min(match.index || 0, converted.length);
+    const directPosition = Math.max(0, match.index || 0);
+    const proportionalPosition = Math.round(
+      (directPosition / sourceWidth) * lyricWidth
+    );
+
+    const position =
+      directPosition <= lyricWidth + 5
+        ? directPosition
+        : proportionalPosition;
+
+    const safePosition = Math.min(Math.max(0, position), converted.length);
+
     converted =
-      converted.slice(0, position) +
+      converted.slice(0, safePosition) +
       `[${match.chord}]` +
-      converted.slice(position);
+      converted.slice(safePosition);
   }
 
   return converted;
@@ -2744,34 +2851,85 @@ function convertChordRowsToBracketMarkup(content = "") {
   return result.join("\n");
 }
 
+function median(values = []) {
+  if (!values.length) return 7;
+  const sorted = [...values].sort((a, b) => a - b);
+  const middle = Math.floor(sorted.length / 2);
+  return sorted.length % 2
+    ? sorted[middle]
+    : (sorted[middle - 1] + sorted[middle]) / 2;
+}
+
+function buildPositionedPdfPage(items = []) {
+  const usableItems = items.filter((item) => String(item.str || "").trim());
+  if (!usableItems.length) return "";
+
+  const characterWidths = usableItems
+    .map((item) => {
+      const text = String(item.str || "");
+      const width = Number(item.width) || 0;
+      return text.length && width > 0 ? width / text.length : 0;
+    })
+    .filter((value) => value > 1 && value < 30);
+
+  const charWidth = Math.max(3.5, Math.min(12, median(characterWidths)));
+  const pageLeft = Math.min(
+    ...usableItems.map((item) => Number(item.transform?.[4] || 0))
+  );
+
+  const rows = new Map();
+
+  usableItems.forEach((item) => {
+    const y = Math.round(Number(item.transform?.[5] || 0) * 2) / 2;
+    if (!rows.has(y)) rows.set(y, []);
+    rows.get(y).push({
+      x: Number(item.transform?.[4] || 0),
+      text: String(item.str || "")
+    });
+  });
+
+  return [...rows.entries()]
+    .sort((a, b) => b[0] - a[0])
+    .map(([, rowItems]) => {
+      const sorted = rowItems.sort((a, b) => a.x - b.x);
+      let line = "";
+
+      sorted.forEach((item) => {
+        const column = Math.max(
+          0,
+          Math.round((item.x - pageLeft) / charWidth)
+        );
+
+        if (line.length < column) {
+          line += " ".repeat(column - line.length);
+        } else if (line && !/\s$/.test(line)) {
+          line += " ";
+        }
+
+        line += item.text;
+      });
+
+      return line.replace(/[ \t]+$/g, "");
+    })
+    .filter((line) => line.trim())
+    .join("\n");
+}
+
 async function extractPdfText(file) {
   const pdfjs = await import("https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs");
   pdfjs.GlobalWorkerOptions.workerSrc =
     "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.mjs";
 
-  const document = await pdfjs.getDocument({ data: await file.arrayBuffer() }).promise;
+  const document = await pdfjs.getDocument({
+    data: await file.arrayBuffer()
+  }).promise;
+
   const pages = [];
 
   for (let pageNumber = 1; pageNumber <= document.numPages; pageNumber += 1) {
     const page = await document.getPage(pageNumber);
     const content = await page.getTextContent();
-    const rows = new Map();
-
-    content.items.forEach((item) => {
-      const y = Math.round(item.transform?.[5] || 0);
-      if (!rows.has(y)) rows.set(y, []);
-      rows.get(y).push({ x: item.transform?.[4] || 0, text: item.str || "" });
-    });
-
-    const pageText = [...rows.entries()]
-      .sort((a, b) => b[0] - a[0])
-      .map(([, rowItems]) =>
-        rowItems.sort((a, b) => a.x - b.x).map((item) => item.text).join(" ").replace(/\s+/g, " ").trim()
-      )
-      .filter(Boolean)
-      .join("\n");
-
-    pages.push(pageText);
+    pages.push(buildPositionedPdfPage(content.items || []));
   }
 
   return sanitizeImportedText(pages.join("\n\n"));
@@ -2863,29 +3021,71 @@ function mammothHtmlToStructuredText(html = "") {
   return sanitizeImportedText(lines.join("\n"));
 }
 
+function importedTextQualityScore(value = "") {
+  const text = sanitizeImportedText(value);
+  if (!text) return -1000;
+
+  const lines = text.split("\n").filter((line) => line.trim());
+  const chordLines = lines.filter((line) => looksLikeChordRow(line)).length;
+  const sectionLines = lines.filter((line) =>
+    /^(?:intro|introdução|introducao|verso|refrão|refrao|ponte|solo|final)\s*:?/i.test(line.trim())
+  ).length;
+  const letterLines = lines.filter((line) =>
+    /[A-Za-zÀ-ÿ]{4,}/.test(line) && !looksLikeChordRow(line)
+  ).length;
+
+  return chordLines * 10 + sectionLines * 4 + letterLines * 2 + Math.min(lines.length, 80);
+}
+
+function chooseBestImportedText(candidates = []) {
+  return candidates
+    .map((value) => sanitizeImportedText(value))
+    .filter(Boolean)
+    .sort((a, b) =>
+      importedTextQualityScore(b) - importedTextQualityScore(a)
+    )[0] || "";
+}
+
 async function extractDocxText(file) {
-  if (!(file instanceof Blob)) throw new Error("O arquivo DOCX recebido é inválido.");
+  if (!(file instanceof Blob)) {
+    throw new Error("O arquivo DOCX recebido é inválido.");
+  }
 
   const arrayBuffer = await file.arrayBuffer();
-  if (!arrayBuffer?.byteLength) throw new Error("O arquivo DOCX está vazio.");
+
+  if (!arrayBuffer?.byteLength) {
+    throw new Error("O arquivo DOCX está vazio.");
+  }
 
   const mammoth = await getMammothBrowser();
-  let value = "";
+  const candidates = [];
 
-  try {
-    const htmlResult = await mammoth.convertToHtml({ arrayBuffer });
-    value = mammothHtmlToStructuredText(htmlResult?.value || "");
-  } catch (error) {
-    console.warn("Falha na leitura estruturada do DOCX; tentando texto bruto.", error);
+  if (typeof mammoth.extractRawText === "function") {
+    try {
+      const rawResult = await mammoth.extractRawText({ arrayBuffer });
+      candidates.push(rawResult?.value || "");
+    } catch (error) {
+      console.warn("Falha ao extrair texto bruto do DOCX.", error);
+    }
   }
 
-  if (!value.trim() && typeof mammoth.extractRawText === "function") {
-    const rawResult = await mammoth.extractRawText({ arrayBuffer });
-    value = sanitizeImportedText(rawResult?.value || "");
+  if (typeof mammoth.convertToHtml === "function") {
+    try {
+      const htmlResult = await mammoth.convertToHtml({ arrayBuffer });
+      candidates.push(
+        mammothHtmlToStructuredText(htmlResult?.value || "")
+      );
+    } catch (error) {
+      console.warn("Falha ao extrair estrutura do DOCX.", error);
+    }
   }
+
+  const value = chooseBestImportedText(candidates);
 
   if (!value.trim()) {
-    throw new Error("O DOCX não possui texto musical legível. Ele pode conter apenas imagens.");
+    throw new Error(
+      "O DOCX não possui texto musical legível. Ele pode conter apenas imagens ou caixas de texto."
+    );
   }
 
   return value;
@@ -2921,14 +3121,45 @@ function inferKeyFromContent(content = "") {
   return "C";
 }
 
+function normalizeImportedTitleFromFilename(fileName = "") {
+  let base = repairBrokenText(fileName)
+    .replace(/\.[^.]+$/, "")
+    .trim();
+
+  base = base
+    .replace(/^\s*\d{1,3}\s*[-_.]+\s*/, "")
+    .replace(/(?:[_\s-]+(?:NOVA[_\s-]*RETIRO|RETIRO|NOVA))\s*$/i, "")
+    .replace(/(?:[_\s-]+EM[_\s-]+)?([A-G](?:#|b)?(?:m)?)\s*$/i, (match, key) => {
+      const prefix = base.slice(0, Math.max(0, base.length - match.length));
+      return prefix.trim().length >= 4 ? "" : match;
+    })
+    .replace(/[_]+/g, " ")
+    .replace(/\s{2,}/g, " ")
+    .replace(/\s+-\s+-\s+/g, " - ")
+    .trim();
+
+  return cleanSongTitle(base);
+}
+
+function looksLikeImportedTitleCandidate(line = "") {
+  const value = repairBrokenText(line).trim();
+
+  if (!value || value.length < 2 || value.length > 90) return false;
+  if (looksLikeChordRow(value)) return false;
+  if (/^(?:tom|capotraste|artista|minist[eé]rio|t[ií]tulo|cifra)\s*:/i.test(value)) return false;
+  if (/^(?:intro|introdução|introducao|verso|refrão|refrao|ponte|solo|final)\s*:/i.test(value)) return false;
+  if (/^[\[({].+[\])}]$/.test(value)) return false;
+
+  const wordCount = value.split(/\s+/).filter(Boolean).length;
+  const punctuation = (value.match(/[,:;.!?]/g) || []).length;
+
+  return wordCount <= 10 && punctuation <= 2;
+}
+
 function inferSongFromFile(fileName, rawText) {
   const extension = fileName.split(".").pop()?.toLowerCase() || "";
   const text = sanitizeImportedText(rawText);
-  const baseName = repairBrokenText(fileName)
-    .replace(/\.[^.]+$/, "")
-    .replace(/[_-]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
+  const baseName = normalizeImportedTitleFromFilename(fileName);
 
   if (!text) return [];
 
@@ -2984,18 +3215,33 @@ function inferSongFromFile(fileName, rawText) {
     ? lines.slice(contentStart).join("\n").trim()
     : lines.filter((line) => !metadataPattern.test(line.trim())).join("\n").trim();
 
-  if (!title && extension !== "docx") {
-    const firstLine = lines[0]?.trim() || "";
+  if (!title) {
+    const firstUsefulIndex = lines.findIndex((line) =>
+      looksLikeImportedTitleCandidate(line)
+    );
+    const firstUsefulLine =
+      firstUsefulIndex >= 0 ? lines[firstUsefulIndex].trim() : "";
+
+    const normalizedCandidate = cleanSongTitle(firstUsefulLine);
+    const normalizedBase = normalizeSearchValue(baseName);
+
+    const candidateMatchesFile =
+      normalizedCandidate &&
+      normalizedBase &&
+      (
+        normalizeSearchValue(normalizedCandidate).includes(normalizedBase) ||
+        normalizedBase.includes(normalizeSearchValue(normalizedCandidate))
+      );
 
     if (
-      firstLine &&
-      firstLine.length <= 100 &&
-      !looksLikeChordRow(firstLine) &&
-      !/^\[.+\]$/.test(firstLine) &&
-      !/^(tom|capotraste|artista|minist[eé]rio|titulo|título)\s*:/i.test(firstLine)
+      firstUsefulLine &&
+      (extension !== "docx" || candidateMatchesFile)
     ) {
-      title = firstLine;
-      rawContent = lines.slice(1).join("\n").trim();
+      title = normalizedCandidate;
+
+      if (firstUsefulIndex === 0) {
+        rawContent = lines.slice(1).join("\n").trim();
+      }
     }
   }
 
@@ -3003,8 +3249,8 @@ function inferSongFromFile(fileName, rawText) {
   key = key || inferKeyFromContent(rawContent);
 
   return [{
-    title: title || baseName || "Cifra importada",
-    artist,
+    title: cleanSongTitle(title || baseName || "Cifra importada"),
+    artist: cleanSongArtist(artist),
     key,
     capo,
     content,
@@ -3272,15 +3518,12 @@ $("playerFontDown").onclick = () => {
 };
 
 function changePlayerKey(delta) {
-  const scale = [
-    "C", "C#", "D", "D#", "E", "F",
-    "F#", "G", "G#", "A", "A#", "B"
-  ];
+  const song = listPlayer.songs[listPlayer.index];
+  const preferFlats =
+    /b/.test(playerKey) ||
+    /b/.test(song?.key || "");
 
-  let index = scale.indexOf(playerKey);
-  if (index < 0) index = 0;
-
-  playerKey = scale[(index + delta + 12) % 12];
+  playerKey = stepKey(playerKey, delta, preferFlats);
   renderListSong();
 }
 
@@ -3351,15 +3594,30 @@ function stopPlayerAutoScroll() {
   }
 }
 
-$("playerStageMode").onclick = () => {
+function updateListFullscreenState() {
   const shell = $("listPlayerShell");
-  const entering = !shell.classList.contains("stage-mode");
-
-  shell.classList.toggle("stage-mode", entering);
-  document.body.style.overflow = entering ? "hidden" : "";
+  const fullscreen = Boolean(shell?.classList.contains("stage-mode"));
 
   $("playerStageMode").textContent =
-    entering ? "Sair da tela cheia" : "Tela cheia";
+    fullscreen ? "Sair da tela cheia" : "Tela cheia";
+  $("playerStageMode").classList.toggle("active-mode", fullscreen);
+}
+
+function exitListFullscreen() {
+  const shell = $("listPlayerShell");
+  if (!shell?.classList.contains("stage-mode")) return;
+
+  shell.classList.remove("stage-mode");
+  document.body.style.overflow = "";
+  document.documentElement.style.overflow = "";
+  setListQuickPanel(false);
+  updateListFullscreenState();
+}
+
+$("playerStageMode").onclick = () => {
+  toggleStageMode($("listPlayerShell"));
+  setListQuickPanel(false);
+  updateListFullscreenState();
 };
 
 async function loadGroupRepertoires(groupId) {
@@ -3741,6 +3999,7 @@ document.addEventListener("click", (event) => {
       "font-up": () => $("viewerFontUp")?.click(),
       "text-only": () => $("viewerTextOnlyBtn")?.click(),
       fullscreen: () => $("viewerStageBtn")?.click(),
+      "exit-fullscreen": () => exitReaderFullscreen(),
       edit: () => {
         setReaderQuickPanel(false);
         $("viewerEditBtn")?.click();
@@ -3770,6 +4029,7 @@ document.addEventListener("click", (event) => {
       "font-up": () => $("playerFontUp")?.click(),
       "text-only": () => $("playerTextOnlyBtn")?.click(),
       fullscreen: () => $("playerStageMode")?.click(),
+      "exit-fullscreen": () => exitListFullscreen(),
       exit: () => $("exitListPlayer")?.click(),
       more: () => setListQuickPanel(
         $("listQuickPanel")?.classList.contains("hidden") === true
@@ -3997,7 +4257,7 @@ if ("serviceWorker" in navigator) {
   window.addEventListener("load", async () => {
     try {
       const registration = await navigator.serviceWorker.register(
-        "./service-worker.js?v=7.0.0",
+        "./service-worker.js?v=7.1.0",
         { scope: "./" }
       );
 
@@ -4012,10 +4272,20 @@ updateConnectivityUI();
 
 
 document.addEventListener("keydown", (event) => {
-  if (event.key === "Escape") {
-    setReaderQuickPanel(false);
-    setListQuickPanel(false);
+  if (event.key !== "Escape") return;
+
+  if ($("dedicatedSongViewer")?.closest(".song-reader-shell")?.classList.contains("stage-mode")) {
+    exitReaderFullscreen();
+    return;
   }
+
+  if ($("listPlayerShell")?.classList.contains("stage-mode")) {
+    exitListFullscreen();
+    return;
+  }
+
+  setReaderQuickPanel(false);
+  setListQuickPanel(false);
 });
 
 window.addEventListener("orientationchange", () => {
