@@ -53,8 +53,22 @@ let viewerTextOnlyMode = false;
 let viewerFontSize = 20;
 let viewerKey = "C";
 let viewerScrollFrame = null;
+let bulkSelectionMode = false;
+let bulkSelectedSongIds = new Set();
+let editingGroupRepertoire = null;
+let chordDialogInstrument = "guitar";
+let chordDialogVariation = 0;
+let chordExplorerRoot = "C";
+let chordExplorerSuffix = "";
+let chordExplorerInstrument = "guitar";
+let chordExplorerVariation = 0;
+let metronomeTimer = null;
+let metronomeAudioContext = null;
+let metronomeBeat = 0;
+let metronomeNextNoteTime = 0;
+let metronomeTapTimes = [];
 
-const views = ["library", "lists", "groups", "search", "shared", "songViewer", "editor", "listPlayer"];
+const views = ["library", "lists", "groups", "chords", "tools", "settings", "search", "shared", "songViewer", "editor", "listPlayer"];
 
 function resetReaderState(nextView = "") {
   setReaderKeyPanel(false);
@@ -95,6 +109,13 @@ function showView(name) {
   });
 
   closeSidebar();
+
+  if (name === "chords") renderChordExplorer();
+  if (name === "tools") {
+    renderMetronomeBeatDots();
+    updateOfflineReadyStatus();
+  }
+  if (name === "settings") syncSettingsControls();
 
   window.requestAnimationFrame(() => {
     window.scrollTo({ top: 0, left: 0, behavior: "auto" });
@@ -818,13 +839,27 @@ function songCard(song, shared = false) {
   const artist = song.artist || "Artista n\u00E3o informado";
   const key = song.key || "C";
 
+  const selected = bulkSelectedSongIds.has(song.id);
+
   return `
-    <article class="song-row-card">
+    <article class="song-row-card ${bulkSelectionMode && !shared ? "selection-enabled" : ""} ${selected ? "selected" : ""}">
+      ${bulkSelectionMode && !shared ? `
+        <button
+          type="button"
+          class="song-select-toggle"
+          data-select-song="${song.id}"
+          aria-pressed="${selected}"
+          aria-label="${selected ? "Desmarcar" : "Selecionar"} ${safeText(title)}"
+        >
+          <span>${selected ? "✓" : ""}</span>
+        </button>
+      ` : ""}
       <button
         type="button"
         class="song-row-open"
         data-open-song="${song.id}"
         data-shared="${shared}"
+        ${bulkSelectionMode && !shared ? 'data-selection-open="true"' : ""}
       >
         <span class="song-row-key">${safeText(key)}</span>
         <span class="song-row-copy">
@@ -845,7 +880,112 @@ function renderSongs(filter = "") {
 
   $("songGrid").innerHTML = visible.map((song) => songCard(song)).join("");
   $("emptyLibrary").classList.toggle("hidden", visible.length > 0 || Boolean(term));
+  updateBulkLibraryBar();
 }
+
+function updateBulkLibraryBar() {
+  const bar = $("bulkLibraryBar");
+  if (!bar) return;
+
+  bar.classList.toggle("hidden", !bulkSelectionMode);
+  $("bulkManageBtn").textContent =
+    bulkSelectionMode ? "Concluir seleção" : "Selecionar cifras";
+
+  const count = bulkSelectedSongIds.size;
+  $("bulkLibraryCount").textContent =
+    `${count} ${count === 1 ? "selecionada" : "selecionadas"}`;
+
+  $("bulkDeleteSongsBtn").disabled = count === 0;
+  $("bulkClearSelectionBtn").disabled = count === 0;
+}
+
+function setBulkSelectionMode(enabled) {
+  bulkSelectionMode = Boolean(enabled);
+  if (!bulkSelectionMode) bulkSelectedSongIds.clear();
+  renderSongs($("songSearch")?.value || "");
+}
+
+$("bulkManageBtn")?.addEventListener("click", () => {
+  setBulkSelectionMode(!bulkSelectionMode);
+});
+
+$("bulkSelectAllBtn")?.addEventListener("click", () => {
+  const term = ($("songSearch")?.value || "").trim().toLowerCase();
+  songs
+    .filter((song) =>
+      `${song.title || ""} ${song.artist || ""}`.toLowerCase().includes(term)
+    )
+    .forEach((song) => bulkSelectedSongIds.add(song.id));
+
+  renderSongs($("songSearch")?.value || "");
+});
+
+$("bulkClearSelectionBtn")?.addEventListener("click", () => {
+  bulkSelectedSongIds.clear();
+  renderSongs($("songSearch")?.value || "");
+});
+
+$("bulkDeleteSongsBtn")?.addEventListener("click", async () => {
+  const ids = [...bulkSelectedSongIds];
+  if (!ids.length) return;
+
+  const message =
+    ids.length === 1
+      ? "Excluir esta cifra permanentemente?"
+      : `Excluir ${ids.length} cifras permanentemente? Essa ação não pode ser desfeita.`;
+
+  if (!confirm(message)) return;
+
+  const button = $("bulkDeleteSongsBtn");
+  button.disabled = true;
+  button.textContent = "Excluindo...";
+
+  try {
+    await Promise.all(
+      ids.map((songId) => deleteDoc(doc(db, "songs", songId)))
+    );
+
+    const idSet = new Set(ids);
+    const affectedLists = lists.filter((list) =>
+      (list.songIds || []).some((songId) => idSet.has(songId))
+    );
+
+    await Promise.all(
+      affectedLists.map((list) =>
+        updateDoc(doc(db, "lists", list.id), {
+          songIds: (list.songIds || []).filter((songId) => !idSet.has(songId)),
+          updatedAt: serverTimestamp()
+        })
+      )
+    );
+
+    songs = songs.filter((song) => !idSet.has(song.id));
+    lists = lists.map((list) => ({
+      ...list,
+      songIds: (list.songIds || []).filter((songId) => !idSet.has(songId))
+    }));
+
+    saveLocalArea("songs", songs);
+    saveLocalArea("lists", lists);
+    bulkSelectedSongIds.clear();
+    bulkSelectionMode = false;
+    renderSongs("");
+    renderLists();
+    updateStats();
+    toast(`${ids.length} cifra(s) excluída(s).`);
+
+    if (navigator.onLine) {
+      await Promise.allSettled([loadSongs(), loadLists()]);
+    }
+  } catch (error) {
+    console.error("Erro na exclusão em massa:", error);
+    toast("Não foi possível excluir todas as cifras selecionadas.");
+  } finally {
+    button.disabled = false;
+    button.textContent = "Excluir selecionadas";
+    updateBulkLibraryBar();
+  }
+});
 
 function renderShared() {
   $("sharedGrid").innerHTML = sharedSongs.map((song) => songCard(song, true)).join("");
@@ -911,8 +1051,27 @@ document.querySelectorAll("[data-list-sort]").forEach((button) => {
 $("songSearch").oninput = (event) => renderSongs(event.target.value);
 
 document.addEventListener("click", async (event) => {
+  const selectSongButton = event.target.closest("[data-select-song]");
+  if (selectSongButton) {
+    const songId = selectSongButton.dataset.selectSong;
+    if (bulkSelectedSongIds.has(songId)) {
+      bulkSelectedSongIds.delete(songId);
+    } else {
+      bulkSelectedSongIds.add(songId);
+    }
+    renderSongs($("songSearch")?.value || "");
+    return;
+  }
+
   const openSongButton = event.target.closest("[data-open-song]");
   if (openSongButton) {
+    if (bulkSelectionMode && openSongButton.dataset.shared !== "true") {
+      const songId = openSongButton.dataset.openSong;
+      if (bulkSelectedSongIds.has(songId)) bulkSelectedSongIds.delete(songId);
+      else bulkSelectedSongIds.add(songId);
+      renderSongs($("songSearch")?.value || "");
+      return;
+    }
     openSongViewer(
       openSongButton.dataset.openSong,
       openSongButton.dataset.shared === "true"
@@ -956,6 +1115,9 @@ document.addEventListener("click", async (event) => {
   if (event.target.closest("[data-new-song]")) openSongEditor();
   if (event.target.closest("[data-new-list]")) openListDialog();
   if (event.target.closest("[data-go-library]")) showView("library");
+
+  const goViewButton = event.target.closest("[data-go-view]");
+  if (goViewButton) showView(goViewButton.dataset.goView);
 });
 
 $("newSongBtn").onclick = () => openSongEditor();
