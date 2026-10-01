@@ -693,6 +693,24 @@ onAuthStateChanged(auth, async (user) => {
 
   try {
     await loadAll();
+
+    const requestedView = location.hash.replace(/^#/, "");
+    const safeInitialViews = new Set([
+      "library",
+      "lists",
+      "groups",
+      "chords",
+      "tools",
+      "settings",
+      "search",
+      "shared"
+    ]);
+
+    showView(
+      safeInitialViews.has(requestedView)
+        ? requestedView
+        : "library"
+    );
   } catch (error) {
     console.error("Erro ao carregar dados da conta:", error);
     toast("Alguns dados n\u00E3o puderam ser carregados. Atualize a p\u00E1gina.");
