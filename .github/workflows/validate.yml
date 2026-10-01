@@ -27,6 +27,79 @@ jobs:
           node --check /tmp/chord-diagrams.mjs
           node --check service-worker.js
 
+      - name: Validate chord engine behavior
+        shell: bash
+        run: |
+          cat > /tmp/test-chords.mjs <<'EOF'
+          import {
+            transposeContent,
+            transposeChord,
+            semitoneDistance
+          } from "./chord-engine.mjs";
+          import {
+            getChordInfo,
+            getChordVariations,
+            drawInstrumentChord
+          } from "./chord-diagrams.mjs";
+
+          function expect(condition, message) {
+            if (!condition) throw new Error(message);
+          }
+
+          expect(
+            semitoneDistance("A", "G#") === 11,
+            "A -> G# should be 11 semitones forward"
+          );
+
+          const raw = transposeContent(
+            "A   F   G   A\nVem, esta é a hora",
+            11,
+            false
+          );
+          expect(
+            raw.split("\n")[0].includes("G#") &&
+            raw.split("\n")[0].includes("E") &&
+            raw.split("\n")[0].includes("F#"),
+            "Raw chord rows must transpose"
+          );
+
+          const bracketed = transposeContent("[A]   [F]", 11, false);
+          expect(
+            bracketed === "[G#]   [E]",
+            "Bracketed chords must transpose exactly once"
+          );
+
+          expect(
+            transposeChord("D/F#", 11, false) === "C#/F",
+            "Slash chord bass must transpose"
+          );
+
+          const brazilian = getChordInfo("F#m7/9/11");
+          expect(
+            brazilian?.suffix === "m11",
+            "Brazilian m7/9/11 notation must map to m11"
+          );
+
+          expect(
+            getChordVariations("C", "guitar", 4).length > 0,
+            "Guitar needs at least one generated C voicing"
+          );
+          expect(
+            getChordVariations("C", "ukulele", 4).length > 0,
+            "Ukulele needs at least one generated C voicing"
+          );
+          expect(
+            drawInstrumentChord("Cmaj7", "keyboard").includes("<svg"),
+            "Keyboard diagram must render"
+          );
+
+          console.log("Chord engine tests: OK");
+          EOF
+          (
+            cd /tmp
+            node test-chords.mjs
+          )
+
       - name: Validate required HTML hooks
         shell: python
         run: |
@@ -75,7 +148,7 @@ jobs:
           if missing:
               raise SystemExit(f"Missing required ids: {missing}")
 
-          if "?v=8.0.0" not in html:
+          if "?v=9.0.0" not in html:
               raise SystemExit("index.html is not pointing to v9.0.0 assets")
 
       - name: Validate service worker version
