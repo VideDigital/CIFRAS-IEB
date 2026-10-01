@@ -1,19 +1,27 @@
-const CACHE_VERSION = "cifras-ieb-v6.0.0";
+const CACHE_VERSION = "cifras-ieb-v7.0.0";
+const RUNTIME_CACHE = "cifras-ieb-runtime-v7.0.0";
+
 const APP_SHELL = [
   "./",
   "./index.html",
-  "./styles.css?v=6.0.0",
-  "./app.js?v=6.0.0",
-  "./firebase-config.js?v=6.0.0",
-  "./chord-engine.js?v=6.0.0",
-  "./chord-diagrams.js?v=6.0.0",
-  "./manifest.webmanifest?v=6.0.0",
+  "./styles.css?v=7.0.0",
+  "./app.js?v=7.0.0",
+  "./firebase-config.js?v=7.0.0",
+  "./chord-engine.js?v=7.0.0",
+  "./chord-diagrams.js?v=7.0.0",
+  "./manifest.webmanifest?v=7.0.0",
   "./offline.html",
   "./icons/icon-180.png",
   "./icons/icon-192.png",
   "./icons/icon-512.png",
   "./icons/icon-maskable-512.png"
 ];
+
+const RUNTIME_HOSTS = new Set([
+  "www.gstatic.com",
+  "cdnjs.cloudflare.com",
+  "cdn.jsdelivr.net"
+]);
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -28,55 +36,79 @@ self.addEventListener("activate", (event) => {
     caches.keys()
       .then((keys) => Promise.all(
         keys
-          .filter((key) => key !== CACHE_VERSION)
+          .filter((key) => ![CACHE_VERSION, RUNTIME_CACHE].includes(key))
           .map((key) => caches.delete(key))
       ))
       .then(() => self.clients.claim())
   );
 });
 
+async function networkFirst(request, cacheName, fallbackRequest = null) {
+  const cache = await caches.open(cacheName);
+
+  try {
+    const response = await fetch(request);
+
+    if (response && (response.ok || response.type === "opaque")) {
+      cache.put(request, response.clone()).catch(() => {});
+    }
+
+    return response;
+  } catch (error) {
+    const cached = await cache.match(request);
+    if (cached) return cached;
+
+    if (fallbackRequest) {
+      const fallback =
+        await caches.match(fallbackRequest) ||
+        await caches.match("./offline.html");
+
+      if (fallback) return fallback;
+    }
+
+    throw error;
+  }
+}
+
+async function staleWhileRevalidate(request, cacheName) {
+  const cache = await caches.open(cacheName);
+  const cached = await cache.match(request);
+
+  const networkPromise = fetch(request)
+    .then((response) => {
+      if (response && (response.ok || response.type === "opaque")) {
+        cache.put(request, response.clone()).catch(() => {});
+      }
+      return response;
+    })
+    .catch(() => null);
+
+  return cached || networkPromise || Response.error();
+}
+
 self.addEventListener("fetch", (event) => {
   const request = event.request;
-
   if (request.method !== "GET") return;
 
   const url = new URL(request.url);
 
   if (request.mode === "navigate") {
     event.respondWith(
-      fetch(request)
-        .then((response) => {
-          const copy = response.clone();
-          caches.open(CACHE_VERSION)
-            .then((cache) => cache.put("./index.html", copy));
-          return response;
-        })
-        .catch(async () =>
-          (await caches.match("./index.html")) ||
-          (await caches.match("./offline.html"))
-        )
+      networkFirst(request, CACHE_VERSION, "./index.html")
     );
     return;
   }
 
   if (url.origin === self.location.origin) {
     event.respondWith(
-      caches.match(request).then((cached) => {
-        const network = fetch(request)
-          .then((response) => {
-            if (response.ok) {
-              const copy = response.clone();
-              caches.open(CACHE_VERSION)
-                .then((cache) => cache.put(request, copy));
-            }
+      networkFirst(request, CACHE_VERSION)
+    );
+    return;
+  }
 
-            return response;
-          })
-          .catch(() => cached);
-
-        return cached || network;
-      })
+  if (RUNTIME_HOSTS.has(url.hostname)) {
+    event.respondWith(
+      staleWhileRevalidate(request, RUNTIME_CACHE)
     );
   }
 });
-
