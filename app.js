@@ -220,6 +220,10 @@ function setReaderMediaPanel(open) {
   }
 
   panel.classList.toggle("hidden", !open);
+
+  document.querySelectorAll(
+    '#songViewerView [data-reader-action="media"]'
+  ).forEach((button) => button.classList.toggle("active", Boolean(open)));
 }
 
 function currentListSong() {
@@ -239,6 +243,10 @@ function setListMediaPanel(open) {
   }
 
   panel.classList.toggle("hidden", !open);
+
+  document.querySelectorAll(
+    '#listPlayerView [data-list-action="media"]'
+  ).forEach((button) => button.classList.toggle("active", Boolean(open)));
 }
 
 function windows1252Byte(character) {
@@ -1342,10 +1350,57 @@ function syncReaderModeUI() {
   shell?.classList.toggle("reader-text-only", viewerTextOnlyMode);
 
   document.querySelectorAll(
-    '#songViewerView [data-reader-action="text-only"]'
+    '#songViewerView [data-reader-action="text-only"], #songViewerView [data-reader-action="lyrics"]'
   ).forEach((button) => {
     button.classList.toggle("active", viewerTextOnlyMode);
   });
+
+  document.querySelectorAll(
+    '#songViewerView [data-reader-action="normal"]'
+  ).forEach((button) => {
+    button.classList.toggle("active", !viewerTextOnlyMode);
+  });
+}
+
+function setViewerTextOnlyMode(enabled) {
+  viewerTextOnlyMode = Boolean(enabled);
+  $("viewerTextOnlyBtn").textContent =
+    viewerTextOnlyMode ? "Mostrar acordes" : "Somente texto";
+  $("viewerTextOnlyBtn").classList.toggle(
+    "active-mode",
+    viewerTextOnlyMode
+  );
+  renderDedicatedSongViewer();
+  syncReaderModeUI();
+}
+
+function syncListReaderModeUI() {
+  const shell = $("listPlayerShell");
+  shell?.classList.toggle("reader-text-only", playerTextOnlyMode);
+
+  document.querySelectorAll(
+    '#listPlayerView [data-list-action="text-only"], #listPlayerView [data-list-action="lyrics"]'
+  ).forEach((button) => {
+    button.classList.toggle("active", playerTextOnlyMode);
+  });
+
+  document.querySelectorAll(
+    '#listPlayerView [data-list-action="normal"]'
+  ).forEach((button) => {
+    button.classList.toggle("active", !playerTextOnlyMode);
+  });
+}
+
+function setPlayerTextOnlyMode(enabled) {
+  playerTextOnlyMode = Boolean(enabled);
+  $("playerTextOnlyBtn").textContent =
+    playerTextOnlyMode ? "Mostrar acordes" : "Somente texto";
+  $("playerTextOnlyBtn").classList.toggle(
+    "active-mode",
+    playerTextOnlyMode
+  );
+  renderListSong();
+  syncListReaderModeUI();
 }
 
 document.addEventListener("click", (event) => {
@@ -1479,12 +1534,7 @@ $("viewerFontDown").onclick = () => {
 };
 
 $("viewerTextOnlyBtn").onclick = () => {
-  viewerTextOnlyMode = !viewerTextOnlyMode;
-  $("viewerTextOnlyBtn").textContent =
-    viewerTextOnlyMode ? "Mostrar acordes" : "Somente texto";
-  $("viewerTextOnlyBtn").classList.toggle("active-mode", viewerTextOnlyMode);
-  renderDedicatedSongViewer();
-  syncReaderModeUI();
+  setViewerTextOnlyMode(!viewerTextOnlyMode);
 };
 
 function setReaderQuickPanel(open) {
@@ -2804,6 +2854,7 @@ function renderListSong() {
     listPlayer.index === listPlayer.songs.length - 1;
 
   $("listPlayerSong").scrollTop = 0;
+  syncListReaderModeUI();
   stopPlayerAutoScroll();
 }
 
@@ -4432,17 +4483,7 @@ $("textOnlyBtn").onclick=()=>{textOnlyMode=!textOnlyMode;$("textOnlyBtn").textCo
 
 
 $("playerTextOnlyBtn").onclick = () => {
-  playerTextOnlyMode = !playerTextOnlyMode;
-
-  $("playerTextOnlyBtn").textContent =
-    playerTextOnlyMode ? "Mostrar acordes" : "Somente texto";
-
-  $("playerTextOnlyBtn").classList.toggle(
-    "active-mode",
-    playerTextOnlyMode
-  );
-
-  renderListSong();
+  setPlayerTextOnlyMode(!playerTextOnlyMode);
 };
 
 $("playerFontUp").onclick = () => {
@@ -5115,6 +5156,20 @@ document.addEventListener("click", (event) => {
     const action = readerButton.dataset.readerAction;
     const actions = {
       back: () => $("viewerBackBtn")?.click(),
+      normal: () => {
+        setReaderMediaPanel(false);
+        setViewerTextOnlyMode(false);
+      },
+      lyrics: () => {
+        setReaderMediaPanel(false);
+        setViewerTextOnlyMode(true);
+      },
+      chords: () => {
+        setReaderMediaPanel(false);
+        setViewerTextOnlyMode(false);
+        document.querySelector("#songViewerView .reader-chord-section")
+          ?.scrollIntoView({ behavior:"smooth", block:"start" });
+      },
       "key-down": () => $("viewerTransposeDown")?.click(),
       "key-up": () => $("viewerTransposeUp")?.click(),
       key: () => setReaderKeyPanel(true),
@@ -5152,6 +5207,20 @@ document.addEventListener("click", (event) => {
     const actions = {
       previous: () => $("prevListSong")?.click(),
       next: () => $("nextListSong")?.click(),
+      normal: () => {
+        setListMediaPanel(false);
+        setPlayerTextOnlyMode(false);
+      },
+      lyrics: () => {
+        setListMediaPanel(false);
+        setPlayerTextOnlyMode(true);
+      },
+      chords: () => {
+        setListMediaPanel(false);
+        setPlayerTextOnlyMode(false);
+        document.querySelector("#listPlayerView .reader-chord-section")
+          ?.scrollIntoView({ behavior:"smooth", block:"start" });
+      },
       scroll: () => $("playerAutoScrollBtn")?.click(),
       "font-down": () => $("playerFontDown")?.click(),
       "font-up": () => $("playerFontUp")?.click(),
