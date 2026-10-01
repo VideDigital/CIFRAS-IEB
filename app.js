@@ -932,10 +932,75 @@ async function loadShared() {
   }
 }
 
+function recentSongIds() {
+  try {
+    const parsed = JSON.parse(
+      localStorage.getItem("cifrasIebRecentSongs") || "[]"
+    );
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function trackRecentSong(songId) {
+  if (!songId || !songs.some((song) => song.id === songId)) return;
+
+  const next = [
+    songId,
+    ...recentSongIds().filter((id) => id !== songId)
+  ].slice(0, 8);
+
+  localStorage.setItem(
+    "cifrasIebRecentSongs",
+    JSON.stringify(next)
+  );
+  renderHomeDashboard();
+}
+
+function renderHomeDashboard() {
+  const container = $("recentSongsGrid");
+  if (!container) return;
+
+  const recent = recentSongIds()
+    .map((id) => songs.find((song) => song.id === id))
+    .filter(Boolean)
+    .slice(0, 6);
+
+  const fallback = songs.slice(0, 6);
+  const visible = recent.length ? recent : fallback;
+
+  container.innerHTML = visible.length
+    ? visible.map((song) => `
+        <button
+          type="button"
+          class="recent-song-card"
+          data-open-song="${song.id}"
+          data-shared="false"
+        >
+          <span class="recent-song-key">${safeText(song.key || "C")}</span>
+          <span>
+            <strong>${safeText(song.title || "Sem título")}</strong>
+            <small>${safeText(song.artist || "Artista não informado")}</small>
+          </span>
+          <em>›</em>
+        </button>
+      `).join("")
+    : `
+      <div class="recent-empty">
+        <span>♫</span>
+        <div>
+          <strong>Sua atividade aparecerá aqui</strong>
+          <small>Importe ou crie uma cifra para começar.</small>
+        </div>
+      </div>`;
+}
+
 function updateStats() {
   $("songCount").textContent = songs.length;
   $("listCount").textContent = lists.length;
   $("sharedCount").textContent = sharedSongs.length;
+  renderHomeDashboard();
 }
 
 function songCard(song, shared = false) {
@@ -1470,6 +1535,7 @@ function openSongViewer(id, readOnly = false) {
   }
 
   viewingSongReadOnly = readOnly;
+  if (!readOnly) trackRecentSong(viewingSong.id);
   const readerPreferences = getReaderPreferences();
   viewerTextOnlyMode = false;
   viewerFontSize = Number(readerPreferences.fontSize) || 20;
